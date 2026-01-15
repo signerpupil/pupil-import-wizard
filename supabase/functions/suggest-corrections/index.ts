@@ -124,7 +124,20 @@ Wenn du ein Muster erkennst (z.B. Excel-Serialdaten statt echte Daten), schlage 
       // Extract JSON from the response (it might be wrapped in markdown code blocks)
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        suggestions = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        // Validate and clean up suggestions
+        suggestions = parsed.filter((s: any) => {
+          // Ensure affectedRows is a valid array of numbers
+          if (!Array.isArray(s.affectedRows)) {
+            console.warn("Invalid affectedRows, skipping suggestion:", s);
+            return false;
+          }
+          return true;
+        }).map((s: any) => ({
+          ...s,
+          // Ensure affectedRows contains only valid numbers
+          affectedRows: s.affectedRows.filter((r: any) => typeof r === 'number' && !isNaN(r))
+        })).filter((s: any) => s.affectedRows.length > 0);
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError);
