@@ -20,6 +20,7 @@ const wizardSteps = [
 
 export default function Index() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [importType, setImportType] = useState<ImportType | null>(null);
   const [subType, setSubType] = useState<FoerderplanerSubType | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
@@ -61,7 +62,9 @@ export default function Index() {
       setErrors(validationErrors);
       setCorrectedRows([...parseResult.rows]);
     }
-    setCurrentStep(prev => Math.min(prev + 1, 4));
+    const nextStep = Math.min(currentStep + 1, 4);
+    setCurrentStep(nextStep);
+    setMaxVisitedStep(prev => Math.max(prev, nextStep));
   };
 
   const handleBack = () => {
@@ -101,6 +104,7 @@ export default function Index() {
 
   const handleReset = () => {
     setCurrentStep(0);
+    setMaxVisitedStep(0);
     setImportType(null);
     setSubType(null);
     setParseResult(null);
@@ -116,7 +120,8 @@ export default function Index() {
       
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <WizardProgress 
-          currentStep={currentStep} 
+          currentStep={currentStep}
+          maxVisitedStep={maxVisitedStep}
           steps={wizardSteps} 
           onStepClick={(step) => setCurrentStep(step)}
         />
