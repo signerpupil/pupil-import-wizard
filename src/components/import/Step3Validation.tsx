@@ -228,10 +228,9 @@ export function Step3Validation({
     }
   }, [currentErrorIndex, uncorrectedErrors.length, stepByStepMode]);
 
-  // Get student name for current error row
-  const getCurrentStudentName = () => {
-    if (!currentError) return null;
-    const row = rows.find((_, index) => index + 2 === currentError.row); // +2 because row 1 is header
+  // Get student name for a specific row
+  const getStudentNameForRow = (rowNumber: number) => {
+    const row = rows.find((_, index) => index + 1 === rowNumber);
     if (!row) return null;
     const name = row['S_Name'] || row['S_name'] || '';
     const vorname = row['S_Vorname'] || row['S_vorname'] || '';
@@ -243,6 +242,76 @@ export function Step3Validation({
     if (eintragFuer) return String(eintragFuer);
     return null;
   };
+
+  // Get student name for current error row
+  const getCurrentStudentName = () => {
+    if (!currentError) return null;
+    return getStudentNameForRow(currentError.row);
+  };
+
+  // Check if current error is a duplicate error and find all related duplicates
+  const getDuplicateInfo = () => {
+    if (!currentError) return null;
+    
+    // Check if this is a duplicate or inconsistency error
+    const isDuplicateOrInconsistency = currentError.message.includes('Duplikat:') || 
+                                        currentError.message.includes('Inkonsistente ID:');
+    if (!isDuplicateOrInconsistency) return null;
+
+    // Find all errors for the same column with the same value (duplicates)
+    // or extract related rows from the message
+    const relatedErrors = errors.filter(e => 
+      e.column === currentError.column && 
+      (e.message.includes('Duplikat:') || e.message.includes('Inkonsistente ID:'))
+    );
+
+    // Extract all affected rows from messages
+    const allAffectedRows = new Set<number>();
+    
+    relatedErrors.forEach(e => {
+      allAffectedRows.add(e.row);
+      // Extract row number from message like "kommt auch in Zeile X vor" or "hat in Zeile X"
+      const rowMatch = e.message.match(/Zeile\s+(\d+)/);
+      if (rowMatch) {
+        allAffectedRows.add(parseInt(rowMatch[1]));
+      }
+    });
+
+    // Group by the duplicate value
+    const duplicateGroups: { value: string; rows: number[] }[] = [];
+    const processedValues = new Set<string>();
+
+    relatedErrors.forEach(e => {
+      if (processedValues.has(e.value)) return;
+      processedValues.add(e.value);
+      
+      const rowsWithSameValue = [e.row];
+      const rowMatch = e.message.match(/Zeile\s+(\d+)/);
+      if (rowMatch) {
+        rowsWithSameValue.unshift(parseInt(rowMatch[1])); // Add original row first
+      }
+      
+      duplicateGroups.push({ value: e.value, rows: rowsWithSameValue });
+    });
+
+    // For the current error, find its group
+    const currentValue = currentError.value;
+    const currentGroup = duplicateGroups.find(g => g.value === currentValue);
+    
+    if (!currentGroup || currentGroup.rows.length < 2) return null;
+
+    return {
+      value: currentValue,
+      column: currentError.column,
+      rows: currentGroup.rows.map(rowNum => ({
+        row: rowNum,
+        studentName: getStudentNameForRow(rowNum),
+        isCurrent: rowNum === currentError.row
+      }))
+    };
+  };
+
+  const duplicateInfo = useMemo(() => getDuplicateInfo(), [currentError, errors, rows]);
 
   const fetchAISuggestions = async () => {
     if (errors.length === 0) return;
@@ -520,6 +589,35 @@ export function Step3Validation({
               <span className="text-sm text-muted-foreground">Fehler:</span>
               <Badge variant="destructive" className="ml-2">{currentError.message}</Badge>
             </div>
+
+            {/* Show all duplicate occurrences if this is a duplicate error */}
+            {duplicateInfo && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Alle Vorkommen dieses Duplikats:</label>
+                <div className="p-3 bg-muted/50 rounded border space-y-1">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Wert <span className="font-mono font-medium">"{duplicateInfo.value}"</span> in Spalte <span className="font-mono font-medium">{duplicateInfo.column}</span>:
+                  </div>
+                  {duplicateInfo.rows.map((rowInfo, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flex items-center gap-2 text-sm ${rowInfo.isCurrent ? 'font-semibold text-primary' : ''}`}
+                    >
+                      <span className="font-mono">Zeile {rowInfo.row}</span>
+                      {rowInfo.studentName && (
+                        <>
+                          <span className="text-muted-foreground">—</span>
+                          <span>{rowInfo.studentName}</span>
+                        </>
+                      )}
+                      {rowInfo.isCurrent && (
+                        <Badge variant="outline" className="text-xs">aktuell</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Aktueller Wert:</label>
