@@ -1,14 +1,15 @@
 // Import Types & Field Definitions for PUPIL Import Wizard
+// Spalten werden NICHT umbenannt - nur validiert
 
 export type ImportType = 'schueler' | 'journal' | 'foerderplaner';
 export type FoerderplanerSubType = 'diagnostik' | 'foerderplanung' | 'lernberichte';
 
-export interface FieldMapping {
-  sourceField: string;
-  targetField: string;
+export interface ColumnDefinition {
+  name: string;
   required: boolean;
-  category?: string;
-  notInPupil?: boolean;
+  category: string;
+  description?: string;
+  validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text';
 }
 
 export interface ImportConfig {
@@ -17,7 +18,7 @@ export interface ImportConfig {
   name: string;
   description: string;
   icon: string;
-  fields: FieldMapping[];
+  columns: ColumnDefinition[];
 }
 
 export interface ParsedRow {
@@ -26,196 +27,186 @@ export interface ParsedRow {
 
 export interface ValidationError {
   row: number;
-  field: string;
+  column: string;
   value: string;
   message: string;
   correctedValue?: string;
 }
 
+export interface ColumnStatus {
+  name: string;
+  status: 'found' | 'missing' | 'extra';
+  required: boolean;
+  category?: string;
+}
+
 export interface ImportData {
   headers: string[];
   rows: ParsedRow[];
-  mappings: Record<string, string>;
+  columnStatuses: ColumnStatus[];
   errors: ValidationError[];
-  correctedRows: ParsedRow[];
+  extraColumnsAction: 'keep' | 'remove';
 }
 
-// Schülerdaten Field Definitions
-export const schuelerFields: FieldMapping[] = [
+// Schülerdaten Spalten-Definitionen (basierend auf echtem LO-Export)
+export const schuelerColumns: ColumnDefinition[] = [
+  // System-Spalten
+  { name: 'Q_System', required: false, category: 'System' },
+  { name: 'Q_Schuljahr', required: false, category: 'System' },
+  { name: 'Q_Semester', required: false, category: 'System' },
+  
   // Schüler (S_)
-  { sourceField: 'S_AHV', targetField: 'Sozialversicherungsnummer', required: true, category: 'Schüler' },
-  { sourceField: 'S_ID', targetField: 'ID', required: false, category: 'Schüler' },
-  { sourceField: 'S_Name', targetField: 'Familienname', required: true, category: 'Schüler' },
-  { sourceField: 'S_Vorname', targetField: 'Vorname', required: true, category: 'Schüler' },
-  { sourceField: 'S_Geschlecht', targetField: 'Geschlecht', required: true, category: 'Schüler' },
-  { sourceField: 'S_Geburtsdatum', targetField: 'Geburtsdatum', required: true, category: 'Schüler' },
-  { sourceField: 'S_OffiziellerName', targetField: 'Offizieller Name', required: false, category: 'Schüler' },
-  { sourceField: 'S_OffiziellerVorname', targetField: 'Offizieller Vorname', required: false, category: 'Schüler' },
-  { sourceField: 'S_Heimatort', targetField: 'Heimatort', required: false, category: 'Schüler' },
-  { sourceField: 'S_Heimatkanton', targetField: 'Heimatkanton', required: false, category: 'Schüler' },
-  { sourceField: 'S_Nationalitaet', targetField: 'Nationalität', required: false, category: 'Schüler' },
-  { sourceField: 'S_Konfession', targetField: 'Konfession', required: false, category: 'Schüler' },
-  { sourceField: 'S_Muttersprache', targetField: 'Muttersprache', required: false, category: 'Schüler' },
-  { sourceField: 'S_Umgangssprache', targetField: 'Korrespondenzsprache', required: false, category: 'Schüler' },
-  { sourceField: 'S_Strasse', targetField: 'Strasse', required: false, category: 'Schüler' },
-  { sourceField: 'S_PLZ', targetField: 'PLZ', required: false, category: 'Schüler' },
-  { sourceField: 'S_Ort', targetField: 'Ort', required: false, category: 'Schüler' },
-  { sourceField: 'S_Land', targetField: 'Land', required: false, category: 'Schüler' },
-  { sourceField: 'S_PolitischeGemeinde', targetField: 'Politische Gemeinde', required: false, category: 'Schüler' },
-  { sourceField: 'S_Email', targetField: 'E-Mail', required: false, category: 'Schüler' },
-  { sourceField: 'S_Telefon', targetField: 'Telefon', required: false, category: 'Schüler' },
-  { sourceField: 'S_Mobil', targetField: 'Mobile', required: false, category: 'Schüler' },
-  { sourceField: 'S_Eintrittsdatum', targetField: 'Klassenzugehörigkeit Beginn', required: false, category: 'Schüler' },
-  { sourceField: 'S_Austrittsdatum', targetField: 'Klassenzugehörigkeit Ende', required: false, category: 'Schüler' },
-  { sourceField: 'S_Mediendarstellung', targetField: 'Mediendarstellung', required: false, category: 'Schüler' },
-  
-  // Klasse (K_)
-  { sourceField: 'K_ID', targetField: 'Klassen-ID', required: false, category: 'Klasse' },
-  { sourceField: 'K_Schluessel', targetField: 'Klassen-Schlüssel', required: false, category: 'Klasse' },
-  { sourceField: 'K_Name', targetField: 'Klassenname', required: true, category: 'Klasse' },
-  { sourceField: 'K_Schulstufe', targetField: 'Schulstufe', required: false, category: 'Klasse' },
-  { sourceField: 'K_Schulform', targetField: 'Schulform', required: false, category: 'Klasse' },
-  { sourceField: 'K_Jahrgang', targetField: 'Schuljahr', required: false, category: 'Klasse' },
-  { sourceField: 'K_Zusatz', targetField: 'Klassenzusatz', required: false, category: 'Klasse' },
-  { sourceField: 'K_Schulhaus', targetField: 'Schulhaus', required: false, category: 'Klasse' },
-  
-  // Klassenlehrperson (L_KL1_)
-  { sourceField: 'L_KL1_AHV', targetField: 'Lehrperson AHV', required: false, category: 'Klassenlehrperson' },
-  { sourceField: 'L_KL1_ID', targetField: 'Lehrperson ID', required: false, category: 'Klassenlehrperson' },
-  { sourceField: 'L_KL1_Name', targetField: 'Lehrperson Name', required: false, category: 'Klassenlehrperson' },
-  { sourceField: 'L_KL1_Vorname', targetField: 'Lehrperson Vorname', required: false, category: 'Klassenlehrperson' },
+  { name: 'S_AHV', required: true, category: 'Schüler', validationType: 'ahv' },
+  { name: 'S_ID', required: true, category: 'Schüler' },
+  { name: 'S_Name', required: true, category: 'Schüler' },
+  { name: 'S_Vorname', required: true, category: 'Schüler' },
+  { name: 'S_Geschlecht', required: true, category: 'Schüler' },
+  { name: 'S_Geburtsdatum', required: true, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Heimatort', required: false, category: 'Schüler' },
+  { name: 'S_Konfession', required: false, category: 'Schüler' },
+  { name: 'S_Muttersprache', required: false, category: 'Schüler' },
+  { name: 'S_Umgangssprache', required: false, category: 'Schüler' },
+  { name: 'S_Nationalitaet', required: false, category: 'Schüler' },
+  { name: 'S_Strasse', required: false, category: 'Schüler' },
+  { name: 'S_PLZ', required: false, category: 'Schüler' },
+  { name: 'S_Ort', required: false, category: 'Schüler' },
+  { name: 'S_EMail', required: false, category: 'Schüler', validationType: 'email' },
+  { name: 'S_Telefon', required: false, category: 'Schüler' },
+  { name: 'S_Mobil', required: false, category: 'Schüler' },
+  { name: 'S_Eintritt_Kiga_Datum', required: false, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Eintritt_Primar_Datum', required: false, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Eintritt_Sek_Datum', required: false, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Eintritt_Datum', required: false, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Austritt_Datum', required: false, category: 'Schüler', validationType: 'date' },
+  { name: 'S_Hausarzt_ID', required: false, category: 'Schüler' },
+  { name: 'S_Zahnarzt_ID', required: false, category: 'Schüler' },
   
   // Erziehungsberechtigte 1 (P_ERZ1_)
-  { sourceField: 'P_ERZ1_ID', targetField: 'ERZ1 ID', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_AHV', targetField: 'ERZ1 AHV', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Name', targetField: 'ERZ1 Name', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Vorname', targetField: 'ERZ1 Vorname', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Geschlecht', targetField: 'ERZ1 Geschlecht', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Beruf', targetField: 'ERZ1 Beruf', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Rolle', targetField: 'ERZ1 Beziehungsart', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Anrede', targetField: 'ERZ1 Anrede', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Nationalitaet', targetField: 'ERZ1 Nationalität', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Muttersprache', targetField: 'ERZ1 Muttersprache', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Umgangssprache', targetField: 'ERZ1 Korrespondenzsprache', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Strasse', targetField: 'ERZ1 Strasse', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_PLZ', targetField: 'ERZ1 PLZ', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Ort', targetField: 'ERZ1 Ort', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Land', targetField: 'ERZ1 Land', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Email', targetField: 'ERZ1 E-Mail', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_TelefonPrivat', targetField: 'ERZ1 Telefon Privat', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_TelefonGeschaeft', targetField: 'ERZ1 Telefon Geschäft', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { sourceField: 'P_ERZ1_Mobil', targetField: 'ERZ1 Mobile', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_ID', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_AHV', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'ahv' },
+  { name: 'P_ERZ1_Name', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Vorname', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Beruf', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Geschl', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Rolle', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Strasse', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_PLZ', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Ort', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_EMail', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'email' },
+  { name: 'P_ERZ1_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Mobil', required: false, category: 'Erziehungsberechtigte/r 1' },
   
   // Erziehungsberechtigte 2 (P_ERZ2_)
-  { sourceField: 'P_ERZ2_ID', targetField: 'ERZ2 ID', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_AHV', targetField: 'ERZ2 AHV', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Name', targetField: 'ERZ2 Name', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Vorname', targetField: 'ERZ2 Vorname', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Geschlecht', targetField: 'ERZ2 Geschlecht', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Beruf', targetField: 'ERZ2 Beruf', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Rolle', targetField: 'ERZ2 Beziehungsart', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Anrede', targetField: 'ERZ2 Anrede', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Nationalitaet', targetField: 'ERZ2 Nationalität', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Muttersprache', targetField: 'ERZ2 Muttersprache', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Umgangssprache', targetField: 'ERZ2 Korrespondenzsprache', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Strasse', targetField: 'ERZ2 Strasse', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_PLZ', targetField: 'ERZ2 PLZ', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Ort', targetField: 'ERZ2 Ort', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Land', targetField: 'ERZ2 Land', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Email', targetField: 'ERZ2 E-Mail', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_TelefonPrivat', targetField: 'ERZ2 Telefon Privat', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_TelefonGeschaeft', targetField: 'ERZ2 Telefon Geschäft', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { sourceField: 'P_ERZ2_Mobil', targetField: 'ERZ2 Mobile', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_ID', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_AHV', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'ahv' },
+  { name: 'P_ERZ2_Name', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Vorname', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Beruf', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Geschl', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Rolle', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Strasse', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_PLZ', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Ort', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_EMail', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'email' },
+  { name: 'P_ERZ2_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Mobil', required: false, category: 'Erziehungsberechtigte/r 2' },
+  
+  // Klasse (K_)
+  { name: 'K_Schluessel', required: false, category: 'Klasse' },
+  { name: 'K_Name', required: true, category: 'Klasse' },
+  { name: 'K_Schulhaus_Name', required: false, category: 'Klasse' },
+  
+  // Klassenlehrperson (L_KL1_)
+  { name: 'L_KL1_AHV', required: false, category: 'Klassenlehrperson', validationType: 'ahv' },
+  { name: 'L_KL1_ID', required: false, category: 'Klassenlehrperson' },
+  { name: 'L_KL1_Name', required: false, category: 'Klassenlehrperson' },
+  { name: 'L_KL1_Vorname', required: false, category: 'Klassenlehrperson' },
 ];
 
-// Journaldaten Field Definitions
-export const journalFields: FieldMapping[] = [
-  { sourceField: 'Klasse', targetField: 'Klasse/Gruppe', required: true, category: 'Journal' },
-  { sourceField: 'Eintrag für', targetField: 'Schüler/in', required: true, category: 'Journal' },
-  { sourceField: 'Datum', targetField: 'Datum', required: true, category: 'Journal' },
-  { sourceField: 'Beobachtung / Gespräch / usw.', targetField: 'Kategorie', required: true, category: 'Journal' },
-  { sourceField: 'Beobachtung / Gespräch / usw.', targetField: 'Unterkategorie', required: false, category: 'Journal' },
-  { sourceField: 'Fach', targetField: 'Fach', required: false, category: 'Journal' },
-  { sourceField: 'Erledigt', targetField: 'Status (Erledigt/nicht Erledigt)', required: false, category: 'Journal' },
-  { sourceField: 'Versäumnis', targetField: 'Öffentliche Notiz', required: false, category: 'Journal' },
-  { sourceField: 'Massnahme', targetField: 'Interne Notiz', required: false, category: 'Journal' },
-  { sourceField: 'Datum.', targetField: 'Absenz von', required: false, category: 'Absenz' },
-  { sourceField: 'Bis (bei Kategorie Absenz)', targetField: 'Absenz bis', required: false, category: 'Absenz' },
-  { sourceField: 'Dauer', targetField: 'Anzahl Halbtage', required: false, category: 'Absenz' },
-  { sourceField: 'Entschuldigung Datum', targetField: 'Status', required: false, category: 'Absenz' },
-  { sourceField: 'Entschuldigungsgrund', targetField: '', required: false, category: 'Absenz', notInPupil: true },
-  { sourceField: 'Anmerkung', targetField: 'Kommentar Absenz', required: false, category: 'Absenz' },
-  { sourceField: 'Einheit', targetField: 'Lektionen / Halbtage', required: false, category: 'Absenz' },
-  { sourceField: 'Uhrzeit und Ort', targetField: 'Zeit Elterngespräch', required: false, category: 'Gespräch' },
+// Journaldaten Spalten-Definitionen
+export const journalColumns: ColumnDefinition[] = [
+  { name: 'Klasse', required: true, category: 'Journal' },
+  { name: 'Eintrag_fuer', required: true, category: 'Journal', description: 'Schüler-Referenz' },
+  { name: 'Datum', required: true, category: 'Journal', validationType: 'date' },
+  { name: 'Kategorie', required: true, category: 'Journal' },
+  { name: 'Unterkategorie', required: false, category: 'Journal' },
+  { name: 'Fach', required: false, category: 'Journal' },
+  { name: 'Erledigt', required: false, category: 'Journal' },
+  { name: 'Versaeumnis', required: false, category: 'Journal' },
+  { name: 'Massnahme', required: false, category: 'Journal' },
+  { name: 'Absenz_von', required: false, category: 'Absenz', validationType: 'date' },
+  { name: 'Absenz_bis', required: false, category: 'Absenz', validationType: 'date' },
+  { name: 'Dauer', required: false, category: 'Absenz' },
+  { name: 'Entschuldigung_Datum', required: false, category: 'Absenz', validationType: 'date' },
+  { name: 'Entschuldigungsgrund', required: false, category: 'Absenz' },
+  { name: 'Anmerkung', required: false, category: 'Absenz' },
+  { name: 'Einheit', required: false, category: 'Absenz' },
+  { name: 'Uhrzeit_Ort', required: false, category: 'Gespräch' },
 ];
 
-// Förderplaner - Diagnostik Field Definitions
-export const diagnostikFields: FieldMapping[] = [
-  { sourceField: 'Diagnostik – Fragestellungen', targetField: 'Art der Förderung: Diagnostik', required: true, category: 'Diagnostik' },
-  { sourceField: 'Eintrag für', targetField: 'Schüler/in', required: true, category: 'Diagnostik' },
-  { sourceField: 'Schwerpunkt gemäss ICF-Aktivitätsbereich', targetField: 'Bereich', required: true, category: 'Diagnostik' },
-  { sourceField: 'Titel', targetField: 'Förderziel - Förderziel', required: true, category: 'Diagnostik' },
-  { sourceField: 'Status', targetField: '', required: false, category: 'Diagnostik', notInPupil: true },
-  { sourceField: 'Ausgangslage', targetField: 'Förderziel - Förderziel', required: false, category: 'Diagnostik' },
-  { sourceField: 'Beschreibung', targetField: 'Förderziel - Förderziel', required: false, category: 'Diagnostik' },
-  { sourceField: 'Erklärungsansätze', targetField: 'Förderziel - Förderziel', required: false, category: 'Diagnostik' },
-  { sourceField: 'Zeitraum von', targetField: 'Förderziel - Beginn', required: false, category: 'Diagnostik' },
-  { sourceField: 'Zeitraum bis', targetField: 'Förderziel - Ende', required: false, category: 'Diagnostik' },
-  { sourceField: 'Priorität', targetField: '', required: false, category: 'Diagnostik', notInPupil: true },
+// Förderplaner - Diagnostik Spalten
+export const diagnostikColumns: ColumnDefinition[] = [
+  { name: 'Eintrag_fuer', required: true, category: 'Diagnostik' },
+  { name: 'ICF_Bereich', required: true, category: 'Diagnostik' },
+  { name: 'Titel', required: true, category: 'Diagnostik' },
+  { name: 'Status', required: false, category: 'Diagnostik' },
+  { name: 'Ausgangslage', required: false, category: 'Diagnostik' },
+  { name: 'Beschreibung', required: false, category: 'Diagnostik' },
+  { name: 'Erklaerungsansaetze', required: false, category: 'Diagnostik' },
+  { name: 'Zeitraum_von', required: false, category: 'Diagnostik', validationType: 'date' },
+  { name: 'Zeitraum_bis', required: false, category: 'Diagnostik', validationType: 'date' },
+  { name: 'Prioritaet', required: false, category: 'Diagnostik' },
 ];
 
-// Förderplaner - Förderplanung Field Definitions
-export const foerderplanungFields: FieldMapping[] = [
-  { sourceField: 'Förderplanung', targetField: 'Art der Förderung: Förderplanung', required: true, category: 'Förderplanung' },
-  { sourceField: 'Eintrag für', targetField: 'Schüler/in', required: true, category: 'Förderplanung' },
-  { sourceField: 'Fragestellung', targetField: '', required: false, category: 'Förderplanung', notInPupil: true },
-  { sourceField: 'Fach-/Kompetenzbereich', targetField: 'Förderziel – ICF- oder LP21-Bereich', required: true, category: 'Förderplanung' },
-  { sourceField: 'Förderziel', targetField: 'Förderziel - Förderziel', required: true, category: 'Förderplanung' },
-  { sourceField: 'Förderung ist abgeschlossen', targetField: '', required: false, category: 'Förderplanung', notInPupil: true },
-  { sourceField: 'Fördermassnahmen', targetField: 'Förderziel - Massnahme', required: false, category: 'Förderplanung' },
-  { sourceField: 'Verantwortliche Person', targetField: 'Förderziel - Massnahme', required: false, category: 'Förderplanung' },
-  { sourceField: 'Förderverlauf: Datum', targetField: 'Förderziel - Förderverlauf - Datum', required: false, category: 'Förderplanung' },
-  { sourceField: 'Förderverlauf: Geplanter Lernschritt', targetField: 'Förderziel - Förderverlauf - Beschreibung', required: false, category: 'Förderplanung' },
-  { sourceField: 'Förderverlauf: Beobachtung', targetField: 'Förderziel - Förderverlauf - Beschreibung', required: false, category: 'Förderplanung' },
-  { sourceField: 'Lernfortschritt', targetField: 'Förderziel - Fortschritte', required: false, category: 'Förderplanung' },
-  { sourceField: 'Förderziel erfasst', targetField: '', required: false, category: 'Förderplanung', notInPupil: true },
-  { sourceField: 'Zuletzt geändert', targetField: '', required: false, category: 'Förderplanung', notInPupil: true },
-  { sourceField: 'Bezug auf LP 21', targetField: '', required: false, category: 'Förderplanung', notInPupil: true },
-  { sourceField: 'Datum Beginn der Förderung', targetField: 'Förderziel - Beginn', required: false, category: 'Förderplanung' },
-  { sourceField: 'Datum Abschluss der Förderung', targetField: 'Förderziele - Ende', required: false, category: 'Förderplanung' },
+// Förderplaner - Förderplanung Spalten
+export const foerderplanungColumns: ColumnDefinition[] = [
+  { name: 'Eintrag_fuer', required: true, category: 'Förderplanung' },
+  { name: 'Fragestellung', required: false, category: 'Förderplanung' },
+  { name: 'Fach_Kompetenzbereich', required: true, category: 'Förderplanung' },
+  { name: 'Foerderziel', required: true, category: 'Förderplanung' },
+  { name: 'Foerderung_abgeschlossen', required: false, category: 'Förderplanung' },
+  { name: 'Foerdermassnahmen', required: false, category: 'Förderplanung' },
+  { name: 'Verantwortliche_Person', required: false, category: 'Förderplanung' },
+  { name: 'Foerderverlauf_Datum', required: false, category: 'Förderplanung', validationType: 'date' },
+  { name: 'Foerderverlauf_Lernschritt', required: false, category: 'Förderplanung' },
+  { name: 'Foerderverlauf_Beobachtung', required: false, category: 'Förderplanung' },
+  { name: 'Lernfortschritt', required: false, category: 'Förderplanung' },
+  { name: 'Datum_Beginn', required: false, category: 'Förderplanung', validationType: 'date' },
+  { name: 'Datum_Abschluss', required: false, category: 'Förderplanung', validationType: 'date' },
 ];
 
-// Förderplaner - Lernberichte Field Definitions
-export const lernberichteFields: FieldMapping[] = [
-  { sourceField: 'Lernbericht', targetField: '', required: true, category: 'Lernbericht' },
-  { sourceField: 'Eintrag für', targetField: 'Schüler/in', required: true, category: 'Lernbericht' },
-  { sourceField: 'Halbjahr', targetField: '', required: false, category: 'Lernbericht' },
-  { sourceField: 'Lehrperson', targetField: 'Lehrperson (Bericht verwalten)', required: false, category: 'Lernbericht' },
-  { sourceField: 'Datum', targetField: 'Datum Bericht', required: false, category: 'Lernbericht' },
-  { sourceField: 'Titel Lernbericht', targetField: 'Name Bericht', required: true, category: 'Lernbericht' },
-  { sourceField: 'Lernbericht abgeschlossen', targetField: '', required: false, category: 'Lernbericht', notInPupil: true },
-  { sourceField: 'Für Zwischenzeugnis / Jahreszeugnis', targetField: 'Bericht verwalten – Bericht fürs Zeugnis', required: false, category: 'Lernbericht' },
-  { sourceField: 'Fach/Kompetenzbereich', targetField: 'Fachbereich', required: false, category: 'Lernbericht' },
-  { sourceField: 'Förderziel', targetField: 'Förderziel', required: false, category: 'Lernbericht' },
-  { sourceField: 'Beurteilung', targetField: 'Zielerreichung setzen', required: false, category: 'Lernbericht' },
-  { sourceField: 'Zusammenfassung der Lernfortschritte', targetField: 'Würdigung', required: false, category: 'Lernbericht' },
+// Förderplaner - Lernberichte Spalten
+export const lernberichteColumns: ColumnDefinition[] = [
+  { name: 'Eintrag_fuer', required: true, category: 'Lernbericht' },
+  { name: 'Halbjahr', required: false, category: 'Lernbericht' },
+  { name: 'Lehrperson', required: false, category: 'Lernbericht' },
+  { name: 'Datum', required: false, category: 'Lernbericht', validationType: 'date' },
+  { name: 'Titel_Lernbericht', required: true, category: 'Lernbericht' },
+  { name: 'Lernbericht_abgeschlossen', required: false, category: 'Lernbericht' },
+  { name: 'Fuer_Zeugnis', required: false, category: 'Lernbericht' },
+  { name: 'Fach_Kompetenzbereich', required: false, category: 'Lernbericht' },
+  { name: 'Foerderziel', required: false, category: 'Lernbericht' },
+  { name: 'Beurteilung', required: false, category: 'Lernbericht' },
+  { name: 'Lernfortschritte', required: false, category: 'Lernbericht' },
 ];
 
-// Get fields by import type
-export function getFieldsByType(type: ImportType, subType?: FoerderplanerSubType): FieldMapping[] {
+// Get columns by import type
+export function getColumnsByType(type: ImportType, subType?: FoerderplanerSubType): ColumnDefinition[] {
   switch (type) {
     case 'schueler':
-      return schuelerFields;
+      return schuelerColumns;
     case 'journal':
-      return journalFields;
+      return journalColumns;
     case 'foerderplaner':
       switch (subType) {
         case 'diagnostik':
-          return diagnostikFields;
+          return diagnostikColumns;
         case 'foerderplanung':
-          return foerderplanungFields;
+          return foerderplanungColumns;
         case 'lernberichte':
-          return lernberichteFields;
+          return lernberichteColumns;
         default:
           return [];
       }
@@ -231,21 +222,21 @@ export const importConfigs: ImportConfig[] = [
     name: 'Schülerdaten',
     description: 'Schüler, Klassen, Lehrpersonen und Erziehungsberechtigte importieren',
     icon: 'Users',
-    fields: schuelerFields,
+    columns: schuelerColumns,
   },
   {
     type: 'journal',
     name: 'Journaldaten',
     description: 'Beobachtungen, Gespräche, Absenzen und mehr importieren',
     icon: 'BookOpen',
-    fields: journalFields,
+    columns: journalColumns,
   },
   {
     type: 'foerderplaner',
     name: 'Förderplaner',
     description: 'Diagnostik, Förderplanung und Lernberichte importieren',
     icon: 'GraduationCap',
-    fields: [],
+    columns: [],
   },
 ];
 
@@ -255,20 +246,20 @@ export const foerderplanerSubTypes = [
     name: 'Diagnostik',
     description: 'Diagnostische Fragestellungen und ICF-Bereiche',
     icon: 'Search',
-    fields: diagnostikFields,
+    columns: diagnostikColumns,
   },
   {
     subType: 'foerderplanung' as FoerderplanerSubType,
     name: 'Förderplanung',
     description: 'Förderziele, Massnahmen und Förderverlauf',
     icon: 'Target',
-    fields: foerderplanungFields,
+    columns: foerderplanungColumns,
   },
   {
     subType: 'lernberichte' as FoerderplanerSubType,
     name: 'Lernberichte',
     description: 'Lernberichte und Beurteilungen',
     icon: 'FileText',
-    fields: lernberichteFields,
+    columns: lernberichteColumns,
   },
 ];

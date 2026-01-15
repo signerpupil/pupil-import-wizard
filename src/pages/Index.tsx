@@ -3,17 +3,17 @@ import { WizardHeader } from '@/components/import/WizardHeader';
 import { WizardProgress } from '@/components/import/WizardProgress';
 import { Step0TypeSelect } from '@/components/import/Step0TypeSelect';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
-import { Step2FieldMapping } from '@/components/import/Step2FieldMapping';
+import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
 import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
-import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, FieldMapping } from '@/types/importTypes';
-import { getFieldsByType, importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
-import { validateData, applyCorrectedValues, type ParseResult } from '@/lib/fileParser';
+import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition } from '@/types/importTypes';
+import { getColumnsByType, importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
+import { checkColumnStatus, validateData, type ParseResult } from '@/lib/fileParser';
 
 const wizardSteps = [
   { label: 'Typ wählen' },
   { label: 'Datei hochladen' },
-  { label: 'Felder zuordnen' },
+  { label: 'Spalten prüfen' },
   { label: 'Validieren' },
   { label: 'Export' },
 ];
@@ -23,11 +23,12 @@ export default function Index() {
   const [importType, setImportType] = useState<ImportType | null>(null);
   const [subType, setSubType] = useState<FoerderplanerSubType | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-  const [mappings, setMappings] = useState<Record<string, string>>({});
+  const [columnStatuses, setColumnStatuses] = useState<ColumnStatus[]>([]);
+  const [removeExtraColumns, setRemoveExtraColumns] = useState(false);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [correctedRows, setCorrectedRows] = useState<ParsedRow[]>([]);
 
-  const fieldDefinitions: FieldMapping[] = importType ? getFieldsByType(importType, subType ?? undefined) : [];
+  const columnDefinitions: ColumnDefinition[] = importType ? getColumnsByType(importType, subType ?? undefined) : [];
 
   const getImportTypeName = () => {
     if (importType === 'foerderplaner' && subType) {
@@ -38,9 +39,14 @@ export default function Index() {
   };
 
   const handleNext = () => {
+    if (currentStep === 1 && parseResult) {
+      // Check column status when moving to step 2
+      const statuses = checkColumnStatus(parseResult.headers, columnDefinitions);
+      setColumnStatuses(statuses);
+    }
     if (currentStep === 2 && parseResult) {
       // Validate data when moving to step 3
-      const validationErrors = validateData(parseResult.rows, mappings, fieldDefinitions);
+      const validationErrors = validateData(parseResult.rows, columnDefinitions);
       setErrors(validationErrors);
       setCorrectedRows([...parseResult.rows]);
     }
@@ -51,16 +57,16 @@ export default function Index() {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  const handleErrorCorrect = useCallback((rowIndex: number, field: string, value: string) => {
+  const handleErrorCorrect = useCallback((rowIndex: number, column: string, value: string) => {
     setErrors(prev => prev.map(e => 
-      e.row === rowIndex && e.field === field 
+      e.row === rowIndex && e.column === column 
         ? { ...e, correctedValue: value }
         : e
     ));
     setCorrectedRows(prev => {
       const updated = [...prev];
       if (updated[rowIndex - 1]) {
-        updated[rowIndex - 1] = { ...updated[rowIndex - 1], [field]: value };
+        updated[rowIndex - 1] = { ...updated[rowIndex - 1], [column]: value };
       }
       return updated;
     });
@@ -71,7 +77,8 @@ export default function Index() {
     setImportType(null);
     setSubType(null);
     setParseResult(null);
-    setMappings({});
+    setColumnStatuses([]);
+    setRemoveExtraColumns(false);
     setErrors([]);
     setCorrectedRows([]);
   };
@@ -103,12 +110,11 @@ export default function Index() {
             />
           )}
 
-          {currentStep === 2 && parseResult && (
-            <Step2FieldMapping
-              sourceHeaders={parseResult.headers}
-              fieldDefinitions={fieldDefinitions}
-              mappings={mappings}
-              onMappingsChange={setMappings}
+          {currentStep === 2 && (
+            <Step2ColumnCheck
+              columnStatuses={columnStatuses}
+              removeExtraColumns={removeExtraColumns}
+              onRemoveExtraColumnsChange={setRemoveExtraColumns}
               onBack={handleBack}
               onNext={handleNext}
             />
@@ -124,11 +130,13 @@ export default function Index() {
             />
           )}
 
-          {currentStep === 4 && (
+          {currentStep === 4 && parseResult && (
             <Step4Preview
               rows={correctedRows}
-              mappings={mappings}
+              headers={parseResult.headers}
               errors={errors}
+              columnStatuses={columnStatuses}
+              removeExtraColumns={removeExtraColumns}
               importTypeName={getImportTypeName()}
               onBack={handleBack}
               onReset={handleReset}

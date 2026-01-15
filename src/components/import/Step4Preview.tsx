@@ -18,13 +18,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useState } from 'react';
-import type { ParsedRow, ValidationError } from '@/types/importTypes';
+import type { ParsedRow, ValidationError, ColumnStatus } from '@/types/importTypes';
 import { exportToCSV, exportToExcel } from '@/lib/fileParser';
 
 interface Step4PreviewProps {
   rows: ParsedRow[];
-  mappings: Record<string, string>;
+  headers: string[];
   errors: ValidationError[];
+  columnStatuses: ColumnStatus[];
+  removeExtraColumns: boolean;
   importTypeName: string;
   onBack: () => void;
   onReset: () => void;
@@ -32,8 +34,10 @@ interface Step4PreviewProps {
 
 export function Step4Preview({
   rows,
-  mappings,
+  headers,
   errors,
+  columnStatuses,
+  removeExtraColumns,
   importTypeName,
   onBack,
   onReset,
@@ -42,24 +46,33 @@ export function Step4Preview({
   const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
   const [exported, setExported] = useState(false);
 
-  const activeMappings = Object.entries(mappings).filter(
-    ([_, target]) => target !== '__skip__' && target !== ''
-  );
-
-  const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
+  const uncorrectedErrors = errors.filter(e => !e.correctedValue);
+  const errorRows = new Set(uncorrectedErrors.map(e => e.row));
   const errorFreeCount = rows.length - errorRows.size;
+  const correctedCount = errors.filter(e => e.correctedValue).length;
+
+  // Get expected column names
+  const expectedColumns = columnStatuses
+    .filter(c => c.status !== 'extra')
+    .map(c => c.name);
+
+  // Determine export headers
+  const exportHeaders = removeExtraColumns
+    ? headers.filter(h => expectedColumns.includes(h))
+    : headers;
 
   const handleExport = () => {
     const options = {
       onlyErrorFree: exportFilter === 'errorFree',
       errors,
-      usePupilHeaders: true,
+      removeExtraColumns,
+      expectedColumns,
     };
 
     if (exportFormat === 'csv') {
-      exportToCSV(rows, mappings, importTypeName, options);
+      exportToCSV(rows, headers, importTypeName, options);
     } else {
-      exportToExcel(rows, mappings, importTypeName, options);
+      exportToExcel(rows, headers, importTypeName, options);
     }
     setExported(true);
   };
@@ -83,8 +96,8 @@ export function Step4Preview({
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
-            <p className="text-3xl font-bold text-pupil-teal">{activeMappings.length}</p>
-            <p className="text-sm text-muted-foreground">Zugeordnete Felder</p>
+            <p className="text-3xl font-bold text-pupil-teal">{exportHeaders.length}</p>
+            <p className="text-sm text-muted-foreground">Spalten (Export)</p>
           </CardContent>
         </Card>
         <Card>
@@ -95,9 +108,7 @@ export function Step4Preview({
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
-            <p className="text-3xl font-bold text-pupil-warning">
-              {errors.filter(e => e.correctedValue).length}
-            </p>
+            <p className="text-3xl font-bold text-pupil-warning">{correctedCount}</p>
             <p className="text-sm text-muted-foreground">Korrekturen</p>
           </CardContent>
         </Card>
@@ -134,6 +145,12 @@ export function Step4Preview({
             </div>
           </div>
 
+          {removeExtraColumns && (
+            <p className="text-sm text-muted-foreground mt-4">
+              ℹ️ Zusätzliche Spalten werden beim Export entfernt ({headers.length - exportHeaders.length} Spalte(n))
+            </p>
+          )}
+
           <div className="mt-6 flex items-center gap-4">
             <Button size="lg" onClick={handleExport} className="gap-2">
               <Download className="h-5 w-5" />
@@ -158,14 +175,14 @@ export function Step4Preview({
               <TableHeader>
                 <TableRow className="bg-pupil-teal">
                   <TableHead className="text-pupil-teal-foreground w-16">#</TableHead>
-                  {activeMappings.slice(0, 5).map(([source, target]) => (
-                    <TableHead key={source} className="text-pupil-teal-foreground whitespace-nowrap">
-                      {target}
+                  {exportHeaders.slice(0, 6).map((header) => (
+                    <TableHead key={header} className="text-pupil-teal-foreground whitespace-nowrap">
+                      {header}
                     </TableHead>
                   ))}
-                  {activeMappings.length > 5 && (
+                  {exportHeaders.length > 6 && (
                     <TableHead className="text-pupil-teal-foreground">
-                      +{activeMappings.length - 5} weitere
+                      +{exportHeaders.length - 6} weitere
                     </TableHead>
                   )}
                 </TableRow>
@@ -174,12 +191,12 @@ export function Step4Preview({
                 {rows.slice(0, 10).map((row, idx) => (
                   <TableRow key={idx}>
                     <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
-                    {activeMappings.slice(0, 5).map(([source]) => (
-                      <TableCell key={source} className="whitespace-nowrap">
-                        {String(row[source] ?? '')}
+                    {exportHeaders.slice(0, 6).map((header) => (
+                      <TableCell key={header} className="whitespace-nowrap max-w-[200px] truncate">
+                        {String(row[header] ?? '')}
                       </TableCell>
                     ))}
-                    {activeMappings.length > 5 && (
+                    {exportHeaders.length > 6 && (
                       <TableCell className="text-muted-foreground">...</TableCell>
                     )}
                   </TableRow>
