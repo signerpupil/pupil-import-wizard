@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import type { ParsedRow, ValidationError, FieldMapping } from '@/types/importTypes';
+import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
 
 export interface ParseResult {
   headers: string[];
@@ -80,100 +80,108 @@ async function parseExcel(file: File): Promise<ParseResult> {
   return { headers, rows, fileName: file.name };
 }
 
-// Auto-map source fields to target fields
-export function autoMapFields(
+// Check column status (found, missing, extra)
+export function checkColumnStatus(
   sourceHeaders: string[],
-  fieldMappings: FieldMapping[]
-): Record<string, string> {
-  const mappings: Record<string, string> = {};
+  expectedColumns: ColumnDefinition[]
+): ColumnStatus[] {
+  const statuses: ColumnStatus[] = [];
+  const sourceHeadersSet = new Set(sourceHeaders);
 
-  sourceHeaders.forEach(sourceHeader => {
-    const normalizedSource = sourceHeader.toLowerCase().replace(/[_\-\s]/g, '');
-    
-    // Try exact match first
-    const exactMatch = fieldMappings.find(
-      f => f.sourceField.toLowerCase().replace(/[_\-\s]/g, '') === normalizedSource
-    );
-    
-    if (exactMatch) {
-      mappings[sourceHeader] = exactMatch.targetField || '__skip__';
-      return;
-    }
+  // Check expected columns
+  expectedColumns.forEach(col => {
+    const found = sourceHeadersSet.has(col.name);
+    statuses.push({
+      name: col.name,
+      status: found ? 'found' : 'missing',
+      required: col.required,
+      category: col.category,
+    });
+  });
 
-    // Try partial match
-    const partialMatch = fieldMappings.find(
-      f => normalizedSource.includes(f.sourceField.toLowerCase().replace(/[_\-\s]/g, '')) ||
-           f.sourceField.toLowerCase().replace(/[_\-\s]/g, '').includes(normalizedSource)
-    );
-
-    if (partialMatch) {
-      mappings[sourceHeader] = partialMatch.targetField || '__skip__';
-    } else {
-      mappings[sourceHeader] = '__skip__';
+  // Check for extra columns
+  const expectedNames = new Set(expectedColumns.map(c => c.name));
+  sourceHeaders.forEach(header => {
+    if (!expectedNames.has(header)) {
+      statuses.push({
+        name: header,
+        status: 'extra',
+        required: false,
+      });
     }
   });
 
-  return mappings;
+  return statuses;
 }
 
 // Validate data
 export function validateData(
   rows: ParsedRow[],
-  mappings: Record<string, string>,
-  fieldDefinitions: FieldMapping[]
+  columnDefinitions: ColumnDefinition[]
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // Get required fields from mappings
-  const requiredFields = fieldDefinitions.filter(f => f.required);
-
   rows.forEach((row, rowIndex) => {
-    // Check required fields
-    requiredFields.forEach(field => {
-      const sourceField = Object.keys(mappings).find(k => mappings[k] === field.targetField);
-      if (sourceField) {
-        const value = row[sourceField];
-        if (value === null || value === undefined || String(value).trim() === '') {
-          errors.push({
-            row: rowIndex + 1,
-            field: sourceField,
-            value: String(value ?? ''),
-            message: `Pflichtfeld "${field.targetField}" ist leer`,
-          });
-        }
-      }
-    });
+    columnDefinitions.forEach(col => {
+      const value = row[col.name];
+      const strValue = String(value ?? '').trim();
 
-    // Validate date formats
-    Object.keys(mappings).forEach(sourceField => {
-      const targetField = mappings[sourceField];
-      if (targetField.toLowerCase().includes('datum') || 
-          targetField.toLowerCase().includes('beginn') || 
-          targetField.toLowerCase().includes('ende')) {
-        const value = row[sourceField];
-        if (value && !isValidDate(String(value))) {
-          errors.push({
-            row: rowIndex + 1,
-            field: sourceField,
-            value: String(value),
-            message: 'Ungültiges Datumsformat. Erwartet: TT.MM.JJJJ',
-          });
-        }
+      // Check required fields
+      if (col.required && (value === null || value === undefined || strValue === '')) {
+        errors.push({
+          row: rowIndex + 1,
+          column: col.name,
+          value: '',
+          message: `Pflichtfeld "${col.name}" ist leer`,
+        });
+        return;
       }
-    });
 
-    // Validate AHV number format
-    Object.keys(mappings).forEach(sourceField => {
-      if (sourceField.toLowerCase().includes('ahv')) {
-        const value = row[sourceField];
-        if (value && !isValidAHV(String(value))) {
-          errors.push({
-            row: rowIndex + 1,
-            field: sourceField,
-            value: String(value),
-            message: 'Ungültiges AHV-Format. Erwartet: 756.XXXX.XXXX.XX',
-          });
-        }
+      // Skip validation if empty and not required
+      if (strValue === '') return;
+
+      // Type-specific validation
+      switch (col.validationType) {
+        case 'date':
+          if (!isValidDate(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültiges Datumsformat',
+            });
+          }
+          break;
+        case 'ahv':
+          if (!isValidAHV(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)',
+            });
+          }
+          break;
+        case 'email':
+          if (!isValidEmail(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültige E-Mail-Adresse',
+            });
+          }
+          break;
+        case 'number':
+          if (isNaN(Number(strValue))) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültige Zahl',
+            });
+          }
+          break;
       }
     });
   });
@@ -182,11 +190,12 @@ export function validateData(
 }
 
 function isValidDate(value: string): boolean {
-  // Accept various date formats
+  // Accept various date formats and Excel serial numbers
   const patterns = [
     /^\d{2}\.\d{2}\.\d{4}$/, // DD.MM.YYYY
     /^\d{4}-\d{2}-\d{2}$/,   // YYYY-MM-DD
     /^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
+    /^\d+$/,                  // Excel serial number
   ];
   return patterns.some(p => p.test(value)) || !isNaN(Date.parse(value));
 }
@@ -194,7 +203,12 @@ function isValidDate(value: string): boolean {
 function isValidAHV(value: string): boolean {
   // Swiss AHV number format: 756.XXXX.XXXX.XX
   const pattern = /^756\.\d{4}\.\d{4}\.\d{2}$/;
-  return pattern.test(value) || value.trim() === '';
+  return pattern.test(value);
+}
+
+function isValidEmail(value: string): boolean {
+  const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return pattern.test(value);
 }
 
 // Apply corrections to rows
@@ -208,7 +222,7 @@ export function applyCorrectedValues(
     if (error.correctedValue !== undefined) {
       const rowIndex = error.row - 1;
       if (correctedRows[rowIndex]) {
-        correctedRows[rowIndex][error.field] = error.correctedValue;
+        correctedRows[rowIndex][error.column] = error.correctedValue;
       }
     }
   });
@@ -216,46 +230,44 @@ export function applyCorrectedValues(
   return correctedRows;
 }
 
-// Export to CSV
+// Export to CSV - keeps original column names
 export function exportToCSV(
   rows: ParsedRow[],
-  mappings: Record<string, string>,
+  headers: string[],
   importType: string,
   options: {
     onlyErrorFree?: boolean;
     errors?: ValidationError[];
-    usePupilHeaders?: boolean;
+    removeExtraColumns?: boolean;
+    expectedColumns?: string[];
   } = {}
 ): void {
-  const { onlyErrorFree = false, errors = [], usePupilHeaders = true } = options;
+  const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
 
   // Filter rows if onlyErrorFree
   let exportRows = rows;
   if (onlyErrorFree && errors.length > 0) {
-    const errorRows = new Set(errors.map(e => e.row));
+    const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
     exportRows = rows.filter((_, idx) => !errorRows.has(idx + 1));
   }
 
-  // Filter out skipped mappings
-  const activeMappings = Object.entries(mappings).filter(
-    ([_, target]) => target !== '__skip__' && target !== ''
-  );
-
-  // Create headers
-  const headers = usePupilHeaders
-    ? activeMappings.map(([_, target]) => target)
-    : activeMappings.map(([source, _]) => source);
+  // Determine which headers to use
+  let exportHeaders = headers;
+  if (removeExtraColumns && expectedColumns.length > 0) {
+    const expectedSet = new Set(expectedColumns);
+    exportHeaders = headers.filter(h => expectedSet.has(h));
+  }
 
   // Create data rows
   const data = exportRows.map(row => {
-    return activeMappings.map(([source, _]) => {
-      const value = row[source];
+    return exportHeaders.map(header => {
+      const value = row[header];
       return value !== null && value !== undefined ? String(value) : '';
     });
   });
 
   // Create workbook
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...data]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Daten');
 
@@ -263,52 +275,50 @@ export function exportToCSV(
   const date = new Date().toISOString().split('T')[0];
   const fileName = `${importType}_${date}_bereinigt.csv`;
 
-  // Export
+  // Export with UTF-8 BOM for Excel compatibility
   const csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ';' });
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
   saveAs(blob, fileName);
 }
 
-// Export to Excel
+// Export to Excel - keeps original column names
 export function exportToExcel(
   rows: ParsedRow[],
-  mappings: Record<string, string>,
+  headers: string[],
   importType: string,
   options: {
     onlyErrorFree?: boolean;
     errors?: ValidationError[];
-    usePupilHeaders?: boolean;
+    removeExtraColumns?: boolean;
+    expectedColumns?: string[];
   } = {}
 ): void {
-  const { onlyErrorFree = false, errors = [], usePupilHeaders = true } = options;
+  const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
 
   // Filter rows if onlyErrorFree
   let exportRows = rows;
   if (onlyErrorFree && errors.length > 0) {
-    const errorRows = new Set(errors.map(e => e.row));
+    const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
     exportRows = rows.filter((_, idx) => !errorRows.has(idx + 1));
   }
 
-  // Filter out skipped mappings
-  const activeMappings = Object.entries(mappings).filter(
-    ([_, target]) => target !== '__skip__' && target !== ''
-  );
-
-  // Create headers
-  const headers = usePupilHeaders
-    ? activeMappings.map(([_, target]) => target)
-    : activeMappings.map(([source, _]) => source);
+  // Determine which headers to use
+  let exportHeaders = headers;
+  if (removeExtraColumns && expectedColumns.length > 0) {
+    const expectedSet = new Set(expectedColumns);
+    exportHeaders = headers.filter(h => expectedSet.has(h));
+  }
 
   // Create data rows
   const data = exportRows.map(row => {
-    return activeMappings.map(([source, _]) => {
-      const value = row[source];
+    return exportHeaders.map(header => {
+      const value = row[header];
       return value !== null && value !== undefined ? String(value) : '';
     });
   });
 
   // Create workbook
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...data]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Daten');
 

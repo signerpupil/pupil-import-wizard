@@ -17,7 +17,7 @@ import type { ValidationError, ParsedRow } from '@/types/importTypes';
 interface Step3ValidationProps {
   errors: ValidationError[];
   rows: ParsedRow[];
-  onErrorCorrect: (rowIndex: number, field: string, value: string) => void;
+  onErrorCorrect: (rowIndex: number, column: string, value: string) => void;
   onBack: () => void;
   onNext: () => void;
 }
@@ -29,17 +29,17 @@ export function Step3Validation({
   onBack,
   onNext,
 }: Step3ValidationProps) {
-  const [editingCell, setEditingCell] = useState<{ row: number; field: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const handleStartEdit = (row: number, field: string, currentValue: string) => {
-    setEditingCell({ row, field });
+  const handleStartEdit = (row: number, column: string, currentValue: string) => {
+    setEditingCell({ row, column });
     setEditValue(currentValue);
   };
 
   const handleSaveEdit = () => {
     if (editingCell) {
-      onErrorCorrect(editingCell.row, editingCell.field, editValue);
+      onErrorCorrect(editingCell.row, editingCell.column, editValue);
       setEditingCell(null);
       setEditValue('');
     }
@@ -86,7 +86,7 @@ export function Step3Validation({
             <TableHeader>
               <TableRow className="bg-pupil-teal">
                 <TableHead className="text-pupil-teal-foreground w-20">Zeile</TableHead>
-                <TableHead className="text-pupil-teal-foreground">Feld</TableHead>
+                <TableHead className="text-pupil-teal-foreground">Spalte</TableHead>
                 <TableHead className="text-pupil-teal-foreground">Wert</TableHead>
                 <TableHead className="text-pupil-teal-foreground">Fehler</TableHead>
                 <TableHead className="text-pupil-teal-foreground w-32">Aktion</TableHead>
@@ -94,13 +94,13 @@ export function Step3Validation({
             </TableHeader>
             <TableBody>
               {errors.map((error, idx) => {
-                const isEditing = editingCell?.row === error.row && editingCell?.field === error.field;
+                const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
                 const isCorrected = error.correctedValue !== undefined;
 
                 return (
                   <TableRow key={idx} className={isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}>
                     <TableCell className="font-mono">{error.row}</TableCell>
-                    <TableCell className="font-medium">{error.field}</TableCell>
+                    <TableCell className="font-medium font-mono text-sm">{error.column}</TableCell>
                     <TableCell>
                       {isEditing ? (
                         <Input
@@ -135,7 +135,7 @@ export function Step3Validation({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleStartEdit(error.row, error.field, error.correctedValue ?? error.value)}
+                          onClick={() => handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)}
                         >
                           <Edit2 className="h-4 w-4 mr-1" />
                           {isCorrected ? 'Ändern' : 'Korrigieren'}
