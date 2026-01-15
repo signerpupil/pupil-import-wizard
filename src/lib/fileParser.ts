@@ -115,7 +115,84 @@ export function checkColumnStatus(
 }
 
 // Fields that should be checked for duplicates
-const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
+const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'L_KL1_AHV'];
+
+// Configuration for family consistency checks
+const FAMILY_CONSISTENCY_CHECKS = [
+  {
+    idField: 'P_ERZ1_ID',
+    ahvField: 'P_ERZ1_AHV',
+    nameField: 'P_ERZ1_Name',
+    vornameField: 'P_ERZ1_Vorname',
+    strasseField: 'P_ERZ1_Strasse',
+    label: 'Erziehungsberechtigte/r 1'
+  },
+  {
+    idField: 'P_ERZ2_ID',
+    ahvField: 'P_ERZ2_AHV',
+    nameField: 'P_ERZ2_Name',
+    vornameField: 'P_ERZ2_Vorname',
+    strasseField: 'P_ERZ2_Strasse',
+    label: 'Erziehungsberechtigte/r 2'
+  }
+];
+
+// Check family consistency - same parent should have same ID across all rows
+function checkFamilyConsistency(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  FAMILY_CONSISTENCY_CHECKS.forEach(check => {
+    // Map to track: identifier -> { firstId, firstRow, occurrences }
+    const parentMap = new Map<string, { id: string; firstRow: number; identifier: string }>();
+
+    rows.forEach((row, rowIndex) => {
+      const id = String(row[check.idField] ?? '').trim();
+      const ahv = String(row[check.ahvField] ?? '').trim();
+      const name = String(row[check.nameField] ?? '').trim();
+      const vorname = String(row[check.vornameField] ?? '').trim();
+      const strasse = String(row[check.strasseField] ?? '').trim();
+
+      // Skip if no ID or no identifying information
+      if (!id) return;
+      if (!ahv && (!name || !vorname)) return;
+
+      // Create identifier: prefer AHV, fallback to Name+Vorname+Strasse
+      let identifier: string;
+      let displayIdentifier: string;
+      
+      if (ahv) {
+        identifier = `AHV:${ahv}`;
+        displayIdentifier = `AHV: ${ahv}`;
+      } else {
+        identifier = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
+        displayIdentifier = `${vorname} ${name}${strasse ? `, ${strasse}` : ''}`;
+      }
+
+      const existing = parentMap.get(identifier);
+      
+      if (existing) {
+        // Check if ID is consistent
+        if (existing.id !== id) {
+          errors.push({
+            row: rowIndex + 1,
+            column: check.idField,
+            value: id,
+            message: `Inkonsistente ID: ${check.label} (${displayIdentifier}) hat in Zeile ${existing.firstRow} die ID '${existing.id}', aber hier die ID '${id}'`,
+          });
+        }
+      } else {
+        // First occurrence of this parent
+        parentMap.set(identifier, {
+          id,
+          firstRow: rowIndex + 1,
+          identifier: displayIdentifier
+        });
+      }
+    });
+  });
+
+  return errors;
+}
 
 // Validate data
 export function validateData(
@@ -158,6 +235,10 @@ export function validateData(
       }
     });
   });
+
+  // Check family consistency for parent IDs
+  const familyErrors = checkFamilyConsistency(rows);
+  errors.push(...familyErrors);
 
   // Second pass: field-level validation
   rows.forEach((row, rowIndex) => {
