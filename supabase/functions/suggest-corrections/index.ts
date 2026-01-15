@@ -54,33 +54,49 @@ Analysiere die Validierungsfehler und schlage Korrekturen vor.
 Wichtige Formate:
 - AHV-Nummer: 756.XXXX.XXXX.XX
 - Datum: TT.MM.JJJJ (z.B. 15.01.2024)
-- E-Mail: gültige E-Mail-Adresse
+- E-Mail: gültige E-Mail-Adresse (keine Leerzeichen)
 
-Antworte im JSON-Format mit einem Array von Korrekturvorschlägen.`;
+WICHTIG: Du MUSST immer ein valides JSON-Array zurückgeben. Jedes Element MUSS folgende Felder haben:
+- type: immer "bulk_correction"
+- affectedColumn: String mit dem Spaltennamen
+- affectedRows: Array von Zahlen (NIEMALS ein String!)
+- pattern: String mit der Beschreibung des erkannten Musters
+- suggestion: String mit der konkreten Korrekturanweisung
+- autoFix: Boolean (true oder false)
+- fixFunction: String oder null
+
+Wenn du keine Fehler findest, gib ein leeres Array zurück: []`;
 
     const userPrompt = `Hier sind die Validierungsfehler:
 
 ${errorSummary}
 
-Beispiel-Daten aus der Datei:
+Beispiel-Daten aus der Datei (erste 5 Zeilen):
 ${JSON.stringify(sampleData.slice(0, 5), null, 2)}
 
-Analysiere die Fehler und schlage Bulk-Korrekturen vor. WICHTIG: Gib in "affectedRows" ALLE betroffenen Zeilennummern an, nicht nur Beispiele!
+Analysiere die Fehler und schlage Bulk-Korrekturen vor.
 
-Antworte NUR mit einem JSON-Array im folgenden Format:
+KRITISCH - Beachte diese Regeln:
+1. "affectedRows" MUSS ein Array von Zahlen sein, z.B. [17, 86, 88] - NIEMALS ein String!
+2. Kopiere ALLE Zeilennummern aus der Fehlerliste in das affectedRows Array
+3. Jeder Vorschlag MUSS alle Pflichtfelder enthalten
+
+Für E-Mail-Fehler mit Leerzeichen: fixFunction = "Leerzeichen entfernen und Sonderzeichen normalisieren"
+Für unvollständige Datumsformate (TT.MM. ohne Jahr): autoFix = false (manuell korrigieren)
+Für Excel-Serialdaten (Zahlen wie 40026): fixFunction = "Excel-Serialdatum konvertieren"
+
+Antworte NUR mit einem JSON-Array:
 [
   {
     "type": "bulk_correction",
     "affectedColumn": "Spaltenname",
-    "affectedRows": [ALLE betroffenen Zeilennummern hier],
-    "pattern": "Beschreibung des erkannten Musters",
-    "suggestion": "Konkrete Korrekturanweisung",
-    "autoFix": true/false,
-    "fixFunction": "optional: Beschreibung der automatischen Korrektur (z.B. 'Excel-Serialdatum konvertieren', 'AHV-Nummer formatieren')"
+    "affectedRows": [1, 2, 3],
+    "pattern": "Beschreibung",
+    "suggestion": "Anweisung",
+    "autoFix": true,
+    "fixFunction": "Beschreibung oder null"
   }
-]
-
-Wenn du ein Muster erkennst (z.B. Excel-Serialdaten statt echte Daten), schlage eine automatische Korrektur vor mit autoFix: true.`;
+]`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -129,18 +145,28 @@ Wenn du ein Muster erkennst (z.B. Excel-Serialdaten statt echte Daten), schlage 
         suggestions = parsed.filter((s: any) => {
           // Ensure affectedRows is a valid array of numbers
           if (!Array.isArray(s.affectedRows)) {
-            console.warn("Invalid affectedRows, skipping suggestion:", s);
+            console.warn("Invalid affectedRows (not an array), skipping suggestion:", s);
+            return false;
+          }
+          // Ensure required fields exist
+          if (!s.affectedColumn || typeof s.affectedColumn !== 'string') {
+            console.warn("Missing or invalid affectedColumn, skipping suggestion:", s);
             return false;
           }
           return true;
         }).map((s: any) => ({
-          ...s,
+          type: s.type || "bulk_correction",
+          affectedColumn: s.affectedColumn,
           // Ensure affectedRows contains only valid numbers
-          affectedRows: s.affectedRows.filter((r: any) => typeof r === 'number' && !isNaN(r))
+          affectedRows: s.affectedRows.filter((r: any) => typeof r === 'number' && !isNaN(r)),
+          pattern: s.pattern || "Unbekanntes Muster",
+          suggestion: s.suggestion || "Bitte manuell prüfen",
+          autoFix: Boolean(s.autoFix),
+          fixFunction: s.fixFunction || null
         })).filter((s: any) => s.affectedRows.length > 0);
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
+      console.error("Failed to parse AI response:", parseError, "Content:", content);
       suggestions = [];
     }
 
