@@ -40,11 +40,12 @@ serve(async (req) => {
       errorsByType[key].push(error);
     });
 
-    // Build prompt for AI
+    // Build prompt for AI with ALL affected rows
     const errorSummary = Object.entries(errorsByType).map(([key, errs]) => {
       const [column, message] = key.split(':');
-      const examples = errs.slice(0, 5).map(e => `Zeile ${e.row}: "${e.value}"`).join(', ');
-      return `- ${column} (${errs.length}x): ${message}. Beispiele: ${examples}`;
+      const allRows = errs.map(e => e.row);
+      const examples = errs.slice(0, 10).map(e => `Zeile ${e.row}: "${e.value}"`).join(', ');
+      return `- ${column} (${errs.length} Fehler in Zeilen [${allRows.join(', ')}]): ${message}. Beispiele: ${examples}`;
     }).join('\n');
 
     const systemPrompt = `Du bist ein Datenvalidierungs-Assistent für Schweizer Schuldaten. 
@@ -62,22 +63,24 @@ Antworte im JSON-Format mit einem Array von Korrekturvorschlägen.`;
 ${errorSummary}
 
 Beispiel-Daten aus der Datei:
-${JSON.stringify(sampleData.slice(0, 3), null, 2)}
+${JSON.stringify(sampleData.slice(0, 5), null, 2)}
 
-Analysiere die Fehler und schlage Bulk-Korrekturen vor. Antworte NUR mit einem JSON-Array im folgenden Format:
+Analysiere die Fehler und schlage Bulk-Korrekturen vor. WICHTIG: Gib in "affectedRows" ALLE betroffenen Zeilennummern an, nicht nur Beispiele!
+
+Antworte NUR mit einem JSON-Array im folgenden Format:
 [
   {
     "type": "bulk_correction",
     "affectedColumn": "Spaltenname",
-    "affectedRows": [1, 2, 3],
+    "affectedRows": [ALLE betroffenen Zeilennummern hier],
     "pattern": "Beschreibung des erkannten Musters",
     "suggestion": "Konkrete Korrekturanweisung",
     "autoFix": true/false,
-    "fixFunction": "optional: Beschreibung der automatischen Korrektur"
+    "fixFunction": "optional: Beschreibung der automatischen Korrektur (z.B. 'Excel-Serialdatum konvertieren', 'AHV-Nummer formatieren')"
   }
 ]
 
-Wenn du ein Muster erkennst (z.B. Excel-Serialdaten statt echte Daten), schlage eine automatische Korrektur vor.`;
+Wenn du ein Muster erkennst (z.B. Excel-Serialdaten statt echte Daten), schlage eine automatische Korrektur vor mit autoFix: true.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

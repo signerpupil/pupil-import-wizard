@@ -76,8 +76,8 @@ export function Step3Validation({
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            errors: errors.filter(e => !e.correctedValue).slice(0, 50),
-            sampleData: rows.slice(0, 5),
+            errors: errors.filter(e => !e.correctedValue),
+            sampleData: rows.slice(0, 10),
           }),
         }
       );
