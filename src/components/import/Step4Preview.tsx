@@ -3,14 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,6 +12,7 @@ import {
 import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus } from '@/types/importTypes';
 import { exportToCSV, exportToExcel } from '@/lib/fileParser';
+import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 
 interface Step4PreviewProps {
   rows: ParsedRow[];
@@ -167,45 +160,12 @@ export function Step4Preview({
       </Card>
 
       {/* Data Preview */}
-      <div>
-        <h3 className="text-lg font-semibold mb-3">Datenvorschau (erste 10 Zeilen)</h3>
-        <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-pupil-teal">
-                  <TableHead className="text-pupil-teal-foreground w-16">#</TableHead>
-                  {exportHeaders.slice(0, 6).map((header) => (
-                    <TableHead key={header} className="text-pupil-teal-foreground whitespace-nowrap">
-                      {header}
-                    </TableHead>
-                  ))}
-                  {exportHeaders.length > 6 && (
-                    <TableHead className="text-pupil-teal-foreground">
-                      +{exportHeaders.length - 6} weitere
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.slice(0, 10).map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
-                    {exportHeaders.slice(0, 6).map((header) => (
-                      <TableCell key={header} className="whitespace-nowrap max-w-[200px] truncate">
-                        {String(row[header] ?? '')}
-                      </TableCell>
-                    ))}
-                    {exportHeaders.length > 6 && (
-                      <TableCell className="text-muted-foreground">...</TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </div>
+      <ColumnPaginatedPreview
+        headers={exportHeaders}
+        rows={rows.slice(0, 10)}
+        title="Datenvorschau (erste 10 Zeilen)"
+        showRowNumbers={true}
+      />
 
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onBack}>

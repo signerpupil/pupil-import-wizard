@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, X, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, ArrowLeft, ArrowRight, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { parseFile, type ParseResult } from '@/lib/fileParser';
+import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
@@ -156,43 +157,11 @@ export function Step1FileUpload({
             </CardContent>
           </Card>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Vorschau (erste 5 Zeilen)</h3>
-            <div className="border rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-pupil-teal">
-                      {parseResult.headers.slice(0, 6).map((header, idx) => (
-                        <TableHead key={idx} className="text-pupil-teal-foreground font-semibold whitespace-nowrap">
-                          {header}
-                        </TableHead>
-                      ))}
-                      {parseResult.headers.length > 6 && (
-                        <TableHead className="text-pupil-teal-foreground">
-                          +{parseResult.headers.length - 6} weitere
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {parseResult.rows.slice(0, 5).map((row, rowIdx) => (
-                      <TableRow key={rowIdx}>
-                        {parseResult.headers.slice(0, 6).map((header, colIdx) => (
-                          <TableCell key={colIdx} className="whitespace-nowrap">
-                            {String(row[header] ?? '')}
-                          </TableCell>
-                        ))}
-                        {parseResult.headers.length > 6 && (
-                          <TableCell className="text-muted-foreground">...</TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
+          <ColumnPaginatedPreview 
+            headers={parseResult.headers} 
+            rows={parseResult.rows.slice(0, 5)} 
+            title="Vorschau (erste 5 Zeilen)"
+          />
         </div>
       )}
 

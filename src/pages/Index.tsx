@@ -115,7 +115,11 @@ export default function Index() {
       <WizardHeader title={getStepTitle()} />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <WizardProgress currentStep={currentStep} steps={wizardSteps} />
+        <WizardProgress 
+          currentStep={currentStep} 
+          steps={wizardSteps} 
+          onStepClick={(step) => setCurrentStep(step)}
+        />
 
         <div className="mt-8">
           {currentStep === 0 && (
