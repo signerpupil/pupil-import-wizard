@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NavigationButtons } from './NavigationButtons';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -594,16 +595,12 @@ export function Step3Validation({
       )}
 
       {/* Navigation buttons above table */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button onClick={onNext} size="lg">
-          Weiter zur Vorschau
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      <NavigationButtons
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel="Weiter zur Vorschau"
+        size="lg"
+      />
 
       {errors.length === 0 ? (
         <Alert className="border-pupil-success bg-pupil-success/10">
@@ -686,16 +683,12 @@ export function Step3Validation({
           )}
         </div>
       )}
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button onClick={onNext} size="lg">
-          Weiter zur Vorschau
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      <NavigationButtons
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel="Weiter zur Vorschau"
+        size="lg"
+      />
     </div>
   );
 }

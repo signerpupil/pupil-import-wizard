@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Download, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus } from '@/types/importTypes';
 import { exportToCSV, exportToExcel } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
+import { NavigationButtons } from './NavigationButtons';
 
 interface Step4PreviewProps {
   rows: ParsedRow[];
@@ -158,6 +159,12 @@ export function Step4Preview({
           </div>
         </CardContent>
       </Card>
+
+      {/* Navigation buttons above table */}
+      <NavigationButtons
+        onBack={onBack}
+        showNext={false}
+      />
 
       {/* Data Preview */}
       <ColumnPaginatedPreview

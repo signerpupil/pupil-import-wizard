@@ -1,5 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, X, AlertTriangle, HelpCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Check, X, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -18,6 +17,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { ColumnStatus } from '@/types/importTypes';
+import { NavigationButtons } from './NavigationButtons';
 
 interface Step2ColumnCheckProps {
   columnStatuses: ColumnStatus[];
@@ -122,6 +122,15 @@ export function Step2ColumnCheck({
         </div>
       )}
 
+      {/* Navigation buttons above table */}
+      <NavigationButtons
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel={canProceed ? 'Weiter zur Validierung' : 'Pflichtfelder fehlen'}
+        nextDisabled={!canProceed}
+        size="lg"
+      />
+
       {/* Column table by category */}
       <div className="border rounded-lg overflow-hidden">
         <Table>
@@ -215,16 +224,13 @@ export function Step2ColumnCheck({
         </Table>
       </div>
 
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button onClick={onNext} disabled={!canProceed} size="lg">
-          {canProceed ? 'Weiter zur Validierung' : 'Pflichtfelder fehlen'}
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      <NavigationButtons
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel={canProceed ? 'Weiter zur Validierung' : 'Pflichtfelder fehlen'}
+        nextDisabled={!canProceed}
+        size="lg"
+      />
     </div>
   );
 }
