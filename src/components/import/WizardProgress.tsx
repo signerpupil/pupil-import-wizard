@@ -3,14 +3,15 @@ import { cn } from '@/lib/utils';
 
 interface WizardProgressProps {
   currentStep: number;
+  maxVisitedStep: number;
   steps: { label: string; description?: string }[];
   onStepClick?: (stepIndex: number) => void;
 }
 
-export function WizardProgress({ currentStep, steps, onStepClick }: WizardProgressProps) {
+export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick }: WizardProgressProps) {
   const handleStepClick = (index: number) => {
-    // Only allow clicking on completed steps or the current step
-    if (onStepClick && index <= currentStep) {
+    // Allow clicking on any step up to the max visited step
+    if (onStepClick && index <= maxVisitedStep) {
       onStepClick(index);
     }
   };
@@ -21,7 +22,8 @@ export function WizardProgress({ currentStep, steps, onStepClick }: WizardProgre
         {steps.map((step, index) => {
           const isCompleted = index < currentStep;
           const isCurrent = index === currentStep;
-          const isClickable = onStepClick && index <= currentStep;
+          const isVisited = index <= maxVisitedStep;
+          const isClickable = onStepClick && isVisited;
 
           return (
             <div key={index} className="flex-1 flex items-center">
@@ -37,7 +39,8 @@ export function WizardProgress({ currentStep, steps, onStepClick }: WizardProgre
                     'w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all',
                     isCompleted && 'bg-pupil-success text-pupil-success-foreground',
                     isCurrent && 'bg-primary text-primary-foreground ring-4 ring-primary/20',
-                    !isCompleted && !isCurrent && 'bg-muted text-muted-foreground',
+                    !isCompleted && !isCurrent && isVisited && 'bg-pupil-teal text-pupil-teal-foreground',
+                    !isCompleted && !isCurrent && !isVisited && 'bg-muted text-muted-foreground',
                     isClickable && !isCurrent && 'group-hover:ring-2 group-hover:ring-primary/30'
                   )}
                 >
@@ -64,7 +67,8 @@ export function WizardProgress({ currentStep, steps, onStepClick }: WizardProgre
                 <div
                   className={cn(
                     'h-1 flex-1 mx-2 rounded',
-                    isCompleted ? 'bg-pupil-success' : 'bg-muted'
+                    index < currentStep ? 'bg-pupil-success' : 
+                    index < maxVisitedStep ? 'bg-pupil-teal' : 'bg-muted'
                   )}
                 />
               )}
