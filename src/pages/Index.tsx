@@ -83,6 +83,22 @@ export default function Index() {
     });
   }, []);
 
+  const handleBulkCorrect = useCallback((corrections: { row: number; column: string; value: string }[]) => {
+    setErrors(prev => prev.map(e => {
+      const correction = corrections.find(c => c.row === e.row && c.column === e.column);
+      return correction ? { ...e, correctedValue: correction.value } : e;
+    }));
+    setCorrectedRows(prev => {
+      const updated = [...prev];
+      corrections.forEach(c => {
+        if (updated[c.row - 1]) {
+          updated[c.row - 1] = { ...updated[c.row - 1], [c.column]: c.value };
+        }
+      });
+      return updated;
+    });
+  }, []);
+
   const handleReset = () => {
     setCurrentStep(0);
     setImportType(null);
@@ -136,6 +152,7 @@ export default function Index() {
               errors={errors}
               rows={correctedRows}
               onErrorCorrect={handleErrorCorrect}
+              onBulkCorrect={handleBulkCorrect}
               onBack={handleBack}
               onNext={handleNext}
             />
