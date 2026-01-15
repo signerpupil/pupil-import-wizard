@@ -91,10 +91,15 @@ function convertExcelDate(value: string): string | null {
 }
 
 function formatEmail(value: string): string | null {
-  const trimmed = value.trim().toLowerCase();
-  // Basic email cleanup
-  if (trimmed.includes('@') && trimmed.includes('.')) {
-    return trimmed;
+  // Remove spaces and normalize
+  let cleaned = value.trim().toLowerCase();
+  // Remove spaces before @ and in the local part
+  cleaned = cleaned.replace(/\s+/g, '');
+  // Normalize special characters (é -> e, ü -> u, etc.)
+  cleaned = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  if (cleaned.includes('@') && cleaned.includes('.')) {
+    return cleaned;
   }
   return null;
 }
@@ -250,12 +255,22 @@ export function Step3Validation({
       }
 
       const data = await response.json();
-      setAiSuggestions(data.suggestions || []);
       
-      if (data.suggestions?.length > 0) {
+      // Filter and validate suggestions to ensure affectedRows is always a valid number array
+      const validSuggestions = (data.suggestions || []).filter((s: AISuggestion) => {
+        if (!Array.isArray(s.affectedRows)) {
+          console.warn('Invalid suggestion - affectedRows is not an array:', s);
+          return false;
+        }
+        return s.affectedRows.length > 0;
+      });
+      
+      setAiSuggestions(validSuggestions);
+      
+      if (validSuggestions.length > 0) {
         toast({
           title: 'KI-Analyse abgeschlossen',
-          description: `${data.suggestions.length} Korrekturvorschläge gefunden`,
+          description: `${validSuggestions.length} Korrekturvorschläge gefunden`,
         });
       } else {
         toast({
