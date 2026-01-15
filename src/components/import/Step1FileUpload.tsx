@@ -1,19 +1,12 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, X, ArrowLeft, ArrowRight, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { parseFile, type ParseResult } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
+import { NavigationButtons } from './NavigationButtons';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
@@ -157,6 +150,13 @@ export function Step1FileUpload({
             </CardContent>
           </Card>
 
+          <NavigationButtons
+            onBack={onBack}
+            onNext={onNext}
+            nextDisabled={!parseResult?.fileName}
+            size="lg"
+          />
+
           <ColumnPaginatedPreview 
             headers={parseResult.headers} 
             rows={parseResult.rows.slice(0, 5)} 
@@ -165,16 +165,12 @@ export function Step1FileUpload({
         </div>
       )}
 
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button onClick={onNext} disabled={!parseResult?.fileName} size="lg">
-          Weiter
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      <NavigationButtons
+        onBack={onBack}
+        onNext={onNext}
+        nextDisabled={!parseResult?.fileName}
+        size="lg"
+      />
     </div>
   );
 }
