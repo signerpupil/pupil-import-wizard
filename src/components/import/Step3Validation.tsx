@@ -175,6 +175,38 @@ export function Step3Validation({
     }
   };
 
+  // Jump to a specific error by row and column
+  const jumpToError = (targetRow: number, targetColumn: string) => {
+    // Find the error index in stepByStepErrors
+    const targetIndex = stepByStepErrors.findIndex(
+      e => e.row === targetRow && e.column === targetColumn
+    );
+    
+    if (targetIndex !== -1) {
+      setCurrentErrorIndex(targetIndex);
+      setStepEditValue(stepByStepErrors[targetIndex]?.value || '');
+    } else {
+      // If not in filtered list, try to find in all uncorrected errors and reset filter
+      const allErrorIndex = uncorrectedErrors.findIndex(
+        e => e.row === targetRow && e.column === targetColumn
+      );
+      if (allErrorIndex !== -1) {
+        setFilteredErrorRows(null);
+        setFilteredErrorColumn(null);
+        // Need to recalculate index after filter reset
+        setTimeout(() => {
+          const newIndex = uncorrectedErrors.findIndex(
+            e => e.row === targetRow && e.column === targetColumn
+          );
+          if (newIndex !== -1) {
+            setCurrentErrorIndex(newIndex);
+            setStepEditValue(uncorrectedErrors[newIndex]?.value || '');
+          }
+        }, 0);
+      }
+    }
+  };
+
   const handleStepSave = () => {
     if (currentError) {
       onErrorCorrect(currentError.row, currentError.column, stepEditValue);
@@ -598,23 +630,43 @@ export function Step3Validation({
                   <div className="text-xs text-muted-foreground mb-2">
                     Wert <span className="font-mono font-medium">"{duplicateInfo.value}"</span> in Spalte <span className="font-mono font-medium">{duplicateInfo.column}</span>:
                   </div>
-                  {duplicateInfo.rows.map((rowInfo, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`flex items-center gap-2 text-sm ${rowInfo.isCurrent ? 'font-semibold text-primary' : ''}`}
-                    >
-                      <span className="font-mono">Zeile {rowInfo.row}</span>
-                      {rowInfo.studentName && (
-                        <>
-                          <span className="text-muted-foreground">—</span>
-                          <span>{rowInfo.studentName}</span>
-                        </>
-                      )}
-                      {rowInfo.isCurrent && (
-                        <Badge variant="outline" className="text-xs">aktuell</Badge>
-                      )}
-                    </div>
-                  ))}
+                  {duplicateInfo.rows.map((rowInfo, idx) => {
+                    // Check if this row has an error we can jump to
+                    const hasError = errors.some(e => e.row === rowInfo.row && e.column === duplicateInfo.column && !e.correctedValue);
+                    const isClickable = !rowInfo.isCurrent && hasError;
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        className={`flex items-center gap-2 text-sm rounded px-2 py-1 -mx-2 transition-colors ${
+                          rowInfo.isCurrent 
+                            ? 'font-semibold text-primary bg-primary/10' 
+                            : isClickable 
+                              ? 'cursor-pointer hover:bg-muted' 
+                              : ''
+                        }`}
+                        onClick={() => {
+                          if (isClickable) {
+                            jumpToError(rowInfo.row, duplicateInfo.column);
+                          }
+                        }}
+                      >
+                        <span className="font-mono">Zeile {rowInfo.row}</span>
+                        {rowInfo.studentName && (
+                          <>
+                            <span className="text-muted-foreground">—</span>
+                            <span>{rowInfo.studentName}</span>
+                          </>
+                        )}
+                        {rowInfo.isCurrent && (
+                          <Badge variant="outline" className="text-xs">aktuell</Badge>
+                        )}
+                        {isClickable && (
+                          <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
