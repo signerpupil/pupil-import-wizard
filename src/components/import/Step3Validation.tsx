@@ -25,6 +25,7 @@ interface AISuggestion {
   suggestion: string;
   autoFix: boolean;
   fixFunction?: string;
+  correctValue?: string | null;
 }
 
 interface Step3ValidationProps {
@@ -413,6 +414,17 @@ export function Step3Validation({
     
     suggestion.affectedRows.forEach(rowNum => {
       const error = errors.find(e => e.row === rowNum && e.column === suggestion.affectedColumn);
+      
+      // If AI provided a specific correctValue, use it directly (for family consistency fixes)
+      if (suggestion.correctValue) {
+        corrections.push({
+          row: rowNum,
+          column: suggestion.affectedColumn,
+          value: suggestion.correctValue,
+        });
+        return;
+      }
+      
       if (error && error.value) {
         let correctedValue: string | null = null;
         

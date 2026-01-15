@@ -32,12 +32,19 @@ serve(async (req) => {
 
     // Group errors by type for more efficient analysis
     const errorsByType: Record<string, ValidationError[]> = {};
+    const familyInconsistencyErrors: ValidationError[] = [];
+    
     errors.forEach(error => {
-      const key = `${error.column}:${error.message}`;
-      if (!errorsByType[key]) {
-        errorsByType[key] = [];
+      // Separate family inconsistency errors for special handling
+      if (error.message.includes('Inkonsistente ID:')) {
+        familyInconsistencyErrors.push(error);
+      } else {
+        const key = `${error.column}:${error.message.split(':')[0]}`;
+        if (!errorsByType[key]) {
+          errorsByType[key] = [];
+        }
+        errorsByType[key].push(error);
       }
-      errorsByType[key].push(error);
     });
 
     // Build prompt for AI with ALL affected rows
@@ -47,6 +54,45 @@ serve(async (req) => {
       const examples = errs.slice(0, 10).map(e => `Zeile ${e.row}: "${e.value}"`).join(', ');
       return `- ${column} (${errs.length} Fehler in Zeilen [${allRows.join(', ')}]): ${message}. Beispiele: ${examples}`;
     }).join('\n');
+
+    // Build family inconsistency summary
+    let familySummary = '';
+    if (familyInconsistencyErrors.length > 0) {
+      // Group by parent identifier (extract from message)
+      const familyGroups: Record<string, { column: string; rows: number[]; ids: string[]; parentInfo: string }> = {};
+      
+      familyInconsistencyErrors.forEach(err => {
+        // Extract parent info from message like "Inkonsistente ID: Erziehungsberechtigte/r 1 (AHV: 756.1234.5678.90) hat in Zeile 3 die ID '123', aber hier die ID '456'"
+        const parentMatch = err.message.match(/Inkonsistente ID: (.+?) \(([^)]+)\)/);
+        const rowMatch = err.message.match(/in Zeile (\d+)/);
+        const idsMatch = err.message.match(/die ID '([^']+)', aber hier die ID '([^']+)'/);
+        
+        if (parentMatch && rowMatch && idsMatch) {
+          const parentKey = `${parentMatch[1]}:${parentMatch[2]}`;
+          const originalRow = parseInt(rowMatch[1]);
+          const originalId = idsMatch[1];
+          const currentId = idsMatch[2];
+          
+          if (!familyGroups[parentKey]) {
+            familyGroups[parentKey] = {
+              column: err.column,
+              rows: [originalRow],
+              ids: [originalId],
+              parentInfo: `${parentMatch[1]} (${parentMatch[2]})`
+            };
+          }
+          familyGroups[parentKey].rows.push(err.row);
+          if (!familyGroups[parentKey].ids.includes(currentId)) {
+            familyGroups[parentKey].ids.push(currentId);
+          }
+        }
+      });
+
+      familySummary = `\n\nFAMILIEN-INKONSISTENZEN (gleiche Eltern mit unterschiedlichen IDs):\n` +
+        Object.entries(familyGroups).map(([key, group]) => {
+          return `- ${group.parentInfo}: Spalte ${group.column}, Zeilen [${group.rows.join(', ')}] haben unterschiedliche IDs: [${group.ids.join(', ')}]`;
+        }).join('\n');
+    }
 
     const systemPrompt = `Du bist ein Datenvalidierungs-Assistent für Schweizer Schuldaten. 
 Analysiere die Validierungsfehler und schlage Korrekturen vor.
@@ -64,12 +110,18 @@ WICHTIG: Du MUSST immer ein valides JSON-Array zurückgeben. Jedes Element MUSS 
 - suggestion: String mit der konkreten Korrekturanweisung
 - autoFix: Boolean (true oder false)
 - fixFunction: String oder null
+- correctValue: (optional) String mit dem korrekten Wert für alle betroffenen Zeilen
+
+Für FAMILIEN-INKONSISTENZEN:
+- Analysiere welche ID die "richtige" ist (normalerweise die, die am häufigsten vorkommt oder die erste)
+- Setze autoFix = true und correctValue auf die korrekte ID
+- Erkläre im "suggestion" Feld, welche ID verwendet werden sollte und warum
 
 Wenn du keine Fehler findest, gib ein leeres Array zurück: []`;
 
     const userPrompt = `Hier sind die Validierungsfehler:
 
-${errorSummary}
+${errorSummary}${familySummary}
 
 Beispiel-Daten aus der Datei (erste 5 Zeilen):
 ${JSON.stringify(sampleData.slice(0, 5), null, 2)}
@@ -85,6 +137,11 @@ Für E-Mail-Fehler mit Leerzeichen: fixFunction = "Leerzeichen entfernen und Son
 Für unvollständige Datumsformate (TT.MM. ohne Jahr): autoFix = false (manuell korrigieren)
 Für Excel-Serialdaten (Zahlen wie 40026): fixFunction = "Excel-Serialdatum konvertieren"
 
+Für FAMILIEN-INKONSISTENZEN:
+- Schlage vor, alle Zeilen auf dieselbe ID zu setzen
+- Verwende correctValue mit der richtigen ID
+- Erkläre im pattern und suggestion warum diese ID gewählt wurde
+
 Antworte NUR mit einem JSON-Array:
 [
   {
@@ -94,7 +151,8 @@ Antworte NUR mit einem JSON-Array:
     "pattern": "Beschreibung",
     "suggestion": "Anweisung",
     "autoFix": true,
-    "fixFunction": "Beschreibung oder null"
+    "fixFunction": "Beschreibung oder null",
+    "correctValue": "optional - korrekter Wert für alle Zeilen"
   }
 ]`;
 
@@ -162,7 +220,8 @@ Antworte NUR mit einem JSON-Array:
           pattern: s.pattern || "Unbekanntes Muster",
           suggestion: s.suggestion || "Bitte manuell prüfen",
           autoFix: Boolean(s.autoFix),
-          fixFunction: s.fixFunction || null
+          fixFunction: s.fixFunction || null,
+          correctValue: s.correctValue || null
         })).filter((s: any) => s.affectedRows.length > 0);
       }
     } catch (parseError) {
