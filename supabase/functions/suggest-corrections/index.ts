@@ -147,6 +147,11 @@ serve(async (req) => {
     const systemPrompt = `Du bist ein Datenvalidierungs-Assistent für Schweizer Schuldaten. 
 Analysiere die Validierungsfehler und schlage Korrekturen vor.
 
+SPRACHREGELN (WICHTIG):
+- Antworte IMMER in Schweizer Hochdeutsch (de_CH)
+- Verwende NIEMALS das Eszett (ß) - schreibe stattdessen immer "ss" (z.B. "gross" statt "groß", "Strasse" statt "Straße")
+- Alle Texte in "pattern" und "suggestion" müssen diese Regel befolgen
+
 Wichtige Formate:
 - AHV-Nummer: 756.XXXX.XXXX.XX
 - Datum: TT.MM.JJJJ (z.B. 15.01.2024)
