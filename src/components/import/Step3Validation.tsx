@@ -645,7 +645,8 @@ export function Step3Validation({
                   {duplicateInfo.rows.map((rowInfo, idx) => {
                     // Check if this row has an error we can jump to
                     const hasError = errors.some(e => e.row === rowInfo.row && e.column === duplicateInfo.column && !e.correctedValue);
-                    const isClickable = !rowInfo.isCurrent && hasError;
+                    // All non-current rows are clickable - they either jump to error or scroll to table row
+                    const isClickable = !rowInfo.isCurrent;
                     
                     return (
                       <div 
@@ -653,13 +654,22 @@ export function Step3Validation({
                         className={`flex items-center gap-2 text-sm rounded px-2 py-1 -mx-2 transition-colors ${
                           rowInfo.isCurrent 
                             ? 'font-semibold text-primary bg-primary/10' 
-                            : isClickable 
-                              ? 'cursor-pointer hover:bg-muted' 
-                              : ''
+                            : 'cursor-pointer hover:bg-muted'
                         }`}
                         onClick={() => {
                           if (isClickable) {
-                            jumpToError(rowInfo.row, duplicateInfo.column);
+                            if (hasError) {
+                              // Jump to this error in step-by-step mode
+                              jumpToError(rowInfo.row, duplicateInfo.column);
+                            } else {
+                              // Scroll to this row in the table (it's the original, not an error)
+                              const tableRow = document.querySelector(`[data-row="${rowInfo.row}"]`);
+                              if (tableRow) {
+                                tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                tableRow.classList.add('ring-2', 'ring-primary');
+                                setTimeout(() => tableRow.classList.remove('ring-2', 'ring-primary'), 2000);
+                              }
+                            }
                           }
                         }}
                       >
@@ -675,6 +685,9 @@ export function Step3Validation({
                         )}
                         {isClickable && (
                           <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
+                        )}
+                        {isClickable && !hasError && (
+                          <Badge variant="secondary" className="text-xs ml-1">Original</Badge>
                         )}
                       </div>
                     );
@@ -789,7 +802,11 @@ export function Step3Validation({
                 const isCorrected = error.correctedValue !== undefined;
 
                 return (
-                  <TableRow key={idx} className={isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}>
+                  <TableRow 
+                    key={idx} 
+                    data-row={error.row}
+                    className={`transition-all ${isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}`}
+                  >
                     <TableCell className="font-mono">{error.row}</TableCell>
                     <TableCell className="font-medium font-mono text-sm">{error.column}</TableCell>
                     <TableCell>
