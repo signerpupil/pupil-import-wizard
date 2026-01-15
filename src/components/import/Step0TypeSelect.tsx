@@ -48,8 +48,8 @@ export function Step0TypeSelect({
         <AlertDescription className="text-sm">
           <span className="font-medium text-foreground">Datenschutz-Hinweis:</span>{' '}
           <span className="text-muted-foreground">
-            Ihre Daten werden ausschließlich lokal in Ihrem Browser verarbeitet und niemals auf einem Server gespeichert. 
-            Nach Schließen des Browsers oder Neuladen der Seite werden alle importierten Daten automatisch gelöscht. 
+            Ihre Daten werden ausschliesslich lokal in Ihrem Browser verarbeitet und niemals auf einem Server gespeichert. 
+            Nach Schliessen des Browsers oder Neuladen der Seite werden alle importierten Daten automatisch gelöscht. 
             Die KI-Korrekturvorschläge verwenden nur anonymisierte Stichproben und speichern keine Daten.
           </span>
         </AlertDescription>
