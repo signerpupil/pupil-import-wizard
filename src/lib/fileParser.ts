@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
 
@@ -24,22 +24,50 @@ export async function parseFile(file: File): Promise<ParseResult> {
 
 async function parseCSV(file: File): Promise<ParseResult> {
   const text = await file.text();
-  const workbook = XLSX.read(text, { type: 'string', raw: true });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const data = XLSX.utils.sheet_to_json<ParsedRow>(sheet, { header: 1 });
+  const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
   
-  if (data.length === 0) {
+  if (lines.length === 0) {
     throw new Error('Die Datei ist leer.');
   }
 
-  const firstRow = data[0] as unknown as string[];
-  const headers = firstRow.map(h => String(h).trim());
+  // Detect delimiter (semicolon or comma)
+  const firstLine = lines[0];
+  const delimiter = firstLine.includes(';') ? ';' : ',';
+  
+  // Parse CSV with proper handling of quoted values
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
   const rows: ParsedRow[] = [];
 
-  for (let i = 1; i < data.length; i++) {
-    const rowData = data[i] as unknown as (string | number | null)[];
-    if (rowData && rowData.some && rowData.some(cell => cell !== null && cell !== undefined && cell !== '')) {
+  for (let i = 1; i < lines.length; i++) {
+    const rowData = parseCSVLine(lines[i]);
+    if (rowData.some(cell => cell !== null && cell !== undefined && cell !== '')) {
       const row: ParsedRow = {};
       headers.forEach((header, idx) => {
         row[header] = rowData[idx] ?? null;
@@ -53,27 +81,64 @@ async function parseCSV(file: File): Promise<ParseResult> {
 
 async function parseExcel(file: File): Promise<ParseResult> {
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const data = XLSX.utils.sheet_to_json<ParsedRow>(sheet, { header: 1 });
-
-  if (data.length === 0) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(arrayBuffer);
+  
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet || worksheet.rowCount === 0) {
     throw new Error('Die Datei ist leer.');
   }
 
-  const firstRow = data[0] as unknown as string[];
-  const headers = firstRow.map(h => String(h).trim());
+  const headers: string[] = [];
   const rows: ParsedRow[] = [];
+  
+  // Get headers from first row
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+    headers[colNumber - 1] = String(cell.value ?? '').trim();
+  });
 
-  for (let i = 1; i < data.length; i++) {
-    const rowData = data[i] as unknown as (string | number | null)[];
-    if (rowData && rowData.some && rowData.some(cell => cell !== null && cell !== undefined && cell !== '')) {
-      const row: ParsedRow = {};
+  // Filter out empty trailing headers
+  while (headers.length > 0 && headers[headers.length - 1] === '') {
+    headers.pop();
+  }
+
+  // Get data rows
+  for (let rowIndex = 2; rowIndex <= worksheet.rowCount; rowIndex++) {
+    const row = worksheet.getRow(rowIndex);
+    const rowData: (string | number | null)[] = [];
+    let hasData = false;
+    
+    for (let colIndex = 1; colIndex <= headers.length; colIndex++) {
+      const cell = row.getCell(colIndex);
+      let value: string | number | null = null;
+      
+      if (cell.value !== null && cell.value !== undefined) {
+        // Handle different cell types
+        if (cell.type === ExcelJS.ValueType.Date && cell.value instanceof Date) {
+          // Format date as DD.MM.YYYY
+          const date = cell.value;
+          value = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+        } else if (typeof cell.value === 'object' && 'result' in cell.value) {
+          // Formula cell - use the result
+          value = cell.value.result as string | number;
+        } else if (typeof cell.value === 'object' && 'richText' in cell.value) {
+          // Rich text - concatenate text parts
+          value = (cell.value.richText as Array<{text: string}>).map(rt => rt.text).join('');
+        } else {
+          value = typeof cell.value === 'number' ? cell.value : String(cell.value);
+        }
+        hasData = true;
+      }
+      rowData.push(value);
+    }
+    
+    if (hasData) {
+      const parsedRow: ParsedRow = {};
       headers.forEach((header, idx) => {
-        row[header] = rowData[idx] ?? null;
+        parsedRow[header] = rowData[idx] ?? null;
       });
-      rows.push(row);
+      rows.push(parsedRow);
     }
   }
 
@@ -436,31 +501,37 @@ export function exportToCSV(
     exportHeaders = headers.filter(h => expectedSet.has(h));
   }
 
-  // Create data rows
-  const data = exportRows.map(row => {
-    return exportHeaders.map(header => {
-      const value = row[header];
-      return value !== null && value !== undefined ? String(value) : '';
-    });
-  });
+  // Build CSV content with semicolon delimiter for Excel compatibility
+  const escapeCSVValue = (val: string): string => {
+    if (val.includes('"') || val.includes(';') || val.includes('\n')) {
+      return `"${val.replace(/"/g, '""')}"`;
+    }
+    return val;
+  };
 
-  // Create workbook
-  const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...data]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Daten');
+  const csvLines: string[] = [];
+  csvLines.push(exportHeaders.map(escapeCSVValue).join(';'));
+  
+  exportRows.forEach(row => {
+    const values = exportHeaders.map(header => {
+      const value = row[header];
+      return escapeCSVValue(value !== null && value !== undefined ? String(value) : '');
+    });
+    csvLines.push(values.join(';'));
+  });
 
   // Generate filename
   const date = new Date().toISOString().split('T')[0];
   const fileName = `${importType}_${date}_bereinigt.csv`;
 
   // Export with UTF-8 BOM for Excel compatibility
-  const csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ';' });
+  const csvContent = csvLines.join('\r\n');
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
   saveAs(blob, fileName);
 }
 
 // Export to Excel - keeps original column names
-export function exportToExcel(
+export async function exportToExcel(
   rows: ParsedRow[],
   headers: string[],
   importType: string,
@@ -470,7 +541,7 @@ export function exportToExcel(
     removeExtraColumns?: boolean;
     expectedColumns?: string[];
   } = {}
-): void {
+): Promise<void> {
   const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
 
   // Filter rows if onlyErrorFree
@@ -487,23 +558,28 @@ export function exportToExcel(
     exportHeaders = headers.filter(h => expectedSet.has(h));
   }
 
-  // Create data rows
-  const data = exportRows.map(row => {
-    return exportHeaders.map(header => {
+  // Create workbook
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Daten');
+
+  // Add header row
+  worksheet.addRow(exportHeaders);
+
+  // Add data rows
+  exportRows.forEach(row => {
+    const values = exportHeaders.map(header => {
       const value = row[header];
       return value !== null && value !== undefined ? String(value) : '';
     });
+    worksheet.addRow(values);
   });
-
-  // Create workbook
-  const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...data]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Daten');
 
   // Generate filename
   const date = new Date().toISOString().split('T')[0];
   const fileName = `${importType}_${date}_bereinigt.xlsx`;
 
   // Export
-  XLSX.writeFile(wb, fileName);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  saveAs(blob, fileName);
 }

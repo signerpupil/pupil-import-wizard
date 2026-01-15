@@ -1,20 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface ValidationError {
-  row: number;
-  column: string;
-  value: string;
-  message: string;
-}
+// Input validation schemas
+const ValidationErrorSchema = z.object({
+  row: z.number().int().positive().max(100000),
+  column: z.string().max(100),
+  value: z.string().max(1000),
+  message: z.string().max(500),
+});
 
-interface SuggestCorrectionsRequest {
-  errors: ValidationError[];
-  sampleData: Record<string, string | number | null>[];
+const RequestSchema = z.object({
+  errors: z.array(ValidationErrorSchema).max(1000),
+  sampleData: z.array(z.record(z.unknown())).max(100),
+});
+
+// Maximum request size: 1MB
+const MAX_REQUEST_SIZE = 1048576;
+
+// Sanitize string for AI prompt (prevent prompt injection)
+function sanitizeForPrompt(str: string, maxLength: number = 200): string {
+  return str
+    .substring(0, maxLength)
+    .replace(/[<>{}[\]]/g, '') // Remove potential injection characters
+    .trim();
 }
 
 serve(async (req) => {
@@ -23,16 +36,53 @@ serve(async (req) => {
   }
 
   try {
-    const { errors, sampleData }: SuggestCorrectionsRequest = await req.json();
+    // Check request size limit
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Anfrage zu groß. Bitte reduzieren Sie die Datenmenge.' }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse and validate JSON
+    let rawBody;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Ungültiges JSON-Format.' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate input with Zod
+    let validatedData;
+    try {
+      validatedData = RequestSchema.parse(rawBody);
+    } catch (validationError) {
+      console.error("Input validation failed:", validationError);
+      return new Response(
+        JSON.stringify({ error: 'Ungültiges Anfrage-Format.' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { errors, sampleData } = validatedData;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: 'Service vorübergehend nicht verfügbar.' }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Group errors by type for more efficient analysis
-    const errorsByType: Record<string, ValidationError[]> = {};
-    const familyInconsistencyErrors: ValidationError[] = [];
+    const errorsByType: Record<string, z.infer<typeof ValidationErrorSchema>[]> = {};
+    const familyInconsistencyErrors: z.infer<typeof ValidationErrorSchema>[] = [];
     
     errors.forEach(error => {
       // Separate family inconsistency errors for special handling
@@ -47,12 +97,12 @@ serve(async (req) => {
       }
     });
 
-    // Build prompt for AI with ALL affected rows
+    // Build prompt for AI with ALL affected rows (sanitized)
     const errorSummary = Object.entries(errorsByType).map(([key, errs]) => {
       const [column, message] = key.split(':');
       const allRows = errs.map(e => e.row);
-      const examples = errs.slice(0, 10).map(e => `Zeile ${e.row}: "${e.value}"`).join(', ');
-      return `- ${column} (${errs.length} Fehler in Zeilen [${allRows.join(', ')}]): ${message}. Beispiele: ${examples}`;
+      const examples = errs.slice(0, 10).map(e => `Zeile ${e.row}: "${sanitizeForPrompt(e.value, 100)}"`).join(', ');
+      return `- ${sanitizeForPrompt(column, 50)} (${errs.length} Fehler in Zeilen [${allRows.slice(0, 100).join(', ')}${allRows.length > 100 ? '...' : ''}]): ${sanitizeForPrompt(message, 100)}. Beispiele: ${examples}`;
     }).join('\n');
 
     // Build family inconsistency summary
@@ -78,7 +128,7 @@ serve(async (req) => {
               column: err.column,
               rows: [originalRow],
               ids: [originalId],
-              parentInfo: `${parentMatch[1]} (${parentMatch[2]})`
+              parentInfo: sanitizeForPrompt(`${parentMatch[1]} (${parentMatch[2]})`, 100)
             };
           }
           familyGroups[parentKey].rows.push(err.row);
@@ -90,7 +140,7 @@ serve(async (req) => {
 
       familySummary = `\n\nFAMILIEN-INKONSISTENZEN (gleiche Eltern mit unterschiedlichen IDs):\n` +
         Object.entries(familyGroups).map(([key, group]) => {
-          return `- ${group.parentInfo}: Spalte ${group.column}, Zeilen [${group.rows.join(', ')}] haben unterschiedliche IDs: [${group.ids.join(', ')}]`;
+          return `- ${group.parentInfo}: Spalte ${sanitizeForPrompt(group.column, 50)}, Zeilen [${group.rows.slice(0, 50).join(', ')}${group.rows.length > 50 ? '...' : ''}] haben unterschiedliche IDs: [${group.ids.slice(0, 10).join(', ')}]`;
         }).join('\n');
     }
 
@@ -119,12 +169,24 @@ Für FAMILIEN-INKONSISTENZEN:
 
 Wenn du keine Fehler findest, gib ein leeres Array zurück: []`;
 
+    // Sanitize sample data for prompt
+    const sanitizedSampleData = sampleData.slice(0, 5).map(row => {
+      const sanitizedRow: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(row)) {
+        const sanitizedKey = sanitizeForPrompt(String(key), 50);
+        sanitizedRow[sanitizedKey] = typeof value === 'string' 
+          ? sanitizeForPrompt(value, 100) 
+          : value;
+      }
+      return sanitizedRow;
+    });
+
     const userPrompt = `Hier sind die Validierungsfehler:
 
 ${errorSummary}${familySummary}
 
 Beispiel-Daten aus der Datei (erste 5 Zeilen):
-${JSON.stringify(sampleData.slice(0, 5), null, 2)}
+${JSON.stringify(sanitizedSampleData, null, 2)}
 
 Analysiere die Fehler und schlage Bulk-Korrekturen vor.
 
@@ -173,20 +235,23 @@ Antworte NUR mit einem JSON-Array:
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Bitte versuchen Sie es später erneut." }), {
+        return new Response(JSON.stringify({ error: "Rate limit erreicht. Bitte versuchen Sie es später erneut." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Keine Credits verfügbar. Bitte laden Sie Ihr Konto auf." }), {
+        return new Response(JSON.stringify({ error: "Service vorübergehend nicht verfügbar." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      throw new Error("AI gateway error");
+      return new Response(JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
@@ -200,32 +265,32 @@ Antworte NUR mit einem JSON-Array:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         // Validate and clean up suggestions
-        suggestions = parsed.filter((s: any) => {
+        suggestions = parsed.filter((s: Record<string, unknown>) => {
           // Ensure affectedRows is a valid array of numbers
           if (!Array.isArray(s.affectedRows)) {
-            console.warn("Invalid affectedRows (not an array), skipping suggestion:", s);
+            console.warn("Invalid affectedRows (not an array), skipping suggestion");
             return false;
           }
           // Ensure required fields exist
           if (!s.affectedColumn || typeof s.affectedColumn !== 'string') {
-            console.warn("Missing or invalid affectedColumn, skipping suggestion:", s);
+            console.warn("Missing or invalid affectedColumn, skipping suggestion");
             return false;
           }
           return true;
-        }).map((s: any) => ({
+        }).map((s: Record<string, unknown>) => ({
           type: s.type || "bulk_correction",
-          affectedColumn: s.affectedColumn,
+          affectedColumn: String(s.affectedColumn),
           // Ensure affectedRows contains only valid numbers
-          affectedRows: s.affectedRows.filter((r: any) => typeof r === 'number' && !isNaN(r)),
-          pattern: s.pattern || "Unbekanntes Muster",
-          suggestion: s.suggestion || "Bitte manuell prüfen",
+          affectedRows: (s.affectedRows as unknown[]).filter((r: unknown) => typeof r === 'number' && !isNaN(r as number)),
+          pattern: String(s.pattern || "Unbekanntes Muster"),
+          suggestion: String(s.suggestion || "Bitte manuell prüfen"),
           autoFix: Boolean(s.autoFix),
-          fixFunction: s.fixFunction || null,
-          correctValue: s.correctValue || null
-        })).filter((s: any) => s.affectedRows.length > 0);
+          fixFunction: s.fixFunction ? String(s.fixFunction) : null,
+          correctValue: s.correctValue ? String(s.correctValue) : null
+        })).filter((s: { affectedRows: number[] }) => s.affectedRows.length > 0);
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError, "Content:", content);
+      console.error("Failed to parse AI response:", parseError);
       suggestions = [];
     }
 
@@ -234,9 +299,16 @@ Antworte NUR mit einem JSON-Array:
     });
 
   } catch (error) {
-    console.error("Error in suggest-corrections:", error);
+    // Log detailed error server-side only
+    const errorId = crypto.randomUUID();
+    console.error(`Error ${errorId} in suggest-corrections:`, error);
+    
+    // Return generic message to client
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.',
+        errorId: errorId
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
