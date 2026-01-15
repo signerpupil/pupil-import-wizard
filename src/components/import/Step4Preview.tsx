@@ -60,7 +60,7 @@ export function Step4Preview({
     ? headers.filter(h => expectedColumns.includes(h))
     : headers;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const options = {
       onlyErrorFree: exportFilter === 'errorFree',
       errors,
@@ -71,7 +71,7 @@ export function Step4Preview({
     if (exportFormat === 'csv') {
       exportToCSV(rows, headers, importTypeName, options);
     } else {
-      exportToExcel(rows, headers, importTypeName, options);
+      await exportToExcel(rows, headers, importTypeName, options);
     }
     setExported(true);
   };
