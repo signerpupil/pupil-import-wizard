@@ -18,6 +18,7 @@ export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick
 
   return (
     <div className="w-full py-6">
+      {/* Circles and connectors row - fixed height */}
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isCompleted = index < currentStep;
@@ -29,7 +30,7 @@ export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick
             <div key={index} className="flex-1 flex items-center">
               <div 
                 className={cn(
-                  "flex flex-col items-center flex-1",
+                  "flex-1 flex justify-center",
                   isClickable && "cursor-pointer group"
                 )}
                 onClick={() => handleStepClick(index)}
@@ -46,22 +47,6 @@ export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick
                 >
                   {isCompleted ? <Check className="h-5 w-5" /> : index}
                 </div>
-                <div className="mt-2 text-center">
-                  <p
-                    className={cn(
-                      'text-sm font-medium transition-colors',
-                      isCurrent ? 'text-primary' : 'text-muted-foreground',
-                      isClickable && !isCurrent && 'group-hover:text-primary'
-                    )}
-                  >
-                    {step.label}
-                  </p>
-                  {step.description && (
-                    <p className="text-xs text-muted-foreground hidden md:block">
-                      {step.description}
-                    </p>
-                  )}
-                </div>
               </div>
               {index < steps.length - 1 && (
                 <div
@@ -71,6 +56,45 @@ export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick
                     index < maxVisitedStep ? 'bg-pupil-teal' : 'bg-muted'
                   )}
                 />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Labels row - separate to ensure circles stay aligned */}
+      <div className="flex items-start justify-between mt-2">
+        {steps.map((step, index) => {
+          const isCurrent = index === currentStep;
+          const isVisited = index <= maxVisitedStep;
+          const isClickable = onStepClick && isVisited;
+
+          return (
+            <div key={index} className="flex-1 flex items-start">
+              <div 
+                className={cn(
+                  "flex-1 text-center",
+                  isClickable && "cursor-pointer group"
+                )}
+                onClick={() => handleStepClick(index)}
+              >
+                <p
+                  className={cn(
+                    'text-sm font-medium transition-colors',
+                    isCurrent ? 'text-primary' : 'text-muted-foreground',
+                    isClickable && !isCurrent && 'group-hover:text-primary'
+                  )}
+                >
+                  {step.label}
+                </p>
+                {step.description && (
+                  <p className="text-xs text-muted-foreground hidden md:block">
+                    {step.description}
+                  </p>
+                )}
+              </div>
+              {index < steps.length - 1 && (
+                <div className="flex-1 mx-2" />
               )}
             </div>
           );
