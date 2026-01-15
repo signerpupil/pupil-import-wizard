@@ -6,7 +6,8 @@ import { Step1FileUpload } from '@/components/import/Step1FileUpload';
 import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
 import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
-import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition } from '@/types/importTypes';
+import { ChangeLog } from '@/components/import/ChangeLog';
+import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import { getColumnsByType, importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { checkColumnStatus, validateData, type ParseResult } from '@/lib/fileParser';
 
@@ -28,6 +29,7 @@ export default function Index() {
   const [removeExtraColumns, setRemoveExtraColumns] = useState(false);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [correctedRows, setCorrectedRows] = useState<ParsedRow[]>([]);
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
 
   const columnDefinitions: ColumnDefinition[] = importType ? getColumnsByType(importType, subType ?? undefined) : [];
 
@@ -71,7 +73,37 @@ export default function Index() {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  const handleErrorCorrect = useCallback((rowIndex: number, column: string, value: string) => {
+  // Helper to get student name for a row
+  const getStudentName = useCallback((rowIndex: number) => {
+    const row = correctedRows[rowIndex - 1];
+    if (!row) return undefined;
+    const name = row['S_Name'] || row['S_name'] || '';
+    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
+    if (name || vorname) {
+      return `${vorname} ${name}`.trim();
+    }
+    const eintragFuer = row['Eintrag_fuer'] || '';
+    return eintragFuer ? String(eintragFuer) : undefined;
+  }, [correctedRows]);
+
+  const handleErrorCorrect = useCallback((rowIndex: number, column: string, value: string, correctionType: 'manual' | 'ai-bulk' | 'ai-auto' = 'manual') => {
+    // Find original value from errors
+    const error = errors.find(e => e.row === rowIndex && e.column === column);
+    const originalValue = error?.correctedValue ?? error?.value ?? '';
+
+    // Add to change log
+    if (originalValue !== value) {
+      setChangeLog(prev => [...prev, {
+        timestamp: new Date(),
+        type: correctionType,
+        row: rowIndex,
+        column,
+        originalValue,
+        newValue: value,
+        studentName: getStudentName(rowIndex),
+      }]);
+    }
+
     setErrors(prev => prev.map(e => 
       e.row === rowIndex && e.column === column 
         ? { ...e, correctedValue: value }
@@ -84,9 +116,27 @@ export default function Index() {
       }
       return updated;
     });
-  }, []);
+  }, [errors, getStudentName]);
 
-  const handleBulkCorrect = useCallback((corrections: { row: number; column: string; value: string }[]) => {
+  const handleBulkCorrect = useCallback((corrections: { row: number; column: string; value: string }[], correctionType: 'ai-bulk' | 'ai-auto' = 'ai-bulk') => {
+    // Add to change log
+    corrections.forEach(c => {
+      const error = errors.find(e => e.row === c.row && e.column === c.column);
+      const originalValue = error?.correctedValue ?? error?.value ?? '';
+      
+      if (originalValue !== c.value) {
+        setChangeLog(prev => [...prev, {
+          timestamp: new Date(),
+          type: correctionType,
+          row: c.row,
+          column: c.column,
+          originalValue,
+          newValue: c.value,
+          studentName: getStudentName(c.row),
+        }]);
+      }
+    });
+
     setErrors(prev => prev.map(e => {
       const correction = corrections.find(c => c.row === e.row && c.column === e.column);
       return correction ? { ...e, correctedValue: correction.value } : e;
@@ -100,7 +150,7 @@ export default function Index() {
       });
       return updated;
     });
-  }, []);
+  }, [errors, getStudentName]);
 
   const handleReset = () => {
     setCurrentStep(0);
@@ -112,6 +162,7 @@ export default function Index() {
     setRemoveExtraColumns(false);
     setErrors([]);
     setCorrectedRows([]);
+    setChangeLog([]);
   };
 
   return (
@@ -175,6 +226,8 @@ export default function Index() {
               columnStatuses={columnStatuses}
               removeExtraColumns={removeExtraColumns}
               importTypeName={getImportTypeName()}
+              changeLog={changeLog}
+              fileName={parseResult.fileName}
               onBack={handleBack}
               onReset={handleReset}
             />

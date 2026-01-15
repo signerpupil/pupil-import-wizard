@@ -30,8 +30,8 @@ interface AISuggestion {
 interface Step3ValidationProps {
   errors: ValidationError[];
   rows: ParsedRow[];
-  onErrorCorrect: (rowIndex: number, column: string, value: string) => void;
-  onBulkCorrect: (corrections: { row: number; column: string; value: string }[]) => void;
+  onErrorCorrect: (rowIndex: number, column: string, value: string, correctionType?: 'manual' | 'ai-bulk' | 'ai-auto') => void;
+  onBulkCorrect: (corrections: { row: number; column: string; value: string }[], correctionType?: 'ai-bulk' | 'ai-auto') => void;
   onBack: () => void;
   onNext: () => void;
 }

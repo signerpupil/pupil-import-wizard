@@ -10,10 +10,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useState } from 'react';
-import type { ParsedRow, ValidationError, ColumnStatus } from '@/types/importTypes';
+import type { ParsedRow, ValidationError, ColumnStatus, ChangeLogEntry } from '@/types/importTypes';
 import { exportToCSV, exportToExcel } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
+import { ChangeLog } from './ChangeLog';
 
 interface Step4PreviewProps {
   rows: ParsedRow[];
@@ -22,6 +23,8 @@ interface Step4PreviewProps {
   columnStatuses: ColumnStatus[];
   removeExtraColumns: boolean;
   importTypeName: string;
+  changeLog: ChangeLogEntry[];
+  fileName?: string;
   onBack: () => void;
   onReset: () => void;
 }
@@ -33,6 +36,8 @@ export function Step4Preview({
   columnStatuses,
   removeExtraColumns,
   importTypeName,
+  changeLog,
+  fileName,
   onBack,
   onReset,
 }: Step4PreviewProps) {
@@ -159,6 +164,13 @@ export function Step4Preview({
           </div>
         </CardContent>
       </Card>
+
+      {/* Change Log */}
+      <ChangeLog 
+        entries={changeLog} 
+        fileName={fileName}
+        importTypeName={importTypeName}
+      />
 
       {/* Navigation buttons above table */}
       <NavigationButtons

@@ -40,6 +40,16 @@ export interface ColumnStatus {
   category?: string;
 }
 
+export interface ChangeLogEntry {
+  timestamp: Date;
+  type: 'manual' | 'ai-bulk' | 'ai-auto';
+  row: number;
+  column: string;
+  originalValue: string;
+  newValue: string;
+  studentName?: string;
+}
+
 export interface ImportData {
   headers: string[];
   rows: ParsedRow[];
