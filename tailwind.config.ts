@@ -57,6 +57,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        pupil: {
+          header: "hsl(var(--pupil-header))",
+          "header-foreground": "hsl(var(--pupil-header-foreground))",
+          teal: "hsl(var(--pupil-teal))",
+          "teal-foreground": "hsl(var(--pupil-teal-foreground))",
+          success: "hsl(var(--pupil-success))",
+          "success-foreground": "hsl(var(--pupil-success-foreground))",
+          warning: "hsl(var(--pupil-warning))",
+          "warning-foreground": "hsl(var(--pupil-warning-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
