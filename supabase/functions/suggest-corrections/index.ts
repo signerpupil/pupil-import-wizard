@@ -40,7 +40,7 @@ serve(async (req) => {
     const contentLength = req.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
       return new Response(
-        JSON.stringify({ error: 'Anfrage zu groß. Bitte reduzieren Sie die Datenmenge.' }),
+        JSON.stringify({ error: 'Anfrage zu gross. Bitte reduzieren Sie die Datenmenge.' }),
         { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
