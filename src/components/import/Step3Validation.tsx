@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, ArrowRight, AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,70 @@ interface Step3ValidationProps {
   onNext: () => void;
 }
 
+// Helper functions for auto-corrections
+function formatSwissPhone(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  // Swiss mobile: 07X XXX XX XX
+  if (digits.length === 10 && digits.startsWith('07')) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
+  }
+  // Swiss landline: 0XX XXX XX XX
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
+  }
+  // With country code +41
+  if (digits.length === 11 && digits.startsWith('41')) {
+    return `+41 ${digits.slice(2, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`;
+  }
+  return null;
+}
+
+function formatSwissPLZ(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 4) {
+    return digits;
+  }
+  return null;
+}
+
+function formatPostfach(value: string): string | null {
+  const lower = value.toLowerCase().trim();
+  // Extract number from various formats
+  const match = lower.match(/(?:postfach|pf|p\.f\.)?\s*(\d+)/i);
+  if (match) {
+    return `Postfach ${match[1]}`;
+  }
+  return null;
+}
+
+function formatAHV(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 13 && digits.startsWith('756')) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
+  }
+  return null;
+}
+
+function convertExcelDate(value: string): string | null {
+  const serialNum = parseInt(value);
+  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 100000) {
+    const date = new Date((serialNum - 25569) * 86400 * 1000);
+    if (!isNaN(date.getTime())) {
+      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+    }
+  }
+  return null;
+}
+
+function formatEmail(value: string): string | null {
+  const trimmed = value.trim().toLowerCase();
+  // Basic email cleanup
+  if (trimmed.includes('@') && trimmed.includes('.')) {
+    return trimmed;
+  }
+  return null;
+}
+
 export function Step3Validation({
   errors,
   rows,
@@ -47,7 +111,16 @@ export function Step3Validation({
   const [editValue, setEditValue] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [stepByStepMode, setStepByStepMode] = useState(false);
+  const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
+  const [stepEditValue, setStepEditValue] = useState('');
   const { toast } = useToast();
+
+  const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
+  const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
+
+  // Current error for step-by-step mode
+  const currentError = uncorrectedErrors[currentErrorIndex];
 
   const handleStartEdit = (row: number, column: string, currentValue: string) => {
     setEditingCell({ row, column });
@@ -59,6 +132,49 @@ export function Step3Validation({
       onErrorCorrect(editingCell.row, editingCell.column, editValue);
       setEditingCell(null);
       setEditValue('');
+    }
+  };
+
+  // Step-by-step mode functions
+  const startStepByStep = () => {
+    if (uncorrectedErrors.length > 0) {
+      setStepByStepMode(true);
+      setCurrentErrorIndex(0);
+      setStepEditValue(uncorrectedErrors[0]?.value || '');
+    }
+  };
+
+  const handleStepSave = () => {
+    if (currentError) {
+      onErrorCorrect(currentError.row, currentError.column, stepEditValue);
+      // Move to next error (the array will update, so we stay at same index or go to 0)
+      if (currentErrorIndex >= uncorrectedErrors.length - 1) {
+        setCurrentErrorIndex(0);
+      }
+    }
+  };
+
+  const handleStepSkip = () => {
+    if (currentErrorIndex < uncorrectedErrors.length - 1) {
+      setCurrentErrorIndex(currentErrorIndex + 1);
+      setStepEditValue(uncorrectedErrors[currentErrorIndex + 1]?.value || '');
+    } else {
+      setCurrentErrorIndex(0);
+      setStepEditValue(uncorrectedErrors[0]?.value || '');
+    }
+  };
+
+  const handleStepPrev = () => {
+    if (currentErrorIndex > 0) {
+      setCurrentErrorIndex(currentErrorIndex - 1);
+      setStepEditValue(uncorrectedErrors[currentErrorIndex - 1]?.value || '');
+    }
+  };
+
+  // Update step edit value when current error changes
+  const updateStepEditValue = () => {
+    if (currentError) {
+      setStepEditValue(currentError.value || '');
     }
   };
 
@@ -115,36 +231,54 @@ export function Step3Validation({
   };
 
   const applyBulkCorrection = (suggestion: AISuggestion) => {
-    // Apply corrections based on the suggestion
     const corrections: { row: number; column: string; value: string }[] = [];
+    const fixType = suggestion.fixFunction?.toLowerCase() || '';
     
     suggestion.affectedRows.forEach(rowNum => {
       const error = errors.find(e => e.row === rowNum && e.column === suggestion.affectedColumn);
-      if (error) {
-        let correctedValue = error.value;
+      if (error && error.value) {
+        let correctedValue: string | null = null;
         
-        // Apply common fixes based on the fix function description
-        if (suggestion.fixFunction?.toLowerCase().includes('excel') || 
-            suggestion.fixFunction?.toLowerCase().includes('serial')) {
-          // Convert Excel serial date to proper date
-          const serialNum = parseInt(error.value);
-          if (!isNaN(serialNum)) {
-            const date = new Date((serialNum - 25569) * 86400 * 1000);
-            correctedValue = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
-          }
-        } else if (suggestion.fixFunction?.toLowerCase().includes('ahv') && error.value) {
-          // Try to format AHV number
-          const digits = error.value.replace(/\D/g, '');
-          if (digits.length === 13 && digits.startsWith('756')) {
-            correctedValue = `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
+        // Apply corrections based on the fix function description
+        if (fixType.includes('excel') || fixType.includes('serial') || fixType.includes('datum')) {
+          correctedValue = convertExcelDate(error.value);
+        } else if (fixType.includes('ahv')) {
+          correctedValue = formatAHV(error.value);
+        } else if (fixType.includes('telefon') || fixType.includes('phone') || fixType.includes('handy') || fixType.includes('mobile')) {
+          correctedValue = formatSwissPhone(error.value);
+        } else if (fixType.includes('plz') || fixType.includes('postleitzahl')) {
+          correctedValue = formatSwissPLZ(error.value);
+        } else if (fixType.includes('postfach') || fixType.includes('pf')) {
+          correctedValue = formatPostfach(error.value);
+        } else if (fixType.includes('email') || fixType.includes('mail')) {
+          correctedValue = formatEmail(error.value);
+        }
+        
+        // Fallback: try to auto-detect based on column name
+        if (!correctedValue) {
+          const colLower = suggestion.affectedColumn.toLowerCase();
+          if (colLower.includes('ahv')) {
+            correctedValue = formatAHV(error.value);
+          } else if (colLower.includes('telefon') || colLower.includes('phone') || colLower.includes('handy') || colLower.includes('mobile')) {
+            correctedValue = formatSwissPhone(error.value);
+          } else if (colLower.includes('plz') || colLower.includes('postleitzahl')) {
+            correctedValue = formatSwissPLZ(error.value);
+          } else if (colLower.includes('postfach')) {
+            correctedValue = formatPostfach(error.value);
+          } else if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
+            correctedValue = convertExcelDate(error.value);
+          } else if (colLower.includes('email') || colLower.includes('mail')) {
+            correctedValue = formatEmail(error.value);
           }
         }
         
-        corrections.push({
-          row: rowNum,
-          column: suggestion.affectedColumn,
-          value: correctedValue,
-        });
+        if (correctedValue) {
+          corrections.push({
+            row: rowNum,
+            column: suggestion.affectedColumn,
+            value: correctedValue,
+          });
+        }
       }
     });
 
@@ -157,11 +291,14 @@ export function Step3Validation({
       
       // Remove this suggestion
       setAiSuggestions(prev => prev.filter(s => s !== suggestion));
+    } else {
+      toast({
+        title: 'Keine Korrekturen möglich',
+        description: 'Die automatische Korrektur konnte nicht angewendet werden.',
+        variant: 'destructive',
+      });
     }
   };
-
-  const uncorrectedErrors = errors.filter(e => e.correctedValue === undefined);
-  const correctedErrors = errors.filter(e => e.correctedValue !== undefined);
 
   return (
     <div className="space-y-6">
@@ -251,6 +388,117 @@ export function Step3Validation({
         </Card>
       )}
 
+      {/* Step-by-Step Mode Modal */}
+      {stepByStepMode && currentError && (
+        <Card className="border-2 border-primary">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Edit2 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Schritt-für-Schritt Korrektur</CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setStepByStepMode(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <CardDescription>
+              Fehler {currentErrorIndex + 1} von {uncorrectedErrors.length}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Zeile:</span>
+                <span className="ml-2 font-mono font-medium">{currentError.row}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Spalte:</span>
+                <span className="ml-2 font-mono font-medium">{currentError.column}</span>
+              </div>
+            </div>
+            
+            <div>
+              <span className="text-sm text-muted-foreground">Fehler:</span>
+              <Badge variant="destructive" className="ml-2">{currentError.message}</Badge>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Aktueller Wert:</label>
+              <div className="p-2 bg-destructive/10 rounded border border-destructive/20 font-mono text-sm">
+                {currentError.value || '(leer)'}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Korrigierter Wert:</label>
+              <Input
+                value={stepEditValue}
+                onChange={(e) => setStepEditValue(e.target.value)}
+                placeholder="Korrigierten Wert eingeben..."
+                className="font-mono"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleStepSave();
+                  } else if (e.key === 'Escape') {
+                    handleStepSkip();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter = Speichern & Weiter | Escape = Überspringen
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleStepPrev}
+                disabled={currentErrorIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Zurück
+              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleStepSkip}
+                >
+                  Überspringen
+                </Button>
+                <Button
+                  onClick={handleStepSave}
+                  className="gap-1"
+                >
+                  <Save className="h-4 w-4" />
+                  Speichern & Weiter
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manual correction button */}
+      {uncorrectedErrors.length > 0 && !stepByStepMode && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={startStepByStep}
+            className="gap-2"
+          >
+            <Edit2 className="h-4 w-4" />
+            Manuelle Schritt-für-Schritt Korrektur starten
+          </Button>
+        </div>
+      )}
+
       {errors.length === 0 ? (
         <Alert className="border-pupil-success bg-pupil-success/10">
           <CheckCircle className="h-4 w-4 text-pupil-success" />
@@ -327,12 +575,11 @@ export function Step3Validation({
           </Table>
           {errors.length > 50 && (
             <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50">
-              Zeige 50 von {errors.length} Fehlern. Nutzen Sie die KI-Vorschläge für Bulk-Korrekturen.
+              Zeige 50 von {errors.length} Fehlern. Nutzen Sie die KI-Vorschläge oder die Schritt-für-Schritt Korrektur.
             </div>
           )}
         </div>
       )}
-
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
