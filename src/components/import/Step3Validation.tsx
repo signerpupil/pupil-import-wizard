@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,10 +172,26 @@ export function Step3Validation({
   };
 
   // Update step edit value when current error changes
-  const updateStepEditValue = () => {
-    if (currentError) {
+  useEffect(() => {
+    if (stepByStepMode && currentError) {
       setStepEditValue(currentError.value || '');
     }
+  }, [currentErrorIndex, uncorrectedErrors.length, stepByStepMode]);
+
+  // Get student name for current error row
+  const getCurrentStudentName = () => {
+    if (!currentError) return null;
+    const row = rows.find((_, index) => index + 2 === currentError.row); // +2 because row 1 is header
+    if (!row) return null;
+    const name = row['S_Name'] || row['S_name'] || '';
+    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
+    if (name || vorname) {
+      return `${vorname} ${name}`.trim();
+    }
+    // Fallback for other import types
+    const eintragFuer = row['Eintrag_fuer'] || '';
+    if (eintragFuer) return String(eintragFuer);
+    return null;
   };
 
   const fetchAISuggestions = async () => {
@@ -397,6 +413,11 @@ export function Step3Validation({
                 <Edit2 className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">Schritt-für-Schritt Korrektur</CardTitle>
               </div>
+              {getCurrentStudentName() && (
+                <span className="text-lg font-semibold text-foreground">
+                  {getCurrentStudentName()}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
