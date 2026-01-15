@@ -1,6 +1,7 @@
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import type { ImportType, FoerderplanerSubType } from '@/types/importTypes';
 import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
@@ -40,6 +41,19 @@ export function Step0TypeSelect({
           Wählen Sie, welche Art von Daten Sie aus LehrerOffice importieren möchten.
         </p>
       </div>
+
+      {/* Privacy Notice */}
+      <Alert className="border-pupil-teal/30 bg-pupil-teal/5">
+        <ShieldCheck className="h-4 w-4 text-pupil-teal" />
+        <AlertDescription className="text-sm">
+          <span className="font-medium text-foreground">Datenschutz-Hinweis:</span>{' '}
+          <span className="text-muted-foreground">
+            Ihre Daten werden ausschließlich lokal in Ihrem Browser verarbeitet und niemals auf einem Server gespeichert. 
+            Nach Schließen des Browsers oder Neuladen der Seite werden alle importierten Daten automatisch gelöscht. 
+            Die KI-Korrekturvorschläge verwenden nur anonymisierte Stichproben und speichern keine Daten.
+          </span>
+        </AlertDescription>
+      </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {importConfigs.map((config) => {
