@@ -9,7 +9,7 @@ export interface ColumnDefinition {
   required: boolean;
   category: string;
   description?: string;
-  validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text';
+  validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text' | 'plz' | 'gender' | 'phone';
 }
 
 export interface ImportConfig {
@@ -70,7 +70,7 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'S_ID', required: true, category: 'Schüler' },
   { name: 'S_Name', required: true, category: 'Schüler' },
   { name: 'S_Vorname', required: true, category: 'Schüler' },
-  { name: 'S_Geschlecht', required: true, category: 'Schüler' },
+  { name: 'S_Geschlecht', required: true, category: 'Schüler', validationType: 'gender' },
   { name: 'S_Geburtsdatum', required: true, category: 'Schüler', validationType: 'date' },
   { name: 'S_Heimatort', required: false, category: 'Schüler' },
   { name: 'S_Konfession', required: false, category: 'Schüler' },
@@ -78,11 +78,11 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'S_Umgangssprache', required: false, category: 'Schüler' },
   { name: 'S_Nationalitaet', required: false, category: 'Schüler' },
   { name: 'S_Strasse', required: false, category: 'Schüler' },
-  { name: 'S_PLZ', required: false, category: 'Schüler' },
+  { name: 'S_PLZ', required: false, category: 'Schüler', validationType: 'plz' },
   { name: 'S_Ort', required: false, category: 'Schüler' },
   { name: 'S_EMail', required: false, category: 'Schüler', validationType: 'email' },
-  { name: 'S_Telefon', required: false, category: 'Schüler' },
-  { name: 'S_Mobil', required: false, category: 'Schüler' },
+  { name: 'S_Telefon', required: false, category: 'Schüler', validationType: 'phone' },
+  { name: 'S_Mobil', required: false, category: 'Schüler', validationType: 'phone' },
   { name: 'S_Eintritt_Kiga_Datum', required: false, category: 'Schüler', validationType: 'date' },
   { name: 'S_Eintritt_Primar_Datum', required: false, category: 'Schüler', validationType: 'date' },
   { name: 'S_Eintritt_Sek_Datum', required: false, category: 'Schüler', validationType: 'date' },
@@ -97,15 +97,15 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'P_ERZ1_Name', required: false, category: 'Erziehungsberechtigte/r 1' },
   { name: 'P_ERZ1_Vorname', required: false, category: 'Erziehungsberechtigte/r 1' },
   { name: 'P_ERZ1_Beruf', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { name: 'P_ERZ1_Geschl', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_Geschl', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'gender' },
   { name: 'P_ERZ1_Rolle', required: false, category: 'Erziehungsberechtigte/r 1' },
   { name: 'P_ERZ1_Strasse', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { name: 'P_ERZ1_PLZ', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_PLZ', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'plz' },
   { name: 'P_ERZ1_Ort', required: false, category: 'Erziehungsberechtigte/r 1' },
   { name: 'P_ERZ1_EMail', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'email' },
-  { name: 'P_ERZ1_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { name: 'P_ERZ1_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 1' },
-  { name: 'P_ERZ1_Mobil', required: false, category: 'Erziehungsberechtigte/r 1' },
+  { name: 'P_ERZ1_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
+  { name: 'P_ERZ1_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
+  { name: 'P_ERZ1_Mobil', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
   
   // Erziehungsberechtigte 2 (P_ERZ2_)
   { name: 'P_ERZ2_ID', required: false, category: 'Erziehungsberechtigte/r 2' },
@@ -113,15 +113,15 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'P_ERZ2_Name', required: false, category: 'Erziehungsberechtigte/r 2' },
   { name: 'P_ERZ2_Vorname', required: false, category: 'Erziehungsberechtigte/r 2' },
   { name: 'P_ERZ2_Beruf', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { name: 'P_ERZ2_Geschl', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_Geschl', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'gender' },
   { name: 'P_ERZ2_Rolle', required: false, category: 'Erziehungsberechtigte/r 2' },
   { name: 'P_ERZ2_Strasse', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { name: 'P_ERZ2_PLZ', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_PLZ', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'plz' },
   { name: 'P_ERZ2_Ort', required: false, category: 'Erziehungsberechtigte/r 2' },
   { name: 'P_ERZ2_EMail', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'email' },
-  { name: 'P_ERZ2_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { name: 'P_ERZ2_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 2' },
-  { name: 'P_ERZ2_Mobil', required: false, category: 'Erziehungsberechtigte/r 2' },
+  { name: 'P_ERZ2_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
+  { name: 'P_ERZ2_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
+  { name: 'P_ERZ2_Mobil', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
   
   // Klasse (K_)
   { name: 'K_Schluessel', required: false, category: 'Klasse' },

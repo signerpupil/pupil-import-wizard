@@ -182,6 +182,36 @@ export function validateData(
             });
           }
           break;
+        case 'plz':
+          if (!isValidPLZ(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültige PLZ (4-5 Ziffern erwartet)',
+            });
+          }
+          break;
+        case 'gender':
+          if (!isValidGender(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültiges Geschlecht (M, W oder D erwartet)',
+            });
+          }
+          break;
+        case 'phone':
+          if (!isValidPhone(strValue)) {
+            errors.push({
+              row: rowIndex + 1,
+              column: col.name,
+              value: strValue,
+              message: 'Ungültiges Telefonformat',
+            });
+          }
+          break;
       }
     });
   });
@@ -209,6 +239,34 @@ function isValidAHV(value: string): boolean {
 function isValidEmail(value: string): boolean {
   const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return pattern.test(value);
+}
+
+function isValidPLZ(value: string): boolean {
+  // Accept 4-5 digit postal codes (CH: 4 digits, DE/AT: 5 digits)
+  const pattern = /^\d{4,5}$/;
+  return pattern.test(value.replace(/\s/g, ''));
+}
+
+function isValidGender(value: string): boolean {
+  // Accept M, W, D (case-insensitive) and common variations
+  const normalized = value.toUpperCase().trim();
+  const validValues = ['M', 'W', 'D', 'MÄNNLICH', 'WEIBLICH', 'DIVERS', 'MALE', 'FEMALE', 'DIVERSE'];
+  return validValues.includes(normalized);
+}
+
+function isValidPhone(value: string): boolean {
+  // Remove all whitespace, dashes, parentheses for validation
+  const cleaned = value.replace(/[\s\-\(\)\.\/]/g, '');
+  
+  // International format patterns (E.164 and common variations)
+  const patterns = [
+    /^\+\d{7,15}$/,           // +41791234567 (E.164)
+    /^00\d{7,15}$/,           // 0041791234567
+    /^0\d{8,10}$/,            // 0791234567 (national format)
+    /^\d{10,11}$/,            // 0791234567 without leading 0 check
+  ];
+  
+  return patterns.some(p => p.test(cleaned));
 }
 
 // Apply corrections to rows
