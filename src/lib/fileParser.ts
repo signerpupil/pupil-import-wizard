@@ -114,6 +114,9 @@ export function checkColumnStatus(
   return statuses;
 }
 
+// Fields that should be checked for duplicates
+const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
+
 // Validate data
 export function validateData(
   rows: ParsedRow[],
@@ -121,6 +124,42 @@ export function validateData(
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
+  // First pass: collect values for duplicate detection
+  const valueOccurrences: Record<string, Map<string, number[]>> = {};
+  DUPLICATE_CHECK_FIELDS.forEach(field => {
+    valueOccurrences[field] = new Map();
+  });
+
+  rows.forEach((row, rowIndex) => {
+    DUPLICATE_CHECK_FIELDS.forEach(field => {
+      const value = row[field];
+      const strValue = String(value ?? '').trim();
+      if (strValue && strValue !== '') {
+        const existing = valueOccurrences[field].get(strValue) || [];
+        existing.push(rowIndex + 1);
+        valueOccurrences[field].set(strValue, existing);
+      }
+    });
+  });
+
+  // Find duplicates and add errors
+  DUPLICATE_CHECK_FIELDS.forEach(field => {
+    valueOccurrences[field].forEach((rowNumbers, value) => {
+      if (rowNumbers.length > 1) {
+        // Add error for each occurrence except the first
+        rowNumbers.slice(1).forEach(rowNum => {
+          errors.push({
+            row: rowNum,
+            column: field,
+            value: value,
+            message: `Duplikat: "${value}" kommt auch in Zeile ${rowNumbers[0]} vor`,
+          });
+        });
+      }
+    });
+  });
+
+  // Second pass: field-level validation
   rows.forEach((row, rowIndex) => {
     columnDefinitions.forEach(col => {
       const value = row[col.name];
