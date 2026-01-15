@@ -38,6 +38,17 @@ export default function Index() {
     return importConfigs.find(c => c.type === importType)?.name ?? 'Import';
   };
 
+  const getStepTitle = () => {
+    const stepTitles = [
+      'Import-Typ auswählen',
+      'Datei hochladen',
+      'Spalten prüfen',
+      'Daten validieren',
+      'Vorschau & Export',
+    ];
+    return stepTitles[currentStep] || 'Import Wizard';
+  };
+
   const handleNext = () => {
     if (currentStep === 1 && parseResult) {
       // Check column status when moving to step 2
@@ -85,7 +96,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <WizardHeader />
+      <WizardHeader title={getStepTitle()} />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <WizardProgress currentStep={currentStep} steps={wizardSteps} />
