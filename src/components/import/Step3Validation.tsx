@@ -520,6 +520,18 @@ export function Step3Validation({
         </div>
       )}
 
+      {/* Navigation buttons above table */}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Zurück
+        </Button>
+        <Button onClick={onNext} size="lg">
+          Weiter zur Vorschau
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+
       {errors.length === 0 ? (
         <Alert className="border-pupil-success bg-pupil-success/10">
           <CheckCircle className="h-4 w-4 text-pupil-success" />
