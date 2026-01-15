@@ -114,13 +114,20 @@ export function Step3Validation({
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
   const [stepEditValue, setStepEditValue] = useState('');
+  const [filteredErrorRows, setFilteredErrorRows] = useState<number[] | null>(null);
   const { toast } = useToast();
 
   const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
 
+  // Filtered errors for step-by-step mode (only specific rows if set)
+  const stepByStepErrors = useMemo(() => {
+    if (filteredErrorRows === null) return uncorrectedErrors;
+    return uncorrectedErrors.filter(e => filteredErrorRows.includes(e.row));
+  }, [uncorrectedErrors, filteredErrorRows]);
+
   // Current error for step-by-step mode
-  const currentError = uncorrectedErrors[currentErrorIndex];
+  const currentError = stepByStepErrors[currentErrorIndex];
 
   const handleStartEdit = (row: number, column: string, currentValue: string) => {
     setEditingCell({ row, column });
@@ -136,11 +143,16 @@ export function Step3Validation({
   };
 
   // Step-by-step mode functions
-  const startStepByStep = () => {
-    if (uncorrectedErrors.length > 0) {
+  const startStepByStep = (filterRows?: number[]) => {
+    const targetErrors = filterRows 
+      ? uncorrectedErrors.filter(e => filterRows.includes(e.row))
+      : uncorrectedErrors;
+    
+    if (targetErrors.length > 0) {
+      setFilteredErrorRows(filterRows || null);
       setStepByStepMode(true);
       setCurrentErrorIndex(0);
-      setStepEditValue(uncorrectedErrors[0]?.value || '');
+      setStepEditValue(targetErrors[0]?.value || '');
     }
   };
 
@@ -148,28 +160,46 @@ export function Step3Validation({
     if (currentError) {
       onErrorCorrect(currentError.row, currentError.column, stepEditValue);
       // Move to next error (the array will update, so we stay at same index or go to 0)
-      if (currentErrorIndex >= uncorrectedErrors.length - 1) {
+      if (currentErrorIndex >= stepByStepErrors.length - 1) {
         setCurrentErrorIndex(0);
       }
     }
   };
 
   const handleStepSkip = () => {
-    if (currentErrorIndex < uncorrectedErrors.length - 1) {
+    if (currentErrorIndex < stepByStepErrors.length - 1) {
       setCurrentErrorIndex(currentErrorIndex + 1);
-      setStepEditValue(uncorrectedErrors[currentErrorIndex + 1]?.value || '');
+      setStepEditValue(stepByStepErrors[currentErrorIndex + 1]?.value || '');
     } else {
       setCurrentErrorIndex(0);
-      setStepEditValue(uncorrectedErrors[0]?.value || '');
+      setStepEditValue(stepByStepErrors[0]?.value || '');
     }
   };
 
   const handleStepPrev = () => {
     if (currentErrorIndex > 0) {
       setCurrentErrorIndex(currentErrorIndex - 1);
-      setStepEditValue(uncorrectedErrors[currentErrorIndex - 1]?.value || '');
+      setStepEditValue(stepByStepErrors[currentErrorIndex - 1]?.value || '');
     }
   };
+
+  const closeStepByStep = () => {
+    setStepByStepMode(false);
+    setFilteredErrorRows(null);
+  };
+
+  // Close step-by-step mode when all filtered errors are corrected
+  useEffect(() => {
+    if (stepByStepMode && stepByStepErrors.length === 0) {
+      closeStepByStep();
+      toast({
+        title: "Alle Fehler korrigiert",
+        description: filteredErrorRows 
+          ? "Alle ausgewählten Fehler wurden bearbeitet."
+          : "Alle Fehler wurden bearbeitet.",
+      });
+    }
+  }, [stepByStepErrors.length, stepByStepMode]);
 
   // Update step edit value when current error changes
   useEffect(() => {
@@ -386,16 +416,27 @@ export function Step3Validation({
                       <p className="text-sm font-medium">{suggestion.pattern}</p>
                       <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
                     </div>
-                    {suggestion.autoFix && (
+                    <div className="flex gap-2">
+                      {suggestion.autoFix && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => applyBulkCorrection(suggestion)}
+                          className="gap-1"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Anwenden
+                        </Button>
+                      )}
                       <Button 
                         size="sm" 
-                        onClick={() => applyBulkCorrection(suggestion)}
+                        variant="outline"
+                        onClick={() => startStepByStep(suggestion.affectedRows)}
                         className="gap-1"
                       >
-                        <CheckCircle className="h-4 w-4" />
-                        Anwenden
+                        <Edit2 className="h-4 w-4" />
+                        Manuell
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -421,13 +462,16 @@ export function Step3Validation({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setStepByStepMode(false)}
+                onClick={closeStepByStep}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <CardDescription>
-              Fehler {currentErrorIndex + 1} von {uncorrectedErrors.length}
+              Fehler {currentErrorIndex + 1} von {stepByStepErrors.length}
+              {filteredErrorRows && (
+                <span className="text-primary ml-2">(gefiltert)</span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -511,7 +555,7 @@ export function Step3Validation({
         <div className="flex justify-center">
           <Button
             variant="outline"
-            onClick={startStepByStep}
+            onClick={() => startStepByStep()}
             className="gap-2"
           >
             <Edit2 className="h-4 w-4" />
