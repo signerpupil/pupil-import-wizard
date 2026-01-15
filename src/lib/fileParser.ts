@@ -114,8 +114,9 @@ export function checkColumnStatus(
   return statuses;
 }
 
-// Fields that should be checked for duplicates
-const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
+// Fields that should be checked for duplicates (only student-specific unique fields)
+// Note: Parent AHVs (P_ERZ1_AHV, P_ERZ2_AHV) are NOT checked because parents with multiple children appear multiple times
+const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID'];
 
 // Validate data
 export function validateData(
