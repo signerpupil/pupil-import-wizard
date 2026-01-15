@@ -120,16 +120,23 @@ export function Step3Validation({
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
   const [stepEditValue, setStepEditValue] = useState('');
   const [filteredErrorRows, setFilteredErrorRows] = useState<number[] | null>(null);
+  const [filteredErrorColumn, setFilteredErrorColumn] = useState<string | null>(null);
   const { toast } = useToast();
 
   const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
 
-  // Filtered errors for step-by-step mode (only specific rows if set)
+  // Filtered errors for step-by-step mode (only specific rows and column if set)
   const stepByStepErrors = useMemo(() => {
-    if (filteredErrorRows === null) return uncorrectedErrors;
-    return uncorrectedErrors.filter(e => filteredErrorRows.includes(e.row));
-  }, [uncorrectedErrors, filteredErrorRows]);
+    let filtered = uncorrectedErrors;
+    if (filteredErrorRows !== null) {
+      filtered = filtered.filter(e => filteredErrorRows.includes(e.row));
+    }
+    if (filteredErrorColumn !== null) {
+      filtered = filtered.filter(e => e.column === filteredErrorColumn);
+    }
+    return filtered;
+  }, [uncorrectedErrors, filteredErrorRows, filteredErrorColumn]);
 
   // Current error for step-by-step mode
   const currentError = stepByStepErrors[currentErrorIndex];
@@ -148,13 +155,19 @@ export function Step3Validation({
   };
 
   // Step-by-step mode functions
-  const startStepByStep = (filterRows?: number[]) => {
-    const targetErrors = filterRows 
-      ? uncorrectedErrors.filter(e => filterRows.includes(e.row))
-      : uncorrectedErrors;
+  const startStepByStep = (filterRows?: number[], filterColumn?: string) => {
+    let targetErrors = uncorrectedErrors;
+    
+    if (filterRows) {
+      targetErrors = targetErrors.filter(e => filterRows.includes(e.row));
+    }
+    if (filterColumn) {
+      targetErrors = targetErrors.filter(e => e.column === filterColumn);
+    }
     
     if (targetErrors.length > 0) {
       setFilteredErrorRows(filterRows || null);
+      setFilteredErrorColumn(filterColumn || null);
       setStepByStepMode(true);
       setCurrentErrorIndex(0);
       setStepEditValue(targetErrors[0]?.value || '');
@@ -191,6 +204,7 @@ export function Step3Validation({
   const closeStepByStep = () => {
     setStepByStepMode(false);
     setFilteredErrorRows(null);
+    setFilteredErrorColumn(null);
   };
 
   // Close step-by-step mode when all filtered errors are corrected
@@ -199,7 +213,7 @@ export function Step3Validation({
       closeStepByStep();
       toast({
         title: "Alle Fehler korrigiert",
-        description: filteredErrorRows 
+        description: (filteredErrorRows || filteredErrorColumn)
           ? "Alle ausgewählten Fehler wurden bearbeitet."
           : "Alle Fehler wurden bearbeitet.",
       });
@@ -445,7 +459,7 @@ export function Step3Validation({
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => startStepByStep(suggestion.affectedRows)}
+                        onClick={() => startStepByStep(suggestion.affectedRows, suggestion.affectedColumn)}
                         className="gap-1"
                       >
                         <Edit2 className="h-4 w-4" />
