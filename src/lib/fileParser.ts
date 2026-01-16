@@ -208,7 +208,10 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
   PARENT_CONSISTENCY_CHECKS.forEach(check => {
     // Map to track: identifier -> { firstId, firstRow, occurrences }
-    const parentMap = new Map<string, { id: string; firstRow: number; identifier: string }>();
+    // We use multiple maps for different identification strategies
+    const parentMapByAhv = new Map<string, { id: string; firstRow: number; identifier: string }>();
+    const parentMapByNameStrasse = new Map<string, { id: string; firstRow: number; identifier: string }>();
+    const parentMapByNameOnly = new Map<string, { id: string; firstRow: number; identifier: string }>();
 
     rows.forEach((row, rowIndex) => {
       const id = String(row[check.idField] ?? '').trim();
@@ -221,37 +224,62 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       if (!id) return;
       if (!ahv && (!name || !vorname)) return;
 
-      // Create identifier: prefer AHV, fallback to Name+Vorname+Strasse
-      let identifier: string;
-      let displayIdentifier: string;
-      
-      if (ahv) {
-        identifier = `AHV:${ahv}`;
-        displayIdentifier = `AHV: ${ahv}`;
-      } else {
-        identifier = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
-        displayIdentifier = `${vorname} ${name}${strasse ? `, ${strasse}` : ''}`;
-      }
-
-      const existing = parentMap.get(identifier);
-      
-      if (existing) {
-        // Check if ID is consistent
-        if (existing.id !== id) {
-          errors.push({
-            row: rowIndex + 1,
-            column: check.idField,
-            value: id,
-            message: `Inkonsistente ID: ${check.label} (${displayIdentifier}) hat in Zeile ${existing.firstRow} die ID '${existing.id}', aber hier die ID '${id}'`,
+      // Check all applicable identification strategies
+      const checkConsistency = (
+        map: Map<string, { id: string; firstRow: number; identifier: string }>,
+        key: string,
+        displayIdentifier: string
+      ) => {
+        const existing = map.get(key);
+        
+        if (existing) {
+          // Check if ID is consistent
+          if (existing.id !== id) {
+            // Check if this error already exists (avoid duplicates)
+            const errorExists = errors.some(
+              e => e.row === rowIndex + 1 && 
+                   e.column === check.idField && 
+                   e.message.includes(displayIdentifier)
+            );
+            
+            if (!errorExists) {
+              errors.push({
+                row: rowIndex + 1,
+                column: check.idField,
+                value: id,
+                message: `Inkonsistente ID: ${check.label} (${displayIdentifier}) hat in Zeile ${existing.firstRow} die ID '${existing.id}', aber hier die ID '${id}'`,
+              });
+            }
+          }
+        } else {
+          // First occurrence of this parent with this identifier
+          map.set(key, {
+            id,
+            firstRow: rowIndex + 1,
+            identifier: displayIdentifier
           });
         }
-      } else {
-        // First occurrence of this parent
-        parentMap.set(identifier, {
-          id,
-          firstRow: rowIndex + 1,
-          identifier: displayIdentifier
-        });
+      };
+
+      // Strategy 1: AHV (most reliable)
+      if (ahv) {
+        const ahvKey = `AHV:${ahv}`;
+        const ahvDisplay = `AHV: ${ahv}`;
+        checkConsistency(parentMapByAhv, ahvKey, ahvDisplay);
+      }
+
+      // Strategy 2: Name + Vorname + Strasse (if strasse available)
+      if (name && vorname && strasse) {
+        const nameStrasseKey = `NAME_STRASSE:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
+        const nameStrasseDisplay = `${vorname} ${name}, ${strasse}`;
+        checkConsistency(parentMapByNameStrasse, nameStrasseKey, nameStrasseDisplay);
+      }
+
+      // Strategy 3: Name + Vorname only (least reliable, but catches more cases)
+      if (name && vorname) {
+        const nameOnlyKey = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}`;
+        const nameOnlyDisplay = `${vorname} ${name}`;
+        checkConsistency(parentMapByNameOnly, nameOnlyKey, nameOnlyDisplay);
       }
     });
   });
