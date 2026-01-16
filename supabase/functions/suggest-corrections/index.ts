@@ -61,6 +61,18 @@ function buildRulePrompt(rule: {
     case 'name_change_detection':
       return `- ${rule.name}: Erkenne Personen mit gleicher "${config.ahvColumn}" aber unterschiedlichen Namen in [${(config.nameColumns as string[])?.join(', ')}]. Bei Namenswechsel: autoFix = false, manuelle Prüfung erforderlich. Mögliche Gründe: Heirat, Scheidung, Adoption. Fehlermeldung: "${rule.error_message}"`;
     
+    case 'parent_child_consolidation':
+      const parentIdCols = Array.isArray(config.parentIdColumns) ? config.parentIdColumns.join(', ') : config.parentIdColumns;
+      const parentNameCols = Array.isArray(config.parentNameColumns) ? config.parentNameColumns.join(', ') : config.parentNameColumns;
+      const parentAhvCols = Array.isArray(config.parentAhvColumns) ? config.parentAhvColumns.join(', ') : config.parentAhvColumns;
+      return `- ${rule.name}: ELTERN-KIND KONSOLIDIERUNG - Wenn Eltern mehrere Kinder haben und deshalb mehrfach erfasst wurden, haben sie oft unterschiedliche IDs in den Spalten [${parentIdCols}]. Identifiziere gleiche Eltern anhand von AHV-Nummern [${parentAhvCols}] oder Namen [${parentNameCols}]. Die KI soll:
+        1. Eltern identifizieren, die in verschiedenen Zeilen (für verschiedene Kinder) erfasst wurden
+        2. Prüfen ob diese Eltern unterschiedliche IDs haben
+        3. Vorschlagen, alle Vorkommen desselben Elternteils auf eine einheitliche ID zu setzen
+        4. Die häufigste oder erste ID als "korrekt" betrachten
+        5. correctValue mit der einheitlichen ID setzen und autoFix = true
+      Fehlermeldung: "${rule.error_message}"`;
+    
     case 'required_field':
       const requiredColumns = Array.isArray(config.columns) ? config.columns.join(', ') : config.columns;
       return `- ${rule.name}: Prüfe ob die Pflichtfelder [${requiredColumns}] ausgefüllt sind. Fehlermeldung: "${rule.error_message}"`;
