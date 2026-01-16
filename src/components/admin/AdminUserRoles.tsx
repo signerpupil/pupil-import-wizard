@@ -202,7 +202,9 @@ export function AdminUserRoles() {
                   <TableCell className="font-mono text-sm">
                     <div className="flex items-center gap-2">
                       {role.user_id === user?.id && (
-                        <Crown className="h-4 w-4 text-pupil-warning" title="Das sind Sie" />
+                        <span title="Das sind Sie">
+                          <Crown className="h-4 w-4 text-pupil-warning" />
+                        </span>
                       )}
                       {role.user_id.slice(0, 8)}...{role.user_id.slice(-4)}
                     </div>
