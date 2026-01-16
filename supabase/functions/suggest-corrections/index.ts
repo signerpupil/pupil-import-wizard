@@ -157,6 +157,19 @@ Wichtige Formate:
 - Datum: TT.MM.JJJJ (z.B. 15.01.2024)
 - E-Mail: gültige E-Mail-Adresse (keine Leerzeichen)
 
+NAMENSWECHSEL-ERKENNUNG (WICHTIG):
+Erkenne Situationen, in denen dieselbe Person mit unterschiedlichen Namen erscheint:
+- Gleiche AHV-Nummer aber unterschiedliche Namen → Person hat Namen gewechselt (Heirat, Scheidung, Adoption)
+- Gleiche ID aber unterschiedliche Namen → Tippfehler oder Namenswechsel
+- Bei Familien: Kinder können anderen Nachnamen haben als Eltern (z.B. bei Scheidung/Wiederheirat)
+- Doppelnamen (z.B. "Müller-Schmidt") können unterschiedlich geschrieben sein
+
+Bei erkanntem Namenswechsel:
+- Weise darauf hin, dass es sich um einen möglichen Namenswechsel handelt
+- Setze autoFix = false (manuelle Prüfung erforderlich)
+- Erkläre im "suggestion" Feld die möglichen Gründe (Heirat, Scheidung, etc.)
+- Falls die AHV übereinstimmt, ist es sehr wahrscheinlich dieselbe Person
+
 WICHTIG: Du MUSST immer ein valides JSON-Array zurückgeben. Jedes Element MUSS folgende Felder haben:
 - type: immer "bulk_correction"
 - affectedColumn: String mit dem Spaltennamen
@@ -166,11 +179,13 @@ WICHTIG: Du MUSST immer ein valides JSON-Array zurückgeben. Jedes Element MUSS 
 - autoFix: Boolean (true oder false)
 - fixFunction: String oder null
 - correctValue: (optional) String mit dem korrekten Wert für alle betroffenen Zeilen
+- nameChangeDetected: (optional) Boolean - true wenn ein Namenswechsel erkannt wurde
 
 Für FAMILIEN-INKONSISTENZEN:
 - Analysiere welche ID die "richtige" ist (normalerweise die, die am häufigsten vorkommt oder die erste)
 - Setze autoFix = true und correctValue auf die korrekte ID
 - Erkläre im "suggestion" Feld, welche ID verwendet werden sollte und warum
+- Prüfe auch ob ein Namenswechsel der Grund für die Inkonsistenz sein könnte
 
 Wenn du keine Fehler findest, gib ein leeres Array zurück: []`;
 
