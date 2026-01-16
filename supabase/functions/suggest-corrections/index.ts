@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,51 @@ function sanitizeForPrompt(str: string, maxLength: number = 200): string {
     .substring(0, maxLength)
     .replace(/[<>{}[\]]/g, '') // Remove potential injection characters
     .trim();
+}
+
+// Business rule type to prompt mapping
+function buildRulePrompt(rule: {
+  name: string;
+  rule_type: string;
+  configuration: Record<string, unknown>;
+  error_message: string;
+  description: string | null;
+}): string {
+  const config = rule.configuration;
+  
+  switch (rule.rule_type) {
+    case 'age_validation':
+      return `- ${rule.name}: Prüfe ob das Alter (aus Spalte "${config.dateColumn}") zwischen ${config.minAge} und ${config.maxAge} Jahren liegt. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'family_relation':
+      return `- ${rule.name}: Prüfe den Altersunterschied zwischen Kind (Spalte "${config.childDateColumn}") und Eltern (Spalte "${config.parentDateColumn}"). Mindestabstand: ${config.parentAgeGap} Jahre. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'date_range':
+      return `- ${rule.name}: Prüfe ob "${config.startColumn}" vor "${config.endColumn}" liegt. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'unique_constraint':
+      const columns = Array.isArray(config.columns) ? config.columns.join(', ') : config.columns;
+      return `- ${rule.name}: Prüfe ob die Spalte(n) [${columns}] eindeutige Werte haben. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'family_consistency':
+      return `- ${rule.name}: Prüfe ob alle Familienmitglieder (identifiziert durch "${config.ahvColumn}" oder Namen in [${(config.nameColumns as string[])?.join(', ')}]) die gleiche "${config.idColumn}" haben. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'name_change_detection':
+      return `- ${rule.name}: Erkenne Personen mit gleicher "${config.ahvColumn}" aber unterschiedlichen Namen in [${(config.nameColumns as string[])?.join(', ')}]. Bei Namenswechsel: autoFix = false, manuelle Prüfung erforderlich. Mögliche Gründe: Heirat, Scheidung, Adoption. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'required_field':
+      const requiredColumns = Array.isArray(config.columns) ? config.columns.join(', ') : config.columns;
+      return `- ${rule.name}: Prüfe ob die Pflichtfelder [${requiredColumns}] ausgefüllt sind. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'conditional_required':
+      return `- ${rule.name}: Wenn "${config.conditionColumn}" den Wert "${config.conditionValue}" hat, muss "${config.requiredColumn}" ausgefüllt sein. Fehlermeldung: "${rule.error_message}"`;
+    
+    case 'cross_field_validation':
+      return `- ${rule.name}: ${rule.description || 'Feldübergreifende Validierung'}. Fehlermeldung: "${rule.error_message}"`;
+    
+    default:
+      return `- ${rule.name}: ${rule.description || rule.error_message}`;
+  }
 }
 
 serve(async (req) => {
@@ -71,6 +117,8 @@ serve(async (req) => {
     const { errors, sampleData } = validatedData;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
@@ -78,6 +126,48 @@ serve(async (req) => {
         JSON.stringify({ error: 'Service vorübergehend nicht verfügbar.' }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Fetch business rules from database
+    let businessRulesPrompt = '';
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        const { data: businessRules, error: rulesError } = await supabase
+          .from('business_rules')
+          .select('name, rule_type, configuration, error_message, description')
+          .eq('is_active', true)
+          .order('sort_order');
+        
+        if (rulesError) {
+          console.error("Error fetching business rules:", rulesError);
+        } else if (businessRules && businessRules.length > 0) {
+          const ruleDescriptions = businessRules.map(rule => buildRulePrompt(rule)).join('\n');
+          businessRulesPrompt = `\nGESCHÄFTSREGELN (aus der Datenbank geladen):\nDiese Regeln sind aktiv und sollten bei der Analyse berücksichtigt werden:\n${ruleDescriptions}\n`;
+        }
+        
+        // Also fetch AI settings for additional context
+        const { data: aiSettings, error: aiError } = await supabase
+          .from('ai_settings')
+          .select('key, value')
+          .in('key', ['custom_prompt', 'additional_instructions']);
+        
+        if (!aiError && aiSettings) {
+          const customPrompt = aiSettings.find(s => s.key === 'custom_prompt');
+          const additionalInstructions = aiSettings.find(s => s.key === 'additional_instructions');
+          
+          if (customPrompt?.value) {
+            businessRulesPrompt += `\nZUSÄTZLICHER KONTEXT:\n${sanitizeForPrompt(customPrompt.value, 1000)}\n`;
+          }
+          if (additionalInstructions?.value) {
+            businessRulesPrompt += `\nWEITERE ANWEISUNGEN:\n${sanitizeForPrompt(additionalInstructions.value, 1000)}\n`;
+          }
+        }
+      } catch (dbError) {
+        console.error("Database error:", dbError);
+        // Continue without business rules - they're optional
+      }
     }
 
     // Group errors by type for more efficient analysis
@@ -156,7 +246,7 @@ Wichtige Formate:
 - AHV-Nummer: 756.XXXX.XXXX.XX
 - Datum: TT.MM.JJJJ (z.B. 15.01.2024)
 - E-Mail: gültige E-Mail-Adresse (keine Leerzeichen)
-
+${businessRulesPrompt}
 NAMENSWECHSEL-ERKENNUNG (WICHTIG):
 Erkenne Situationen, in denen dieselbe Person mit unterschiedlichen Namen erscheint:
 - Gleiche AHV-Nummer aber unterschiedliche Namen → Person hat Namen gewechselt (Heirat, Scheidung, Adoption)
