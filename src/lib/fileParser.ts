@@ -182,8 +182,8 @@ export function checkColumnStatus(
 // Fields that should be checked for duplicates
 const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'L_KL1_AHV'];
 
-// Configuration for family consistency checks
-const FAMILY_CONSISTENCY_CHECKS = [
+// Configuration for parent ID consistency checks (Eltern-ID Konsistenzprüfung)
+const PARENT_CONSISTENCY_CHECKS = [
   {
     idField: 'P_ERZ1_ID',
     ahvField: 'P_ERZ1_AHV',
@@ -202,11 +202,11 @@ const FAMILY_CONSISTENCY_CHECKS = [
   }
 ];
 
-// Check family consistency - same parent should have same ID across all rows
-function checkFamilyConsistency(rows: ParsedRow[]): ValidationError[] {
+// Check parent ID consistency - same parent should have same ID across all rows
+function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  FAMILY_CONSISTENCY_CHECKS.forEach(check => {
+  PARENT_CONSISTENCY_CHECKS.forEach(check => {
     // Map to track: identifier -> { firstId, firstRow, occurrences }
     const parentMap = new Map<string, { id: string; firstRow: number; identifier: string }>();
 
@@ -301,9 +301,9 @@ export function validateData(
     });
   });
 
-  // Check family consistency for parent IDs
-  const familyErrors = checkFamilyConsistency(rows);
-  errors.push(...familyErrors);
+  // Check parent ID consistency (Eltern-ID Konsistenzprüfung)
+  const parentIdErrors = checkParentIdConsistency(rows);
+  errors.push(...parentIdErrors);
 
   // Second pass: field-level validation
   rows.forEach((row, rowIndex) => {
