@@ -233,11 +233,11 @@ serve(async (req) => {
       return `- ${sanitizeForPrompt(column, 50)} (${errs.length} Fehler in Zeilen [${allRows.slice(0, 100).join(', ')}${allRows.length > 100 ? '...' : ''}]): ${sanitizeForPrompt(message, 100)}. Beispiele: ${examples}`;
     }).join('\n');
 
-    // Build family inconsistency summary
-    let familySummary = '';
+    // Build parent ID inconsistency summary (Eltern-ID Konsistenzprüfung)
+    let parentIdSummary = '';
     if (familyInconsistencyErrors.length > 0) {
       // Group by parent identifier (extract from message)
-      const familyGroups: Record<string, { column: string; rows: number[]; ids: string[]; parentInfo: string }> = {};
+      const parentGroups: Record<string, { column: string; rows: number[]; ids: string[]; parentInfo: string }> = {};
       
       familyInconsistencyErrors.forEach(err => {
         // Extract parent info from message like "Inkonsistente ID: Erziehungsberechtigte/r 1 (AHV: 756.1234.5678.90) hat in Zeile 3 die ID '123', aber hier die ID '456'"
@@ -251,23 +251,23 @@ serve(async (req) => {
           const originalId = idsMatch[1];
           const currentId = idsMatch[2];
           
-          if (!familyGroups[parentKey]) {
-            familyGroups[parentKey] = {
+          if (!parentGroups[parentKey]) {
+            parentGroups[parentKey] = {
               column: err.column,
               rows: [originalRow],
               ids: [originalId],
               parentInfo: sanitizeForPrompt(`${parentMatch[1]} (${parentMatch[2]})`, 100)
             };
           }
-          familyGroups[parentKey].rows.push(err.row);
-          if (!familyGroups[parentKey].ids.includes(currentId)) {
-            familyGroups[parentKey].ids.push(currentId);
+          parentGroups[parentKey].rows.push(err.row);
+          if (!parentGroups[parentKey].ids.includes(currentId)) {
+            parentGroups[parentKey].ids.push(currentId);
           }
         }
       });
 
-      familySummary = `\n\nFAMILIEN-INKONSISTENZEN (gleiche Eltern mit unterschiedlichen IDs):\n` +
-        Object.entries(familyGroups).map(([key, group]) => {
+      parentIdSummary = `\n\nELTERN-ID INKONSISTENZEN (gleiche Erziehungsberechtigte mit unterschiedlichen IDs):\n` +
+        Object.entries(parentGroups).map(([key, group]) => {
           return `- ${group.parentInfo}: Spalte ${sanitizeForPrompt(group.column, 50)}, Zeilen [${group.rows.slice(0, 50).join(', ')}${group.rows.length > 50 ? '...' : ''}] haben unterschiedliche IDs: [${group.ids.slice(0, 10).join(', ')}]`;
         }).join('\n');
     }
@@ -309,7 +309,7 @@ WICHTIG: Du MUSST immer ein valides JSON-Array zurückgeben. Jedes Element MUSS 
 - correctValue: (optional) String mit dem korrekten Wert für alle betroffenen Zeilen
 - nameChangeDetected: (optional) Boolean - true wenn ein Namenswechsel erkannt wurde
 
-Für FAMILIEN-INKONSISTENZEN:
+Für ELTERN-ID INKONSISTENZEN:
 - Analysiere welche ID die "richtige" ist (normalerweise die, die am häufigsten vorkommt oder die erste)
 - Setze autoFix = true und correctValue auf die korrekte ID
 - Erkläre im "suggestion" Feld, welche ID verwendet werden sollte und warum
@@ -331,7 +331,7 @@ Wenn du keine Fehler findest, gib ein leeres Array zurück: []`;
 
     const userPrompt = `Hier sind die Validierungsfehler:
 
-${errorSummary}${familySummary}
+${errorSummary}${parentIdSummary}
 
 Beispiel-Daten aus der Datei (erste 5 Zeilen):
 ${JSON.stringify(sanitizedSampleData, null, 2)}
@@ -347,8 +347,8 @@ Für E-Mail-Fehler mit Leerzeichen: fixFunction = "Leerzeichen entfernen und Son
 Für unvollständige Datumsformate (TT.MM. ohne Jahr): autoFix = false (manuell korrigieren)
 Für Excel-Serialdaten (Zahlen wie 40026): fixFunction = "Excel-Serialdatum konvertieren"
 
-Für FAMILIEN-INKONSISTENZEN:
-- Schlage vor, alle Zeilen auf dieselbe ID zu setzen
+Für ELTERN-ID INKONSISTENZEN:
+- Schlage vor, alle Zeilen auf dieselbe Eltern-ID zu setzen
 - Verwende correctValue mit der richtigen ID
 - Erkläre im pattern und suggestion warum diese ID gewählt wurde
 
