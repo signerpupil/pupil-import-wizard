@@ -31,6 +31,9 @@ const RULE_TYPES = [
   { value: 'date_range', label: 'Datumsbereich' },
   { value: 'field_dependency', label: 'Feldabhängigkeit' },
   { value: 'unique_constraint', label: 'Eindeutigkeit' },
+  { value: 'family_consistency', label: 'Familien-Konsistenz' },
+  { value: 'name_change_detection', label: 'Namenswechsel-Erkennung' },
+  { value: 'parent_child_consolidation', label: 'Eltern-Kind Konsolidierung' },
   { value: 'custom', label: 'Benutzerdefiniert' },
 ];
 
