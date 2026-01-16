@@ -128,12 +128,50 @@ serve(async (req) => {
       );
     }
 
-    // Fetch business rules from database
-    let businessRulesPrompt = '';
+    // Fetch all definitions from database
+    let databaseDefinitionsPrompt = '';
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
+        // Fetch column definitions
+        const { data: columnDefinitions, error: colError } = await supabase
+          .from('column_definitions')
+          .select('name, display_name, data_type, is_required, description')
+          .order('sort_order');
+        
+        if (colError) {
+          console.error("Error fetching column definitions:", colError);
+        } else if (columnDefinitions && columnDefinitions.length > 0) {
+          const columnDescriptions = columnDefinitions.map(col => {
+            const required = col.is_required ? '(Pflichtfeld)' : '(Optional)';
+            const desc = col.description ? ` - ${col.description}` : '';
+            return `- ${col.name} (${col.display_name}): Typ ${col.data_type} ${required}${desc}`;
+          }).join('\n');
+          databaseDefinitionsPrompt += `\nSPALTEN-DEFINITIONEN (aus der Datenbank):\nDiese Spalten sind im System definiert:\n${columnDescriptions}\n`;
+        }
+        
+        // Fetch format rules
+        const { data: formatRules, error: formatError } = await supabase
+          .from('format_rules')
+          .select('name, pattern, error_message, applies_to_columns, description')
+          .eq('is_active', true)
+          .order('sort_order');
+        
+        if (formatError) {
+          console.error("Error fetching format rules:", formatError);
+        } else if (formatRules && formatRules.length > 0) {
+          const formatDescriptions = formatRules.map(rule => {
+            const columns = rule.applies_to_columns?.length > 0 
+              ? `Gilt für: [${rule.applies_to_columns.join(', ')}]` 
+              : 'Gilt für alle Spalten';
+            const desc = rule.description ? ` (${rule.description})` : '';
+            return `- ${rule.name}: Pattern "${rule.pattern}"${desc}. ${columns}. Fehler: "${rule.error_message}"`;
+          }).join('\n');
+          databaseDefinitionsPrompt += `\nFORMAT-REGELN (aus der Datenbank):\nDiese Format-Validierungen sind aktiv:\n${formatDescriptions}\n`;
+        }
+        
+        // Fetch business rules
         const { data: businessRules, error: rulesError } = await supabase
           .from('business_rules')
           .select('name, rule_type, configuration, error_message, description')
@@ -144,10 +182,10 @@ serve(async (req) => {
           console.error("Error fetching business rules:", rulesError);
         } else if (businessRules && businessRules.length > 0) {
           const ruleDescriptions = businessRules.map(rule => buildRulePrompt(rule)).join('\n');
-          businessRulesPrompt = `\nGESCHÄFTSREGELN (aus der Datenbank geladen):\nDiese Regeln sind aktiv und sollten bei der Analyse berücksichtigt werden:\n${ruleDescriptions}\n`;
+          databaseDefinitionsPrompt += `\nGESCHÄFTSREGELN (aus der Datenbank):\nDiese Regeln sind aktiv und sollten bei der Analyse berücksichtigt werden:\n${ruleDescriptions}\n`;
         }
         
-        // Also fetch AI settings for additional context
+        // Fetch AI settings for additional context
         const { data: aiSettings, error: aiError } = await supabase
           .from('ai_settings')
           .select('key, value')
@@ -158,15 +196,15 @@ serve(async (req) => {
           const additionalInstructions = aiSettings.find(s => s.key === 'additional_instructions');
           
           if (customPrompt?.value) {
-            businessRulesPrompt += `\nZUSÄTZLICHER KONTEXT:\n${sanitizeForPrompt(customPrompt.value, 1000)}\n`;
+            databaseDefinitionsPrompt += `\nZUSÄTZLICHER KONTEXT:\n${sanitizeForPrompt(customPrompt.value, 1000)}\n`;
           }
           if (additionalInstructions?.value) {
-            businessRulesPrompt += `\nWEITERE ANWEISUNGEN:\n${sanitizeForPrompt(additionalInstructions.value, 1000)}\n`;
+            databaseDefinitionsPrompt += `\nWEITERE ANWEISUNGEN:\n${sanitizeForPrompt(additionalInstructions.value, 1000)}\n`;
           }
         }
       } catch (dbError) {
         console.error("Database error:", dbError);
-        // Continue without business rules - they're optional
+        // Continue without database definitions - they're optional
       }
     }
 
@@ -246,7 +284,7 @@ Wichtige Formate:
 - AHV-Nummer: 756.XXXX.XXXX.XX
 - Datum: TT.MM.JJJJ (z.B. 15.01.2024)
 - E-Mail: gültige E-Mail-Adresse (keine Leerzeichen)
-${businessRulesPrompt}
+${databaseDefinitionsPrompt}
 NAMENSWECHSEL-ERKENNUNG (WICHTIG):
 Erkenne Situationen, in denen dieselbe Person mit unterschiedlichen Namen erscheint:
 - Gleiche AHV-Nummer aber unterschiedliche Namen → Person hat Namen gewechselt (Heirat, Scheidung, Adoption)
