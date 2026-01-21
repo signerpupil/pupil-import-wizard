@@ -81,7 +81,59 @@ export function AdminFormatRules() {
     setIsDialogOpen(true);
   };
 
+  const validateRegexPattern = (pattern: string): { valid: boolean; error?: string } => {
+    if (!pattern.trim()) {
+      return { valid: false, error: 'Regex-Muster darf nicht leer sein.' };
+    }
+
+    // Check pattern length to prevent overly complex patterns
+    if (pattern.length > 500) {
+      return { valid: false, error: 'Regex-Muster ist zu lang (max. 500 Zeichen).' };
+    }
+
+    // Validate regex syntax
+    try {
+      new RegExp(pattern);
+    } catch (e) {
+      return { valid: false, error: 'Ungültige Regex-Syntax.' };
+    }
+
+    // Check for potentially dangerous ReDoS patterns
+    const dangerousPatterns = [
+      /\(\.\*\)\+/,           // (.*)+
+      /\(\.\+\)\+/,           // (.+)+
+      /\([^)]*\+\)\+/,        // (a+)+ type patterns
+      /\([^)]*\*\)\+/,        // (a*)+ type patterns
+      /\([^)]*\+\)\*/,        // (a+)* type patterns
+      /\([^)]*\*\)\*/,        // (a*)* type patterns
+      /(\.\*){2,}/,           // .*.* repetitions
+      /(\.\+){2,}/,           // .+.+ repetitions
+    ];
+
+    for (const dangerous of dangerousPatterns) {
+      if (dangerous.test(pattern)) {
+        return { 
+          valid: false, 
+          error: 'Potenziell unsicheres Muster erkannt (ReDoS-Risiko). Bitte vereinfachen.' 
+        };
+      }
+    }
+
+    return { valid: true };
+  };
+
   const handleSave = async () => {
+    // Validate regex pattern before saving
+    const patternValidation = validateRegexPattern(formData.pattern);
+    if (!patternValidation.valid) {
+      toast({ 
+        title: 'Ungültiges Muster', 
+        description: patternValidation.error, 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     const columnsArray = formData.applies_to_columns
       .split(',')
       .map(s => s.trim())
