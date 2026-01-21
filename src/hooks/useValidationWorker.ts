@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ValidationError, ImportRow, ColumnDefinition, FormatRule, BusinessRule } from '@/types/importTypes';
 
-interface AnalysisPattern {
+export interface AnalysisPattern {
   type: string;
   column: string;
   count: number;
