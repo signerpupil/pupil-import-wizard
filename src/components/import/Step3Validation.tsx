@@ -216,20 +216,20 @@ export function Step3Validation({
     return getStudentNameForRow(currentError.row);
   };
 
-  // Check if current error is a duplicate error and find all related duplicates
-  const getDuplicateInfo = () => {
+  // Check if current error is a duplicate error and find all related duplicates with full row data
+  const getDuplicateInfo = useCallback(() => {
     if (!currentError) return null;
     
     // Check if this is a duplicate or inconsistency error
-    const isDuplicateOrInconsistency = currentError.message.includes('Duplikat:') || 
-                                        currentError.message.includes('Inkonsistente ID:');
+    const isDuplicateOrInconsistency = currentError.message.includes('Duplikat') || 
+                                        currentError.message.includes('Inkonsistente ID') ||
+                                        currentError.message.includes('gefunden');
     if (!isDuplicateOrInconsistency) return null;
 
-    // Find all errors for the same column with the same value (duplicates)
-    // or extract related rows from the message
+    // Find all errors for the same column with the same or similar values
     const relatedErrors = errors.filter(e => 
       e.column === currentError.column && 
-      (e.message.includes('Duplikat:') || e.message.includes('Inkonsistente ID:'))
+      (e.message.includes('Duplikat') || e.message.includes('Inkonsistente ID') || e.message.includes('gefunden'))
     );
 
     // Extract all affected rows from messages
@@ -237,10 +237,13 @@ export function Step3Validation({
     
     relatedErrors.forEach(e => {
       allAffectedRows.add(e.row);
-      // Extract row number from message like "kommt auch in Zeile X vor" or "hat in Zeile X"
-      const rowMatch = e.message.match(/Zeile\s+(\d+)/);
-      if (rowMatch) {
-        allAffectedRows.add(parseInt(rowMatch[1]));
+      // Extract row number from message like "kommt auch in Zeile X vor" or "erste Zeile: X"
+      const rowMatches = e.message.match(/Zeile[:\s]+(\d+)/gi);
+      if (rowMatches) {
+        rowMatches.forEach(match => {
+          const numMatch = match.match(/(\d+)/);
+          if (numMatch) allAffectedRows.add(parseInt(numMatch[1]));
+        });
       }
     });
 
@@ -253,9 +256,17 @@ export function Step3Validation({
       processedValues.add(e.value);
       
       const rowsWithSameValue = [e.row];
-      const rowMatch = e.message.match(/Zeile\s+(\d+)/);
-      if (rowMatch) {
-        rowsWithSameValue.unshift(parseInt(rowMatch[1])); // Add original row first
+      const rowMatches = e.message.match(/Zeile[:\s]+(\d+)/gi);
+      if (rowMatches) {
+        rowMatches.forEach(match => {
+          const numMatch = match.match(/(\d+)/);
+          if (numMatch) {
+            const rowNum = parseInt(numMatch[1]);
+            if (!rowsWithSameValue.includes(rowNum)) {
+              rowsWithSameValue.unshift(rowNum);
+            }
+          }
+        });
       }
       
       duplicateGroups.push({ value: e.value, rows: rowsWithSameValue });
@@ -267,18 +278,77 @@ export function Step3Validation({
     
     if (!currentGroup || currentGroup.rows.length < 2) return null;
 
+    // Get full row data for each duplicate occurrence
+    const rowsWithData = currentGroup.rows.map(rowNum => {
+      const rowData = rows[rowNum - 1]; // Convert to 0-indexed
+      const studentName = getStudentNameForRow(rowNum);
+      
+      // Get key fields to display for comparison
+      const keyFields: { field: string; value: string }[] = [];
+      if (rowData) {
+        // Add the duplicate column value
+        const dupValue = rowData[currentError.column];
+        if (dupValue !== undefined && dupValue !== null) {
+          keyFields.push({ field: currentError.column, value: String(dupValue) });
+        }
+        
+        // Add student name fields if available
+        const nameFields = ['S_Name', 'S_Vorname', 'S_name', 'S_vorname', 'S_Geburtsdatum', 'S_Klasse'];
+        nameFields.forEach(field => {
+          const val = rowData[field];
+          if (val !== undefined && val !== null && field !== currentError.column) {
+            keyFields.push({ field, value: String(val) });
+          }
+        });
+        
+        // Add parent fields for parent duplicates
+        if (currentError.column.includes('ERZ')) {
+          const parentFields = ['P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ2_Name', 'P_ERZ2_Vorname'];
+          parentFields.forEach(field => {
+            const val = rowData[field];
+            if (val !== undefined && val !== null && field !== currentError.column) {
+              keyFields.push({ field, value: String(val) });
+            }
+          });
+        }
+      }
+      
+      return {
+        row: rowNum,
+        studentName,
+        isCurrent: rowNum === currentError.row,
+        keyFields: keyFields.slice(0, 6), // Limit to 6 fields for display
+        hasError: errors.some(e => e.row === rowNum && e.column === currentError.column && !e.correctedValue)
+      };
+    });
+
+    // Suggest a solution based on the type of duplicate
+    let suggestedSolution = '';
+    let canAutoResolve = false;
+    
+    if (currentError.message.includes('Inkonsistente ID')) {
+      // For inconsistent IDs, suggest using the most common value
+      suggestedSolution = 'Die IDs sollten vereinheitlicht werden. Prüfen Sie welcher Wert korrekt ist.';
+      canAutoResolve = false;
+    } else if (currentError.column.includes('AHV')) {
+      suggestedSolution = 'AHV-Nummern müssen eindeutig sein. Prüfen Sie ob es sich um dieselbe Person handelt oder eine fehlerhafte Eingabe vorliegt.';
+      canAutoResolve = false;
+    } else {
+      suggestedSolution = 'Duplikate können zusammengeführt oder einzeln korrigiert werden.';
+      canAutoResolve = false;
+    }
+
     return {
       value: currentValue,
       column: currentError.column,
-      rows: currentGroup.rows.map(rowNum => ({
-        row: rowNum,
-        studentName: getStudentNameForRow(rowNum),
-        isCurrent: rowNum === currentError.row
-      }))
+      rows: rowsWithData,
+      suggestedSolution,
+      canAutoResolve,
+      totalOccurrences: rowsWithData.length
     };
-  };
+  }, [currentError, errors, rows, getStudentNameForRow]);
 
-  const duplicateInfo = useMemo(() => getDuplicateInfo(), [currentError, errors, rows]);
+  const duplicateInfo = useMemo(() => getDuplicateInfo(), [getDuplicateInfo]);
 
   // Convert worker patterns to LocalSuggestion format
   const convertPatternToSuggestion = useCallback((pattern: AnalysisPattern): LocalSuggestion => {
@@ -526,64 +596,90 @@ export function Step3Validation({
               <Badge variant="destructive" className="ml-2">{currentError.message}</Badge>
             </div>
 
-            {/* Show all duplicate occurrences if this is a duplicate error */}
+            {/* Show all duplicate occurrences with full details */}
             {duplicateInfo && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Alle Vorkommen dieses Duplikats:</label>
-                <div className="p-3 bg-muted/50 rounded border space-y-1">
-                  <div className="text-xs text-muted-foreground mb-2">
-                    Wert <span className="font-mono font-medium">"{duplicateInfo.value}"</span> in Spalte <span className="font-mono font-medium">{duplicateInfo.column}</span>:
-                  </div>
-                  {duplicateInfo.rows.map((rowInfo, idx) => {
-                    // Check if this row has an error we can jump to
-                    const hasError = errors.some(e => e.row === rowInfo.row && e.column === duplicateInfo.column && !e.correctedValue);
-                    // All non-current rows are clickable - they either jump to error or scroll to table row
-                    const isClickable = !rowInfo.isCurrent;
-                    
-                    return (
-                      <div 
-                        key={idx} 
-                        className={`flex items-center gap-2 text-sm rounded px-2 py-1 -mx-2 transition-colors ${
-                          rowInfo.isCurrent 
-                            ? 'font-semibold text-primary bg-primary/10' 
-                            : 'cursor-pointer hover:bg-muted'
-                        }`}
-                        onClick={() => {
-                          if (isClickable) {
-                            if (hasError) {
-                              // Jump to this error in step-by-step mode
-                              jumpToError(rowInfo.row, duplicateInfo.column);
-                            } else {
-                              // Scroll to this row in the table (it's the original, not an error)
-                              const tableRow = document.querySelector(`[data-row="${rowInfo.row}"]`);
-                              if (tableRow) {
-                                tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                tableRow.classList.add('ring-2', 'ring-primary');
-                                setTimeout(() => tableRow.classList.remove('ring-2', 'ring-primary'), 2000);
-                              }
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    Duplikat-Analyse ({duplicateInfo.totalOccurrences} Vorkommen)
+                  </label>
+                  <Badge variant="outline" className="text-xs">
+                    {duplicateInfo.column}
+                  </Badge>
+                </div>
+                
+                {/* Suggested solution */}
+                <Alert className="border-primary/30 bg-primary/5">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-sm">Lösungsvorschlag</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {duplicateInfo.suggestedSolution}
+                  </AlertDescription>
+                </Alert>
+                
+                {/* All occurrences with full data */}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {duplicateInfo.rows.map((rowInfo, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-lg border transition-colors ${
+                        rowInfo.isCurrent 
+                          ? 'border-primary bg-primary/10' 
+                          : rowInfo.hasError
+                            ? 'border-destructive/30 bg-destructive/5 cursor-pointer hover:bg-destructive/10'
+                            : 'border-muted bg-muted/30 cursor-pointer hover:bg-muted/50'
+                      }`}
+                      onClick={() => {
+                        if (!rowInfo.isCurrent) {
+                          if (rowInfo.hasError) {
+                            jumpToError(rowInfo.row, duplicateInfo.column);
+                          } else {
+                            const tableRow = document.querySelector(`[data-row="${rowInfo.row}"]`);
+                            if (tableRow) {
+                              tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              tableRow.classList.add('ring-2', 'ring-primary');
+                              setTimeout(() => tableRow.classList.remove('ring-2', 'ring-primary'), 2000);
                             }
                           }
-                        }}
-                      >
-                        <span className="font-mono">Zeile {rowInfo.row}</span>
-                        {rowInfo.studentName && (
-                          <>
-                            <span className="text-muted-foreground">—</span>
-                            <span>{rowInfo.studentName}</span>
-                          </>
-                        )}
-                        {rowInfo.isCurrent && (
-                          <Badge variant="outline" className="text-xs">aktuell</Badge>
-                        )}
-                        {isClickable && (
-                          <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
-                        )}
-                        {isClickable && !hasError && (
-                          <Badge variant="secondary" className="text-xs ml-1">Original</Badge>
-                        )}
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium">Zeile {rowInfo.row}</span>
+                          {rowInfo.studentName && (
+                            <span className="text-sm text-muted-foreground">— {rowInfo.studentName}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {rowInfo.isCurrent && (
+                            <Badge className="text-xs">aktuell</Badge>
+                          )}
+                          {!rowInfo.isCurrent && rowInfo.hasError && (
+                            <Badge variant="destructive" className="text-xs">Fehler</Badge>
+                          )}
+                          {!rowInfo.isCurrent && !rowInfo.hasError && (
+                            <Badge variant="secondary" className="text-xs">Original</Badge>
+                          )}
+                          {!rowInfo.isCurrent && (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
                       </div>
-                    );
-                  })}
+                      
+                      {/* Show key fields for comparison */}
+                      {rowInfo.keyFields && rowInfo.keyFields.length > 0 && (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          {rowInfo.keyFields.map((field, fieldIdx) => (
+                            <div key={fieldIdx} className="flex gap-1">
+                              <span className="text-muted-foreground truncate">{field.field}:</span>
+                              <span className="font-mono truncate font-medium">{field.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

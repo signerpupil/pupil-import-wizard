@@ -91,7 +91,7 @@ export function formatEmail(value: string): string | null {
 
 export function formatGender(value: string): string | null {
   const normalized = value.toUpperCase().trim();
-  const maleValues = ['MÄNNLICH', 'MALE', 'MANN', 'M', 'MAENNLICH'];
+  const maleValues = ['MÄNNLICH', 'MALE', 'MANN', 'M', 'MAENNLICH', 'HERR', 'H'];
   const femaleValues = ['WEIBLICH', 'FEMALE', 'FRAU', 'W', 'F'];
   const diverseValues = ['DIVERS', 'DIVERSE', 'D', 'X', 'ANDERES'];
   
@@ -99,6 +99,60 @@ export function formatGender(value: string): string | null {
   if (femaleValues.includes(normalized)) return 'W';
   if (diverseValues.includes(normalized)) return 'D';
   
+  return null;
+}
+
+// Format name - capitalize properly
+export function formatName(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  
+  // Check if it needs formatting (all caps, all lower)
+  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
+  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
+  
+  if (!isAllCaps && !isAllLower) return null;
+  
+  // Capitalize each word, handle hyphenated names
+  return trimmed
+    .toLowerCase()
+    .split(/(\s+|-)/g)
+    .map(part => {
+      if (part === '-' || /^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
+}
+
+// Format street address
+export function formatStreet(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  
+  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
+  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
+  
+  if (!isAllCaps && !isAllLower) return null;
+  
+  let formatted = trimmed.toLowerCase();
+  formatted = formatted.replace(/^str\.?\s*/i, 'Strasse ');
+  formatted = formatted.replace(/\bstr\.?$/i, 'strasse');
+  
+  return formatted
+    .split(/(\s+)/g)
+    .map(part => {
+      if (/^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
+}
+
+// Format IBAN
+export function formatIBAN(value: string): string | null {
+  const cleaned = value.replace(/\s/g, '').toUpperCase();
+  if (cleaned.startsWith('CH') && cleaned.length === 21) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)} ${cleaned.slice(12, 16)} ${cleaned.slice(16, 20)} ${cleaned.slice(20)}`;
+  }
   return null;
 }
 
@@ -467,6 +521,19 @@ function getFixFunction(name: string): ((value: string) => string | null) | null
     case 'formatEmail': return formatEmail;
     case 'formatSwissPLZ': return formatSwissPLZ;
     case 'formatGender': return formatGender;
+    case 'formatName': return formatName;
+    case 'formatStreet': return formatStreet;
+    case 'formatIBAN': return formatIBAN;
+    // Worker-style types
+    case 'phone_format': return formatSwissPhone;
+    case 'ahv_format': return formatAHV;
+    case 'email_format': return formatEmail;
+    case 'plz_format': return formatSwissPLZ;
+    case 'gender_format': return formatGender;
+    case 'name_format': return formatName;
+    case 'street_format': return formatStreet;
+    case 'iban_format': return formatIBAN;
+    case 'date_format': return convertExcelDate;
     default: return null;
   }
 }
