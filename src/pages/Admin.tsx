@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Brain, Users, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert } from 'lucide-react';
 import pupilLogo from '@/assets/pupil-logo.png';
 import { AdminColumnDefinitions } from '@/components/admin/AdminColumnDefinitions';
 import { AdminFormatRules } from '@/components/admin/AdminFormatRules';
@@ -129,9 +129,9 @@ export default function Admin() {
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Logik</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">KI</span>
+            <TabsTrigger value="processing" className="flex items-center gap-2">
+              <Cpu className="h-4 w-4" />
+              <span className="hidden sm:inline">Verarbeitung</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -151,7 +151,7 @@ export default function Admin() {
             <AdminBusinessRules />
           </TabsContent>
 
-          <TabsContent value="ai">
+          <TabsContent value="processing">
             <AdminAISettings />
           </TabsContent>
 
