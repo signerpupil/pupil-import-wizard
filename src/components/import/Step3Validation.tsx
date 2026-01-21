@@ -323,10 +323,19 @@ export function Step3Validation({
       };
     });
 
+    // Determine if this is a parent-related inconsistency (different children, same parent)
+    const isParentInconsistency = currentError.column.startsWith('P_ERZ');
+    
     // Find columns with DIFFERENT values across duplicate rows
     const columnsWithDifferences: { column: string; values: { row: number; value: string }[] }[] = [];
     
     allColumns.forEach(col => {
+      // For parent inconsistencies, ONLY show parent-related fields (P_*)
+      // Student fields (S_*) are expected to be different as they represent different students
+      if (isParentInconsistency && col.startsWith('S_')) {
+        return; // Skip student fields for parent inconsistency checks
+      }
+      
       const uniqueValues = new Map<string, number[]>();
       
       rowsWithData.forEach(rowInfo => {
@@ -347,9 +356,13 @@ export function Step3Validation({
       }
     });
 
-    // Categorize differences by importance
-    const criticalColumns = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'S_Geburtsdatum', 'S_ID'];
-    const importantColumns = ['S_Email', 'P_ERZ1_Email', 'P_ERZ2_Email', 'S_Telefon', 'P_ERZ1_Telefon', 'P_ERZ2_Telefon', 'S_Adresse', 'S_PLZ', 'S_Ort'];
+    // Categorize differences by importance - only parent fields for parent inconsistencies
+    const criticalColumns = isParentInconsistency 
+      ? ['P_ERZ1_AHV', 'P_ERZ2_AHV', 'P_ERZ1_ID', 'P_ERZ2_ID']
+      : ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'S_Geburtsdatum', 'S_ID'];
+    const importantColumns = isParentInconsistency
+      ? ['P_ERZ1_Email', 'P_ERZ2_Email', 'P_ERZ1_Telefon', 'P_ERZ2_Telefon', 'P_ERZ1_Adresse', 'P_ERZ1_PLZ', 'P_ERZ1_Ort']
+      : ['S_Email', 'P_ERZ1_Email', 'P_ERZ2_Email', 'S_Telefon', 'P_ERZ1_Telefon', 'P_ERZ2_Telefon', 'S_Adresse', 'S_PLZ', 'S_Ort'];
     
     const criticalDifferences = columnsWithDifferences.filter(d => criticalColumns.includes(d.column));
     const importantDifferences = columnsWithDifferences.filter(d => importantColumns.includes(d.column));
@@ -364,19 +377,22 @@ export function Step3Validation({
     let suggestedSolution = '';
     let warningMessage = '';
     
-    if (hasDifferences) {
+    if (isParentInconsistency) {
+      warningMessage = hasDifferences 
+        ? `${columnsWithDifferences.length} Eltern-Feld(er) haben unterschiedliche Werte.`
+        : '';
+      suggestedSolution = 'Die Eltern-IDs sollten vereinheitlicht werden. Wählen Sie den korrekten Eltern-Datensatz. Schüler*innen-Daten (S_*) bleiben unverändert.';
+    } else if (hasDifferences) {
       warningMessage = `Achtung: ${columnsWithDifferences.length} Spalte(n) haben unterschiedliche Werte! `;
       if (hasCriticalDifferences) {
         warningMessage += 'Kritische Unterschiede (AHV, Geburtsdatum, ID) gefunden.';
       }
-    }
-    
-    if (currentError.message.includes('Inkonsistente ID')) {
-      suggestedSolution = 'Die IDs sollten vereinheitlicht werden. Wählen Sie den korrekten Datensatz.';
-    } else if (currentError.column.includes('AHV')) {
-      suggestedSolution = 'AHV-Nummern müssen eindeutig sein. Wählen Sie den Datensatz, dessen Daten übernommen werden sollen.';
-    } else if (hasDifferences) {
-      suggestedSolution = 'Duplikate enthalten unterschiedliche Daten. Wählen Sie den Datensatz, dessen Werte für die Zusammenführung verwendet werden sollen.';
+      
+      if (currentError.column.includes('AHV')) {
+        suggestedSolution = 'AHV-Nummern müssen eindeutig sein. Wählen Sie den Datensatz, dessen Daten übernommen werden sollen.';
+      } else {
+        suggestedSolution = 'Duplikate enthalten unterschiedliche Daten. Wählen Sie den Datensatz, dessen Werte für die Zusammenführung verwendet werden sollen.';
+      }
     } else {
       suggestedSolution = 'Duplikate können zusammengeführt werden. Keine Unterschiede in den Daten gefunden.';
     }
@@ -394,7 +410,8 @@ export function Step3Validation({
       importantDifferences,
       otherDifferences,
       totalOccurrences: rowsWithData.length,
-      allColumns: Array.from(allColumns)
+      allColumns: Array.from(allColumns),
+      isParentInconsistency
     };
   }, [currentError, errors, rows, getStudentNameForRow]);
 
@@ -765,16 +782,33 @@ export function Step3Validation({
                   </Badge>
                 </div>
                 
+                {/* Info for parent inconsistency - explain that student data stays unchanged */}
+                {duplicateInfo.isParentInconsistency && (
+                  <Alert className="border-blue-500/30 bg-blue-500/5">
+                    <AlertCircle className="h-4 w-4 text-blue-500" />
+                    <AlertTitle className="text-sm">Eltern-ID Inkonsistenz</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Verschiedene Kinder haben denselben Erziehungsberechtigten, aber unterschiedliche Eltern-IDs.
+                      <strong className="block mt-1">Schüler*innen-Daten (S_*) bleiben unverändert.</strong>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Warning about different data */}
                 {duplicateInfo.hasDifferences && (
-                  <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                  <Alert variant={duplicateInfo.isParentInconsistency ? "default" : "destructive"} className={duplicateInfo.isParentInconsistency ? "border-amber-500/50 bg-amber-500/10" : "border-destructive/50 bg-destructive/10"}>
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle className="text-sm">Unterschiedliche Daten gefunden!</AlertTitle>
+                    <AlertTitle className="text-sm">
+                      {duplicateInfo.isParentInconsistency ? 'Eltern-Felder mit unterschiedlichen Werten' : 'Unterschiedliche Daten gefunden!'}
+                    </AlertTitle>
                     <AlertDescription className="text-xs">
                       {duplicateInfo.warningMessage}
-                      <br />
-                      <strong>{duplicateInfo.columnsWithDifferences.length} Spalte(n)</strong> haben unterschiedliche Werte.
-                      Bei Zusammenführung gehen Daten verloren, wenn Sie keinen Master-Datensatz wählen.
+                      {!duplicateInfo.isParentInconsistency && (
+                        <>
+                          <br />
+                          <strong>{duplicateInfo.columnsWithDifferences.length} Spalte(n)</strong> haben unterschiedliche Werte.
+                        </>
+                      )}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -788,15 +822,21 @@ export function Step3Validation({
                   </AlertDescription>
                 </Alert>
 
-                {/* Master Record Selection */}
-                {duplicateInfo.hasDifferences && (
+                {/* Master Record Selection - only for parent fields or non-parent inconsistencies */}
+                {(duplicateInfo.hasDifferences || duplicateInfo.isParentInconsistency) && (
                   <div className="p-3 bg-muted/50 rounded-lg border space-y-3">
                     <div className="flex items-center gap-2">
                       <Copy className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Master-Datensatz wählen</span>
+                      <span className="text-sm font-medium">
+                        {duplicateInfo.isParentInconsistency 
+                          ? 'Korrekte Eltern-ID wählen' 
+                          : 'Master-Datensatz wählen'}
+                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Wählen Sie den Datensatz, dessen Werte bei der Zusammenführung übernommen werden sollen:
+                      {duplicateInfo.isParentInconsistency 
+                        ? 'Wählen Sie die Zeile mit der korrekten Eltern-ID. Nur Eltern-Felder werden übernommen, Schüler*innen-Daten bleiben unverändert.'
+                        : 'Wählen Sie den Datensatz, dessen Werte bei der Zusammenführung übernommen werden sollen:'}
                     </p>
                     <RadioGroup 
                       value={selectedMasterRow?.toString() || ''} 
@@ -822,7 +862,9 @@ export function Step3Validation({
                       className="w-full gap-2"
                     >
                       <Copy className="h-4 w-4" />
-                      Daten aus Zeile {selectedMasterRow} übernehmen
+                      {duplicateInfo.isParentInconsistency 
+                        ? `Eltern-ID aus Zeile ${selectedMasterRow} übernehmen`
+                        : `Daten aus Zeile ${selectedMasterRow} übernehmen`}
                     </Button>
                   </div>
                 )}
@@ -833,25 +875,27 @@ export function Step3Validation({
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
                       <span className="text-sm font-medium text-destructive">
-                        Spalten mit unterschiedlichen Werten:
+                        {duplicateInfo.isParentInconsistency 
+                          ? 'Eltern-Felder mit unterschiedlichen Werten:' 
+                          : 'Spalten mit unterschiedlichen Werten:'}
                       </span>
                     </div>
                     <ScrollArea className="max-h-[400px]">
-                      <div className="space-y-2">
+                      <div className="space-y-3 pr-4">
                         {/* Critical differences first */}
                         {duplicateInfo.criticalDifferences.map((diff, idx) => (
-                          <div key={`critical-${idx}`} className="p-2 bg-destructive/10 rounded border border-destructive/30">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="destructive" className="text-xs">Kritisch</Badge>
-                              <span className="text-xs font-mono font-medium">{diff.column}</span>
+                          <div key={`critical-${idx}`} className="p-3 bg-destructive/10 rounded-lg border border-destructive/30">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="destructive" className="text-xs shrink-0">Kritisch</Badge>
+                              <span className="text-sm font-mono font-medium truncate">{diff.column}</span>
                             </div>
-                            <div className="grid gap-1">
+                            <div className="grid grid-cols-1 gap-2">
                               {diff.values.map((v, vIdx) => (
-                                <div key={vIdx} className="flex items-center gap-2 text-xs">
-                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
-                                  <code className={`px-1 rounded ${
+                                <div key={vIdx} className="flex items-start gap-3 text-sm">
+                                  <span className="text-muted-foreground shrink-0 w-20">Zeile {v.row}:</span>
+                                  <code className={`px-2 py-1 rounded break-all flex-1 ${
                                     selectedMasterRow === v.row 
-                                      ? 'bg-primary/20 text-primary font-bold' 
+                                      ? 'bg-primary/20 text-primary font-bold ring-1 ring-primary' 
                                       : 'bg-muted'
                                   }`}>
                                     {v.value}
@@ -864,18 +908,18 @@ export function Step3Validation({
                         
                         {/* Important differences */}
                         {duplicateInfo.importantDifferences.map((diff, idx) => (
-                          <div key={`important-${idx}`} className="p-2 bg-amber-500/10 rounded border border-amber-500/30">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge className="bg-amber-500 text-xs">Wichtig</Badge>
-                              <span className="text-xs font-mono font-medium">{diff.column}</span>
+                          <div key={`important-${idx}`} className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className="bg-amber-500 text-xs shrink-0">Wichtig</Badge>
+                              <span className="text-sm font-mono font-medium truncate">{diff.column}</span>
                             </div>
-                            <div className="grid gap-1">
+                            <div className="grid grid-cols-1 gap-2">
                               {diff.values.map((v, vIdx) => (
-                                <div key={vIdx} className="flex items-center gap-2 text-xs">
-                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
-                                  <code className={`px-1 rounded ${
+                                <div key={vIdx} className="flex items-start gap-3 text-sm">
+                                  <span className="text-muted-foreground shrink-0 w-20">Zeile {v.row}:</span>
+                                  <code className={`px-2 py-1 rounded break-all flex-1 ${
                                     selectedMasterRow === v.row 
-                                      ? 'bg-primary/20 text-primary font-bold' 
+                                      ? 'bg-primary/20 text-primary font-bold ring-1 ring-primary' 
                                       : 'bg-muted'
                                   }`}>
                                     {v.value}
@@ -893,17 +937,17 @@ export function Step3Validation({
                               ? duplicateInfo.otherDifferences 
                               : duplicateInfo.otherDifferences.slice(0, 5)
                             ).map((diff, idx) => (
-                              <div key={`other-${idx}`} className="p-2 bg-muted/50 rounded border">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-xs font-mono font-medium">{diff.column}</span>
+                              <div key={`other-${idx}`} className="p-3 bg-muted/50 rounded-lg border">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-sm font-mono font-medium truncate">{diff.column}</span>
                                 </div>
-                                <div className="grid gap-1">
+                                <div className="grid grid-cols-1 gap-2">
                                   {diff.values.map((v, vIdx) => (
-                                    <div key={vIdx} className="flex items-center gap-2 text-xs">
-                                      <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
-                                      <code className={`px-1 rounded ${
+                                    <div key={vIdx} className="flex items-start gap-3 text-sm">
+                                      <span className="text-muted-foreground shrink-0 w-20">Zeile {v.row}:</span>
+                                      <code className={`px-2 py-1 rounded break-all flex-1 ${
                                         selectedMasterRow === v.row 
-                                          ? 'bg-primary/20 text-primary font-bold' 
+                                          ? 'bg-primary/20 text-primary font-bold ring-1 ring-primary' 
                                           : 'bg-muted'
                                       }`}>
                                         {v.value}
