@@ -42,7 +42,7 @@ export interface ColumnStatus {
 
 export interface ChangeLogEntry {
   timestamp: Date;
-  type: 'manual' | 'ai-bulk' | 'ai-auto';
+  type: 'manual' | 'bulk' | 'auto';
   row: number;
   column: string;
   originalValue: string;

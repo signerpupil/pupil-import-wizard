@@ -39,10 +39,10 @@ export function ChangeLog({ entries, fileName, importTypeName }: ChangeLogProps)
     switch (type) {
       case 'manual':
         return 'Manuell';
-      case 'ai-bulk':
-        return 'KI-Bulk';
-      case 'ai-auto':
-        return 'KI-Auto';
+      case 'bulk':
+        return 'Bulk';
+      case 'auto':
+        return 'Auto';
       default:
         return type;
     }
@@ -52,9 +52,9 @@ export function ChangeLog({ entries, fileName, importTypeName }: ChangeLogProps)
     switch (type) {
       case 'manual':
         return 'outline';
-      case 'ai-bulk':
+      case 'bulk':
         return 'default';
-      case 'ai-auto':
+      case 'auto':
         return 'secondary';
       default:
         return 'outline';
@@ -111,7 +111,7 @@ export function ChangeLog({ entries, fileName, importTypeName }: ChangeLogProps)
   }, {} as Record<string, number>);
 
   const manualCount = entries.filter(e => e.type === 'manual').length;
-  const aiCount = entries.filter(e => e.type !== 'manual').length;
+  const bulkCount = entries.filter(e => e.type !== 'manual').length;
 
   return (
     <Card className="border-pupil-teal/30 bg-pupil-teal/5">
@@ -151,7 +151,7 @@ export function ChangeLog({ entries, fileName, importTypeName }: ChangeLogProps)
               <Badge variant="outline">{manualCount}</Badge> Manuell
             </span>
             <span className="flex items-center gap-1">
-              <Badge>{aiCount}</Badge> KI-unterstützt
+              <Badge>{bulkCount}</Badge> Automatisch
             </span>
             {Object.entries(byColumn).slice(0, 3).map(([col, count]) => (
               <span key={col} className="text-muted-foreground">

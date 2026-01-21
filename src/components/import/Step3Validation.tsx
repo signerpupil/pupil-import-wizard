@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Sparkles, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -16,94 +16,25 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
-
-interface AISuggestion {
-  type: string;
-  affectedColumn: string;
-  affectedRows: number[];
-  pattern: string;
-  suggestion: string;
-  autoFix: boolean;
-  fixFunction?: string;
-  correctValue?: string | null;
-}
+import { 
+  analyzeErrorsLocally, 
+  applyLocalCorrection, 
+  type LocalSuggestion,
+  formatSwissPhone,
+  formatAHV,
+  formatSwissPLZ,
+  formatEmail,
+  convertExcelDate,
+  formatGender
+} from '@/lib/localBulkCorrections';
 
 interface Step3ValidationProps {
   errors: ValidationError[];
   rows: ParsedRow[];
-  onErrorCorrect: (rowIndex: number, column: string, value: string, correctionType?: 'manual' | 'ai-bulk' | 'ai-auto') => void;
-  onBulkCorrect: (corrections: { row: number; column: string; value: string }[], correctionType?: 'ai-bulk' | 'ai-auto') => void;
+  onErrorCorrect: (rowIndex: number, column: string, value: string, correctionType?: 'manual' | 'bulk' | 'auto') => void;
+  onBulkCorrect: (corrections: { row: number; column: string; value: string }[], correctionType?: 'bulk' | 'auto') => void;
   onBack: () => void;
   onNext: () => void;
-}
-
-// Helper functions for auto-corrections
-function formatSwissPhone(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  // Swiss mobile: 07X XXX XX XX
-  if (digits.length === 10 && digits.startsWith('07')) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
-  }
-  // Swiss landline: 0XX XXX XX XX
-  if (digits.length === 10 && digits.startsWith('0')) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
-  }
-  // With country code +41
-  if (digits.length === 11 && digits.startsWith('41')) {
-    return `+41 ${digits.slice(2, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`;
-  }
-  return null;
-}
-
-function formatSwissPLZ(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 4) {
-    return digits;
-  }
-  return null;
-}
-
-function formatPostfach(value: string): string | null {
-  const lower = value.toLowerCase().trim();
-  // Extract number from various formats
-  const match = lower.match(/(?:postfach|pf|p\.f\.)?\s*(\d+)/i);
-  if (match) {
-    return `Postfach ${match[1]}`;
-  }
-  return null;
-}
-
-function formatAHV(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 13 && digits.startsWith('756')) {
-    return `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
-  }
-  return null;
-}
-
-function convertExcelDate(value: string): string | null {
-  const serialNum = parseInt(value);
-  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 100000) {
-    const date = new Date((serialNum - 25569) * 86400 * 1000);
-    if (!isNaN(date.getTime())) {
-      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
-    }
-  }
-  return null;
-}
-
-function formatEmail(value: string): string | null {
-  // Remove spaces and normalize
-  let cleaned = value.trim().toLowerCase();
-  // Remove spaces before @ and in the local part
-  cleaned = cleaned.replace(/\s+/g, '');
-  // Normalize special characters (é -> e, ü -> u, etc.)
-  cleaned = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  if (cleaned.includes('@') && cleaned.includes('.')) {
-    return cleaned;
-  }
-  return null;
 }
 
 export function Step3Validation({
@@ -116,8 +47,8 @@ export function Step3Validation({
 }: Step3ValidationProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
-  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
   const [stepEditValue, setStepEditValue] = useState('');
@@ -346,140 +277,46 @@ export function Step3Validation({
 
   const duplicateInfo = useMemo(() => getDuplicateInfo(), [currentError, errors, rows]);
 
-  const fetchAISuggestions = async () => {
+  // Analyze errors locally - NO external API calls
+  const analyzeLocally = () => {
     if (errors.length === 0) return;
     
-    setIsLoadingAI(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest-corrections`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            errors: errors.filter(e => !e.correctedValue),
-            sampleData: rows.slice(0, 10),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Fehler beim Abrufen der KI-Vorschläge');
-      }
-
-      const data = await response.json();
+    setIsAnalyzing(true);
+    
+    // Small delay to show loading state
+    setTimeout(() => {
+      const suggestions = analyzeErrorsLocally(errors, rows);
+      setLocalSuggestions(suggestions);
       
-      // Filter and validate suggestions to ensure affectedRows is always a valid number array
-      const validSuggestions = (data.suggestions || []).filter((s: AISuggestion) => {
-        if (!Array.isArray(s.affectedRows)) {
-          console.warn('Invalid suggestion - affectedRows is not an array:', s);
-          return false;
-        }
-        return s.affectedRows.length > 0;
-      });
-      
-      setAiSuggestions(validSuggestions);
-      
-      if (validSuggestions.length > 0) {
+      if (suggestions.length > 0) {
         toast({
-          title: 'KI-Analyse abgeschlossen',
-          description: `${validSuggestions.length} Korrekturvorschläge gefunden`,
+          title: 'Lokale Analyse abgeschlossen',
+          description: `${suggestions.length} Korrekturvorschläge gefunden - 100% lokal, keine Daten gesendet`,
         });
       } else {
         toast({
-          title: 'Keine Muster erkannt',
-          description: 'Die KI konnte keine automatischen Korrekturen vorschlagen.',
-          variant: 'destructive',
+          title: 'Keine automatischen Korrekturen',
+          description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
         });
       }
-    } catch (error) {
-      console.error('AI suggestion error:', error);
-      toast({
-        title: 'Fehler',
-        description: error instanceof Error ? error.message : 'KI-Analyse fehlgeschlagen',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingAI(false);
-    }
+      
+      setIsAnalyzing(false);
+    }, 300);
   };
 
-  const applyBulkCorrection = (suggestion: AISuggestion) => {
-    const corrections: { row: number; column: string; value: string }[] = [];
-    const fixType = suggestion.fixFunction?.toLowerCase() || '';
-    
-    suggestion.affectedRows.forEach(rowNum => {
-      const error = errors.find(e => e.row === rowNum && e.column === suggestion.affectedColumn);
-      
-      // If AI provided a specific correctValue, use it directly (for family consistency fixes)
-      if (suggestion.correctValue) {
-        corrections.push({
-          row: rowNum,
-          column: suggestion.affectedColumn,
-          value: suggestion.correctValue,
-        });
-        return;
-      }
-      
-      if (error && error.value) {
-        let correctedValue: string | null = null;
-        
-        // Apply corrections based on the fix function description
-        if (fixType.includes('excel') || fixType.includes('serial') || fixType.includes('datum')) {
-          correctedValue = convertExcelDate(error.value);
-        } else if (fixType.includes('ahv')) {
-          correctedValue = formatAHV(error.value);
-        } else if (fixType.includes('telefon') || fixType.includes('phone') || fixType.includes('handy') || fixType.includes('mobile')) {
-          correctedValue = formatSwissPhone(error.value);
-        } else if (fixType.includes('plz') || fixType.includes('postleitzahl')) {
-          correctedValue = formatSwissPLZ(error.value);
-        } else if (fixType.includes('postfach') || fixType.includes('pf')) {
-          correctedValue = formatPostfach(error.value);
-        } else if (fixType.includes('email') || fixType.includes('mail')) {
-          correctedValue = formatEmail(error.value);
-        }
-        
-        // Fallback: try to auto-detect based on column name
-        if (!correctedValue) {
-          const colLower = suggestion.affectedColumn.toLowerCase();
-          if (colLower.includes('ahv')) {
-            correctedValue = formatAHV(error.value);
-          } else if (colLower.includes('telefon') || colLower.includes('phone') || colLower.includes('handy') || colLower.includes('mobile')) {
-            correctedValue = formatSwissPhone(error.value);
-          } else if (colLower.includes('plz') || colLower.includes('postleitzahl')) {
-            correctedValue = formatSwissPLZ(error.value);
-          } else if (colLower.includes('postfach')) {
-            correctedValue = formatPostfach(error.value);
-          } else if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
-            correctedValue = convertExcelDate(error.value);
-          } else if (colLower.includes('email') || colLower.includes('mail')) {
-            correctedValue = formatEmail(error.value);
-          }
-        }
-        
-        if (correctedValue) {
-          corrections.push({
-            row: rowNum,
-            column: suggestion.affectedColumn,
-            value: correctedValue,
-          });
-        }
-      }
-    });
+  // Apply local bulk correction
+  const applyLocalBulkCorrection = (suggestion: LocalSuggestion) => {
+    const corrections = applyLocalCorrection(suggestion, errors);
 
     if (corrections.length > 0) {
-      onBulkCorrect(corrections);
+      onBulkCorrect(corrections, 'bulk');
       toast({
         title: 'Korrekturen angewendet',
-        description: `${corrections.length} Werte wurden korrigiert`,
+        description: `${corrections.length} Werte wurden lokal korrigiert`,
       });
       
       // Remove this suggestion
-      setAiSuggestions(prev => prev.filter(s => s !== suggestion));
+      setLocalSuggestions(prev => prev.filter(s => s !== suggestion));
     } else {
       toast({
         title: 'Keine Korrekturen möglich',
@@ -514,47 +351,54 @@ export function Step3Validation({
         </div>
       </div>
 
-      {/* AI Suggestions Button */}
+      {/* Local Bulk Correction - NO AI, NO external data transfer */}
       {uncorrectedErrors.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-pupil-success/30 bg-pupil-success/5">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">KI-Korrekturvorschläge</CardTitle>
+                <Shield className="h-5 w-5 text-pupil-success" />
+                <CardTitle className="text-lg">Lokale Musteranalyse</CardTitle>
+                <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
+                  100% Lokal
+                </Badge>
               </div>
               <Button 
-                onClick={fetchAISuggestions} 
-                disabled={isLoadingAI}
+                onClick={analyzeLocally} 
+                disabled={isAnalyzing}
                 className="gap-2"
+                variant="outline"
               >
-                {isLoadingAI ? (
+                {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Analysiere...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
-                    Vorschläge generieren
+                    <Zap className="h-4 w-4" />
+                    Muster erkennen
                   </>
                 )}
               </Button>
             </div>
             <CardDescription>
-              Lassen Sie die KI Muster erkennen und Bulk-Korrekturen vorschlagen
+              Erkennt Formatierungsfehler und schlägt Bulk-Korrekturen vor – alle Daten bleiben lokal im Browser
             </CardDescription>
           </CardHeader>
           
-          {aiSuggestions.length > 0 && (
+          {localSuggestions.length > 0 && (
             <CardContent className="space-y-3">
-              {aiSuggestions.map((suggestion, idx) => (
+              {localSuggestions.map((suggestion, idx) => (
                 <div key={idx} className="p-4 bg-background rounded-lg border space-y-2">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline">{suggestion.affectedColumn}</Badge>
                         <Badge className="bg-pupil-warning">{suggestion.affectedRows.length} Zeilen</Badge>
+                        {suggestion.autoFix && (
+                          <Badge variant="secondary" className="text-xs">Auto-Fix</Badge>
+                        )}
                       </div>
                       <p className="text-sm font-medium">{suggestion.pattern}</p>
                       <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
@@ -563,7 +407,7 @@ export function Step3Validation({
                       {suggestion.autoFix && (
                         <Button 
                           size="sm" 
-                          onClick={() => applyBulkCorrection(suggestion)}
+                          onClick={() => applyLocalBulkCorrection(suggestion)}
                           className="gap-1"
                         >
                           <CheckCircle className="h-4 w-4" />
