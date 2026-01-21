@@ -25,12 +25,36 @@ export interface ParsedRow {
   [key: string]: string | number | null;
 }
 
+// Alias für Worker-Kompatibilität
+export type ImportRow = ParsedRow;
+
 export interface ValidationError {
   row: number;
   column: string;
   value: string;
   message: string;
+  type?: 'format' | 'duplicate' | 'required' | 'business';
+  severity?: 'error' | 'warning';
   correctedValue?: string;
+}
+
+// Regel-Typen für Worker
+export interface FormatRule {
+  id: string;
+  name: string;
+  pattern: string;
+  applies_to_columns: string[] | null;
+  error_message: string;
+  is_active: boolean;
+}
+
+export interface BusinessRule {
+  id: string;
+  name: string;
+  rule_type: string;
+  configuration: Record<string, unknown>;
+  error_message: string;
+  is_active: boolean;
 }
 
 export interface ColumnStatus {
