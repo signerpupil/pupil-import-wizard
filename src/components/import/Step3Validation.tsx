@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Shield } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Shield, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
+import { useValidationWorker, type AnalysisPattern } from '@/hooks/useValidationWorker';
 import { 
-  analyzeErrorsLocally, 
   applyLocalCorrection, 
   type LocalSuggestion,
   formatSwissPhone,
@@ -48,13 +48,16 @@ export function Step3Validation({
   const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
   const [stepEditValue, setStepEditValue] = useState('');
   const [filteredErrorRows, setFilteredErrorRows] = useState<number[] | null>(null);
   const [filteredErrorColumn, setFilteredErrorColumn] = useState<string | null>(null);
+  const [analysisTime, setAnalysisTime] = useState<number | null>(null);
   const { toast } = useToast();
+  
+  // Web Worker for background processing
+  const { analyze, isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
 
   const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
@@ -277,44 +280,72 @@ export function Step3Validation({
 
   const duplicateInfo = useMemo(() => getDuplicateInfo(), [currentError, errors, rows]);
 
-  // Analyze errors locally - NO external API calls, optimized for large datasets
-  const analyzeLocally = () => {
+  // Convert worker patterns to LocalSuggestion format
+  const convertPatternToSuggestion = useCallback((pattern: AnalysisPattern): LocalSuggestion => {
+    return {
+      type: pattern.type,
+      affectedColumn: pattern.column,
+      affectedRows: pattern.affectedRows,
+      pattern: pattern.description,
+      suggestion: pattern.canAutoFix 
+        ? 'Automatische Korrektur verfügbar - kein Datenversand erforderlich'
+        : 'Manuelle Überprüfung empfohlen',
+      autoFix: pattern.canAutoFix,
+      fixFunction: pattern.type, // Worker uses type as fix function identifier
+      correctValue: null,
+    };
+  }, []);
+
+  // Analyze errors using Web Worker - runs in background thread, never blocks UI
+  const analyzeWithWorker = useCallback(async () => {
     if (errors.length === 0) return;
     
-    setIsAnalyzing(true);
+    const startTime = performance.now();
     
-    // Use requestAnimationFrame for non-blocking UI + setTimeout for yielding
-    requestAnimationFrame(() => {
-      // For very large error sets, process in chunks
-      const processAnalysis = () => {
-        const startTime = performance.now();
-        const suggestions = analyzeErrorsLocally(errors, rows);
-        const duration = performance.now() - startTime;
-        
-        setLocalSuggestions(suggestions);
-        
-        if (suggestions.length > 0) {
-          toast({
-            title: 'Lokale Analyse abgeschlossen',
-            description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - 100% lokal`,
-          });
-        } else {
-          toast({
-            title: 'Keine automatischen Korrekturen',
-            description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
-          });
-        }
-        
-        setIsAnalyzing(false);
-      };
+    try {
+      // This runs entirely in a background Web Worker thread
+      const result = await analyze(errors, rows);
+      const duration = performance.now() - startTime;
+      setAnalysisTime(duration);
       
-      // Use setTimeout to allow UI to update before processing
-      setTimeout(processAnalysis, 50);
-    });
-  };
+      // Convert worker patterns to LocalSuggestion format
+      const suggestions = result.patterns.map(convertPatternToSuggestion);
+      setLocalSuggestions(suggestions);
+      
+      if (suggestions.length > 0) {
+        toast({
+          title: 'Hintergrund-Analyse abgeschlossen',
+          description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - Web Worker`,
+        });
+      } else {
+        toast({
+          title: 'Keine automatischen Korrekturen',
+          description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
+        });
+      }
+    } catch (err) {
+      console.error('Worker analysis failed:', err);
+      toast({
+        title: 'Analysefehler',
+        description: 'Die Hintergrundanalyse konnte nicht durchgeführt werden.',
+        variant: 'destructive',
+      });
+    }
+  }, [errors, rows, analyze, convertPatternToSuggestion, toast]);
+
+  // Show worker errors
+  useEffect(() => {
+    if (workerError) {
+      toast({
+        title: 'Worker-Fehler',
+        description: workerError,
+        variant: 'destructive',
+      });
+    }
+  }, [workerError, toast]);
 
   // Apply local bulk correction
-  const applyLocalBulkCorrection = (suggestion: LocalSuggestion) => {
+  const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
     const corrections = applyLocalCorrection(suggestion, errors);
 
     if (corrections.length > 0) {
@@ -333,7 +364,7 @@ export function Step3Validation({
         variant: 'destructive',
       });
     }
-  };
+  }, [errors, onBulkCorrect, toast]);
 
   return (
     <div className="space-y-6">
@@ -360,20 +391,23 @@ export function Step3Validation({
         </div>
       </div>
 
-      {/* Local Bulk Correction - NO AI, NO external data transfer */}
+      {/* Local Bulk Correction - Web Worker Background Processing */}
       {uncorrectedErrors.length > 0 && (
         <Card className="border-pupil-success/30 bg-pupil-success/5">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-pupil-success" />
-                <CardTitle className="text-lg">Lokale Musteranalyse</CardTitle>
+                <Cpu className="h-5 w-5 text-pupil-success" />
+                <CardTitle className="text-lg">Hintergrund-Analyse</CardTitle>
+                <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
+                  Web Worker
+                </Badge>
                 <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
                   100% Lokal
                 </Badge>
               </div>
               <Button 
-                onClick={analyzeLocally} 
+                onClick={analyzeWithWorker} 
                 disabled={isAnalyzing}
                 className="gap-2"
                 variant="outline"
@@ -381,7 +415,7 @@ export function Step3Validation({
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Analysiere...
+                    Analysiere im Hintergrund...
                   </>
                 ) : (
                   <>
@@ -391,8 +425,13 @@ export function Step3Validation({
                 )}
               </Button>
             </div>
-            <CardDescription>
-              Erkennt Formatierungsfehler und schlägt Bulk-Korrekturen vor – alle Daten bleiben lokal im Browser
+            <CardDescription className="flex items-center gap-2">
+              <span>Erkennt Formatierungsfehler in einem separaten Thread – UI bleibt reaktiv</span>
+              {analysisTime !== null && (
+                <Badge variant="secondary" className="text-xs">
+                  {Math.round(analysisTime)}ms
+                </Badge>
+              )}
             </CardDescription>
           </CardHeader>
           
