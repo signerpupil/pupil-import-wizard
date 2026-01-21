@@ -411,7 +411,7 @@ export function Step3Validation({
     }
   }, [duplicateInfo?.value, duplicateInfo?.column]);
 
-  // Apply selected master record's data to all duplicates
+  // Apply selected master record's data to all duplicates and mark duplicate errors as resolved
   const applyMasterRecord = useCallback(() => {
     if (!duplicateInfo || !selectedMasterRow) return;
     
@@ -439,17 +439,69 @@ export function Step3Validation({
       });
     });
     
-    if (corrections.length > 0) {
-      onBulkCorrect(corrections, 'bulk');
+    // IMPORTANT: Also mark the duplicate/inconsistency errors themselves as resolved
+    // by setting their correctedValue to indicate they've been handled via master record merge
+    duplicateInfo.rows.forEach(rowInfo => {
+      // Mark the duplicate error in the original column as resolved
+      // The value stays the same, but we mark it as "corrected" (merged)
+      const duplicateValue = rowInfo.fullData[duplicateInfo.column] || '';
+      if (duplicateValue) {
+        // Add correction for the duplicate column itself to mark it as resolved
+        // We use the master's value for consistency
+        const masterDuplicateValue = masterRowData[duplicateInfo.column];
+        const masterDuplicateValueStr = masterDuplicateValue !== undefined && masterDuplicateValue !== null 
+          ? String(masterDuplicateValue) 
+          : duplicateValue;
+        
+        corrections.push({
+          row: rowInfo.row,
+          column: duplicateInfo.column,
+          value: masterDuplicateValueStr
+        });
+      }
+    });
+    
+    // Remove duplicate corrections (same row+column)
+    const uniqueCorrections = corrections.filter((correction, index, self) => 
+      index === self.findIndex(c => c.row === correction.row && c.column === correction.column)
+    );
+    
+    if (uniqueCorrections.length > 0) {
+      onBulkCorrect(uniqueCorrections, 'bulk');
+      
+      const dataChanges = uniqueCorrections.filter(c => c.column !== duplicateInfo.column).length;
+      const duplicateResolutions = uniqueCorrections.filter(c => c.column === duplicateInfo.column).length;
+      
       toast({
-        title: 'Datensatz übernommen',
-        description: `${corrections.length} Werte aus Zeile ${selectedMasterRow} auf ${duplicateInfo.rows.length - 1} andere Zeile(n) angewendet.`,
+        title: 'Duplikate zusammengeführt',
+        description: `${duplicateResolutions} Duplikat-Fehler als gelöst markiert${dataChanges > 0 ? `, ${dataChanges} Datenwerte aus Zeile ${selectedMasterRow} übernommen` : ''}.`,
       });
     } else {
-      toast({
-        title: 'Keine Änderungen',
-        description: 'Alle Werte sind bereits identisch.',
+      // Even if no data changes, mark duplicates as resolved
+      const duplicateCorrections: { row: number; column: string; value: string }[] = [];
+      duplicateInfo.rows.forEach(rowInfo => {
+        const duplicateValue = rowInfo.fullData[duplicateInfo.column] || '';
+        if (duplicateValue) {
+          duplicateCorrections.push({
+            row: rowInfo.row,
+            column: duplicateInfo.column,
+            value: duplicateValue
+          });
+        }
       });
+      
+      if (duplicateCorrections.length > 0) {
+        onBulkCorrect(duplicateCorrections, 'bulk');
+        toast({
+          title: 'Duplikate zusammengeführt',
+          description: `${duplicateCorrections.length} Duplikat-Fehler als gelöst markiert. Alle Werte waren bereits identisch.`,
+        });
+      } else {
+        toast({
+          title: 'Keine Änderungen',
+          description: 'Alle Werte sind bereits identisch.',
+        });
+      }
     }
   }, [duplicateInfo, selectedMasterRow, rows, onBulkCorrect, toast]);
 
