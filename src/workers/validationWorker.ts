@@ -35,6 +35,8 @@ const SWISS_PATTERNS = {
   phoneFixed: /^\+41\s?[1-6]\d\s?\d{3}\s?\d{2}\s?\d{2}$/,
   plz: /^\d{4}$/,
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  iban: /^CH\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{1}$/i,
+  date: /^\d{1,2}\.\d{1,2}\.\d{4}$/,
 };
 
 // Format AHV number
@@ -65,13 +67,7 @@ function formatPhone(value: string): string | null {
   }
   
   const areaCode = normalizedDigits.slice(2, 4);
-  const isMobile = ['75', '76', '77', '78', '79'].includes(areaCode);
-  
-  if (isMobile) {
-    return `+41 ${areaCode} ${normalizedDigits.slice(4, 7)} ${normalizedDigits.slice(7, 9)} ${normalizedDigits.slice(9, 11)}`;
-  } else {
-    return `+41 ${areaCode} ${normalizedDigits.slice(4, 7)} ${normalizedDigits.slice(7, 9)} ${normalizedDigits.slice(9, 11)}`;
-  }
+  return `+41 ${areaCode} ${normalizedDigits.slice(4, 7)} ${normalizedDigits.slice(7, 9)} ${normalizedDigits.slice(9, 11)}`;
 }
 
 // Format PLZ
@@ -83,11 +79,112 @@ function formatPLZ(value: string): string | null {
   return null;
 }
 
-// Format email
+// Format email - comprehensive cleanup
 function formatEmail(value: string): string | null {
-  const cleaned = value.toLowerCase().trim().replace(/\s+/g, '');
+  let cleaned = value.toLowerCase().trim();
+  // Remove extra spaces
+  cleaned = cleaned.replace(/\s+/g, '');
+  // Remove accents
+  cleaned = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Fix common typos
+  cleaned = cleaned.replace(/,/g, '.');
+  cleaned = cleaned.replace(/\.+/g, '.');
+  cleaned = cleaned.replace(/@+/g, '@');
+  // Fix common domain typos
+  cleaned = cleaned.replace(/@gmial\./, '@gmail.');
+  cleaned = cleaned.replace(/@gmai\./, '@gmail.');
+  cleaned = cleaned.replace(/@gamil\./, '@gmail.');
+  cleaned = cleaned.replace(/@hotmal\./, '@hotmail.');
+  cleaned = cleaned.replace(/@outllok\./, '@outlook.');
+  cleaned = cleaned.replace(/@outlok\./, '@outlook.');
+  
   if (SWISS_PATTERNS.email.test(cleaned)) {
     return cleaned;
+  }
+  return null;
+}
+
+// Format gender
+function formatGender(value: string): string | null {
+  const normalized = value.toUpperCase().trim();
+  const maleValues = ['MÄNNLICH', 'MALE', 'MANN', 'M', 'MAENNLICH', 'HERR', 'H'];
+  const femaleValues = ['WEIBLICH', 'FEMALE', 'FRAU', 'W', 'F'];
+  const diverseValues = ['DIVERS', 'DIVERSE', 'D', 'X', 'ANDERES'];
+  
+  if (maleValues.includes(normalized)) return 'M';
+  if (femaleValues.includes(normalized)) return 'W';
+  if (diverseValues.includes(normalized)) return 'D';
+  
+  return null;
+}
+
+// Format name - capitalize properly
+function formatName(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  
+  // Check if it needs formatting (all caps, all lower, or mixed weird)
+  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
+  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
+  
+  if (!isAllCaps && !isAllLower) return null;
+  
+  // Capitalize each word, handle hyphenated names
+  return trimmed
+    .toLowerCase()
+    .split(/(\s+|-)/g)
+    .map(part => {
+      if (part === '-' || /^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
+}
+
+// Format street address - capitalize and fix abbreviations
+function formatStreet(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  
+  // Check if needs formatting
+  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
+  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
+  
+  if (!isAllCaps && !isAllLower) return null;
+  
+  // Fix common abbreviations
+  let formatted = trimmed.toLowerCase();
+  formatted = formatted.replace(/^str\.?\s*/i, 'Strasse ');
+  formatted = formatted.replace(/\bstr\.?$/i, 'strasse');
+  formatted = formatted.replace(/\bweg\.?$/i, 'weg');
+  formatted = formatted.replace(/\bpl\.?$/i, 'platz');
+  
+  // Capitalize each word
+  return formatted
+    .split(/(\s+)/g)
+    .map(part => {
+      if (/^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join('');
+}
+
+// Format IBAN
+function formatIBAN(value: string): string | null {
+  const cleaned = value.replace(/\s/g, '').toUpperCase();
+  if (cleaned.startsWith('CH') && cleaned.length === 21) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)} ${cleaned.slice(12, 16)} ${cleaned.slice(16, 20)} ${cleaned.slice(20)}`;
+  }
+  return null;
+}
+
+// Convert Excel serial date to Swiss format
+function formatExcelDate(value: string): string | null {
+  const serialNum = parseInt(value);
+  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 100000) {
+    const date = new Date((serialNum - 25569) * 86400 * 1000);
+    if (!isNaN(date.getTime())) {
+      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+    }
   }
   return null;
 }
@@ -145,9 +242,10 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
   for (const [key, groupErrors] of groupedErrors) {
     const [type, column] = key.split(':');
     const affectedRows = [...new Set(groupErrors.map(e => e.row))];
+    const colLower = column.toLowerCase();
     
     // Check for AHV format issues
-    if (column.toLowerCase().includes('ahv') || type === 'format') {
+    if (colLower.includes('ahv')) {
       const ahvErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
@@ -165,16 +263,17 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           affectedRows: ahvErrors.map(e => e.row),
           suggestedAction: 'Format: 756.XXXX.XXXX.XX',
         });
+        continue;
       }
     }
     
     // Check for phone format issues
-    if (column.toLowerCase().includes('telefon') || column.toLowerCase().includes('phone') || column.toLowerCase().includes('mobile')) {
+    if (colLower.includes('tel') || colLower.includes('phone') || colLower.includes('mobile') || colLower.includes('fax')) {
       const phoneErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
         const digits = value.replace(/\D/g, '');
-        return (digits.length >= 9 && digits.length <= 11);
+        return (digits.length >= 9 && digits.length <= 13);
       });
       
       if (phoneErrors.length > 0) {
@@ -187,16 +286,17 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           affectedRows: phoneErrors.map(e => e.row),
           suggestedAction: 'Format: +41 XX XXX XX XX',
         });
+        continue;
       }
     }
     
-    // Check for email issues
-    if (column.toLowerCase().includes('email') || column.toLowerCase().includes('mail')) {
+    // Check for email issues - enhanced detection
+    if (colLower.includes('email') || colLower.includes('mail') || colLower.includes('e-mail')) {
       const emailErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
-        const cleaned = value.toLowerCase().trim().replace(/\s+/g, '');
-        return SWISS_PATTERNS.email.test(cleaned);
+        // Check if it can be fixed (has @ and ., even if malformed)
+        return value.includes('@') || value.includes('.com') || value.includes('.ch');
       });
       
       if (emailErrors.length > 0) {
@@ -204,16 +304,17 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           type: 'email_format',
           column,
           count: emailErrors.length,
-          description: `${emailErrors.length} E-Mail-Adressen können normalisiert werden (Kleinschreibung, keine Leerzeichen)`,
+          description: `${emailErrors.length} E-Mail-Adressen können bereinigt werden (Tippfehler, Leerzeichen, Umlaute)`,
           canAutoFix: true,
           affectedRows: emailErrors.map(e => e.row),
-          suggestedAction: 'Normalisieren',
+          suggestedAction: 'Normalisieren & Tippfehler korrigieren',
         });
+        continue;
       }
     }
     
     // Check for PLZ issues
-    if (column.toLowerCase().includes('plz') || column.toLowerCase().includes('postleitzahl')) {
+    if (colLower.includes('plz') || colLower.includes('postleitzahl') || colLower === 'zip') {
       const plzErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string' && typeof value !== 'number') return false;
@@ -231,11 +332,137 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           affectedRows: plzErrors.map(e => e.row),
           suggestedAction: 'Format: XXXX',
         });
+        continue;
       }
     }
     
+    // Check for gender issues
+    if (colLower.includes('geschlecht') || colLower.includes('gender') || colLower === 'sex') {
+      const genderErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatGender(value) !== null;
+      });
+      
+      if (genderErrors.length > 0) {
+        patterns.push({
+          type: 'gender_format',
+          column,
+          count: genderErrors.length,
+          description: `${genderErrors.length} Geschlechtsangaben können normalisiert werden (M/W/D)`,
+          canAutoFix: true,
+          affectedRows: genderErrors.map(e => e.row),
+          suggestedAction: 'Normalisieren zu M/W/D',
+        });
+        continue;
+      }
+    }
+    
+    // Check for name capitalization issues
+    if (colLower.includes('name') || colLower.includes('vorname') || colLower.includes('nachname')) {
+      const nameErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatName(value) !== null;
+      });
+      
+      if (nameErrors.length > 0) {
+        patterns.push({
+          type: 'name_format',
+          column,
+          count: nameErrors.length,
+          description: `${nameErrors.length} Namen können korrekt kapitalisiert werden`,
+          canAutoFix: true,
+          affectedRows: nameErrors.map(e => e.row),
+          suggestedAction: 'Grossschreibung korrigieren',
+        });
+        continue;
+      }
+    }
+    
+    // Check for street/address issues
+    if (colLower.includes('strasse') || colLower.includes('street') || colLower.includes('adresse') || colLower.includes('address')) {
+      const streetErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatStreet(value) !== null;
+      });
+      
+      if (streetErrors.length > 0) {
+        patterns.push({
+          type: 'street_format',
+          column,
+          count: streetErrors.length,
+          description: `${streetErrors.length} Adressen können korrekt formatiert werden`,
+          canAutoFix: true,
+          affectedRows: streetErrors.map(e => e.row),
+          suggestedAction: 'Strassen-Format korrigieren',
+        });
+        continue;
+      }
+    }
+    
+    // Check for IBAN issues
+    if (colLower.includes('iban') || colLower.includes('konto')) {
+      const ibanErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatIBAN(value) !== null;
+      });
+      
+      if (ibanErrors.length > 0) {
+        patterns.push({
+          type: 'iban_format',
+          column,
+          count: ibanErrors.length,
+          description: `${ibanErrors.length} IBAN können formatiert werden`,
+          canAutoFix: true,
+          affectedRows: ibanErrors.map(e => e.row),
+          suggestedAction: 'Format: CHXX XXXX XXXX XXXX XXXX X',
+        });
+        continue;
+      }
+    }
+    
+    // Check for Excel date serial numbers
+    if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
+      const dateErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        const strVal = String(value);
+        const num = parseInt(strVal);
+        return !isNaN(num) && num > 1000 && num < 100000;
+      });
+      
+      if (dateErrors.length > 0) {
+        patterns.push({
+          type: 'date_format',
+          column,
+          count: dateErrors.length,
+          description: `${dateErrors.length} Excel-Seriennummern können in Datum konvertiert werden`,
+          canAutoFix: true,
+          affectedRows: dateErrors.map(e => e.row),
+          suggestedAction: 'Format: DD.MM.YYYY',
+        });
+        continue;
+      }
+    }
+    
+    // Check for duplicates
+    if (type === 'duplicate') {
+      patterns.push({
+        type: 'duplicate',
+        column,
+        count: groupErrors.length,
+        description: `${groupErrors.length} Duplikate in "${column}" - Manuelle Prüfung erforderlich`,
+        canAutoFix: false,
+        affectedRows,
+        suggestedAction: 'Manuell prüfen und entscheiden',
+      });
+      continue;
+    }
+    
     // Generic format errors that can't be auto-fixed
-    if (!patterns.some(p => p.column === column)) {
+    if (!patterns.some(p => p.column === column && p.type !== 'manual_review')) {
       patterns.push({
         type: 'manual_review',
         column,
@@ -282,6 +509,21 @@ function applyCorrection(
         break;
       case 'plz_format':
         newValue = formatPLZ(String(value));
+        break;
+      case 'gender_format':
+        newValue = formatGender(String(value));
+        break;
+      case 'name_format':
+        newValue = formatName(String(value));
+        break;
+      case 'street_format':
+        newValue = formatStreet(String(value));
+        break;
+      case 'iban_format':
+        newValue = formatIBAN(String(value));
+        break;
+      case 'date_format':
+        newValue = formatExcelDate(String(value));
         break;
     }
     
