@@ -202,30 +202,29 @@ const PARENT_CONSISTENCY_CHECKS = [
   }
 ];
 
-// Check parent ID consistency - same parent should have same ID across all rows
+// Optimized: Check parent ID consistency - same parent should have same ID across all rows
 function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
+  const errorSet = new Set<string>(); // Avoid duplicate error messages
 
-  PARENT_CONSISTENCY_CHECKS.forEach(check => {
-    // Map to track: identifier -> { firstId, firstRow, occurrences }
-    // We use multiple maps for different identification strategies
+  for (const check of PARENT_CONSISTENCY_CHECKS) {
+    // Use Maps for O(1) lookup
     const parentMapByAhv = new Map<string, { id: string; firstRow: number; identifier: string }>();
     const parentMapByNameStrasse = new Map<string, { id: string; firstRow: number; identifier: string }>();
     const parentMapByNameOnly = new Map<string, { id: string; firstRow: number; identifier: string }>();
 
-    rows.forEach((row, rowIndex) => {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
       const id = String(row[check.idField] ?? '').trim();
       const ahv = String(row[check.ahvField] ?? '').trim();
       const name = String(row[check.nameField] ?? '').trim();
       const vorname = String(row[check.vornameField] ?? '').trim();
       const strasse = String(row[check.strasseField] ?? '').trim();
 
-      // Skip if no ID or no identifying information
-      if (!id) return;
-      if (!ahv && (!name || !vorname)) return;
+      if (!id) continue;
+      if (!ahv && (!name || !vorname)) continue;
 
-      // Check all applicable identification strategies
-      const checkConsistency = (
+      const addError = (
         map: Map<string, { id: string; firstRow: number; identifier: string }>,
         key: string,
         displayIdentifier: string
@@ -233,16 +232,10 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         const existing = map.get(key);
         
         if (existing) {
-          // Check if ID is consistent
           if (existing.id !== id) {
-            // Check if this error already exists (avoid duplicates)
-            const errorExists = errors.some(
-              e => e.row === rowIndex + 1 && 
-                   e.column === check.idField && 
-                   e.message.includes(displayIdentifier)
-            );
-            
-            if (!errorExists) {
+            const errorKey = `${rowIndex + 1}:${check.idField}:${displayIdentifier}`;
+            if (!errorSet.has(errorKey)) {
+              errorSet.add(errorKey);
               errors.push({
                 row: rowIndex + 1,
                 column: check.idField,
@@ -252,184 +245,169 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
             }
           }
         } else {
-          // First occurrence of this parent with this identifier
-          map.set(key, {
-            id,
-            firstRow: rowIndex + 1,
-            identifier: displayIdentifier
-          });
+          map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier });
         }
       };
 
       // Strategy 1: AHV (most reliable)
       if (ahv) {
-        const ahvKey = `AHV:${ahv}`;
-        const ahvDisplay = `AHV: ${ahv}`;
-        checkConsistency(parentMapByAhv, ahvKey, ahvDisplay);
+        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`);
       }
 
-      // Strategy 2: Name + Vorname + Strasse (if strasse available)
+      // Strategy 2: Name + Vorname + Strasse
       if (name && vorname && strasse) {
-        const nameStrasseKey = `NAME_STRASSE:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
-        const nameStrasseDisplay = `${vorname} ${name}, ${strasse}`;
-        checkConsistency(parentMapByNameStrasse, nameStrasseKey, nameStrasseDisplay);
+        const key = `NAME_STRASSE:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
+        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`);
       }
 
-      // Strategy 3: Name + Vorname only (least reliable, but catches more cases)
+      // Strategy 3: Name + Vorname only
       if (name && vorname) {
-        const nameOnlyKey = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}`;
-        const nameOnlyDisplay = `${vorname} ${name}`;
-        checkConsistency(parentMapByNameOnly, nameOnlyKey, nameOnlyDisplay);
+        const key = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}`;
+        addError(parentMapByNameOnly, key, `${vorname} ${name}`);
       }
-    });
-  });
+    }
+  }
 
   return errors;
 }
 
-// Validate data
+// Validate data - Optimized for large datasets (4000+ rows)
 export function validateData(
   rows: ParsedRow[],
   columnDefinitions: ColumnDefinition[]
 ): ValidationError[] {
   const errors: ValidationError[] = [];
+  const rowCount = rows.length;
 
-  // First pass: collect values for duplicate detection
-  const valueOccurrences: Record<string, Map<string, number[]>> = {};
-  DUPLICATE_CHECK_FIELDS.forEach(field => {
-    valueOccurrences[field] = new Map();
-  });
+  // Build column lookup maps for O(1) access
+  const columnDefMap = new Map<string, ColumnDefinition>();
+  for (const col of columnDefinitions) {
+    columnDefMap.set(col.name, col);
+  }
 
-  rows.forEach((row, rowIndex) => {
-    DUPLICATE_CHECK_FIELDS.forEach(field => {
+  // First pass: collect values for duplicate detection using Maps
+  const valueOccurrences = new Map<string, Map<string, number[]>>();
+  for (const field of DUPLICATE_CHECK_FIELDS) {
+    valueOccurrences.set(field, new Map());
+  }
+
+  // Single pass for both duplicate collection and field validation
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+    const row = rows[rowIndex];
+    const rowNum = rowIndex + 1;
+
+    // Collect duplicates for specified fields
+    for (const field of DUPLICATE_CHECK_FIELDS) {
       const value = row[field];
       const strValue = String(value ?? '').trim();
-      if (strValue && strValue !== '') {
-        const existing = valueOccurrences[field].get(strValue) || [];
-        existing.push(rowIndex + 1);
-        valueOccurrences[field].set(strValue, existing);
+      if (strValue !== '') {
+        const fieldMap = valueOccurrences.get(field)!;
+        const existing = fieldMap.get(strValue);
+        if (existing) {
+          existing.push(rowNum);
+        } else {
+          fieldMap.set(strValue, [rowNum]);
+        }
       }
-    });
-  });
+    }
 
-  // Find duplicates and add errors
-  DUPLICATE_CHECK_FIELDS.forEach(field => {
-    valueOccurrences[field].forEach((rowNumbers, value) => {
-      if (rowNumbers.length > 1) {
-        // Add error for each occurrence except the first
-        rowNumbers.slice(1).forEach(rowNum => {
-          errors.push({
-            row: rowNum,
-            column: field,
-            value: value,
-            message: `Duplikat: "${value}" kommt auch in Zeile ${rowNumbers[0]} vor`,
-          });
-        });
-      }
-    });
-  });
-
-  // Check parent ID consistency (Eltern-ID Konsistenzprüfung)
-  const parentIdErrors = checkParentIdConsistency(rows);
-  errors.push(...parentIdErrors);
-
-  // Second pass: field-level validation
-  rows.forEach((row, rowIndex) => {
-    columnDefinitions.forEach(col => {
+    // Field-level validation
+    for (const col of columnDefinitions) {
       const value = row[col.name];
       const strValue = String(value ?? '').trim();
 
       // Check required fields
       if (col.required && (value === null || value === undefined || strValue === '')) {
         errors.push({
-          row: rowIndex + 1,
+          row: rowNum,
           column: col.name,
           value: '',
           message: `Pflichtfeld "${col.name}" ist leer`,
         });
-        return;
+        continue;
       }
 
       // Skip validation if empty and not required
-      if (strValue === '') return;
+      if (strValue === '') continue;
 
       // Type-specific validation
-      switch (col.validationType) {
-        case 'date':
-          if (!isValidDate(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültiges Datumsformat',
-            });
-          }
-          break;
-        case 'ahv':
-          if (!isValidAHV(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)',
-            });
-          }
-          break;
-        case 'email':
-          if (!isValidEmail(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültige E-Mail-Adresse',
-            });
-          }
-          break;
-        case 'number':
-          if (isNaN(Number(strValue))) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültige Zahl',
-            });
-          }
-          break;
-        case 'plz':
-          if (!isValidPLZ(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültige PLZ (4-5 Ziffern erwartet)',
-            });
-          }
-          break;
-        case 'gender':
-          if (!isValidGender(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültiges Geschlecht (M, W oder D erwartet)',
-            });
-          }
-          break;
-        case 'phone':
-          if (!isValidPhone(strValue)) {
-            errors.push({
-              row: rowIndex + 1,
-              column: col.name,
-              value: strValue,
-              message: 'Ungültiges Telefonformat',
-            });
-          }
-          break;
+      const validationError = validateFieldType(col.validationType, strValue, rowNum, col.name);
+      if (validationError) {
+        errors.push(validationError);
+      }
+    }
+  }
+
+  // Process duplicates
+  for (const field of DUPLICATE_CHECK_FIELDS) {
+    const fieldMap = valueOccurrences.get(field)!;
+    fieldMap.forEach((rowNumbers, value) => {
+      if (rowNumbers.length > 1) {
+        // Add error for each occurrence except the first
+        for (let i = 1; i < rowNumbers.length; i++) {
+          errors.push({
+            row: rowNumbers[i],
+            column: field,
+            value: value,
+            message: `Duplikat: "${value}" kommt auch in Zeile ${rowNumbers[0]} vor`,
+          });
+        }
       }
     });
-  });
+  }
+
+  // Check parent ID consistency
+  const parentIdErrors = checkParentIdConsistency(rows);
+  errors.push(...parentIdErrors);
 
   return errors;
+}
+
+// Optimized field type validation
+function validateFieldType(
+  validationType: string | undefined,
+  value: string,
+  rowNum: number,
+  columnName: string
+): ValidationError | null {
+  switch (validationType) {
+    case 'date':
+      if (!isValidDate(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültiges Datumsformat' };
+      }
+      break;
+    case 'ahv':
+      if (!isValidAHV(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)' };
+      }
+      break;
+    case 'email':
+      if (!isValidEmail(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültige E-Mail-Adresse' };
+      }
+      break;
+    case 'number':
+      if (isNaN(Number(value))) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültige Zahl' };
+      }
+      break;
+    case 'plz':
+      if (!isValidPLZ(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültige PLZ (4-5 Ziffern erwartet)' };
+      }
+      break;
+    case 'gender':
+      if (!isValidGender(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültiges Geschlecht (M, W oder D erwartet)' };
+      }
+      break;
+    case 'phone':
+      if (!isValidPhone(value)) {
+        return { row: rowNum, column: columnName, value, message: 'Ungültiges Telefonformat' };
+      }
+      break;
+  }
+  return null;
 }
 
 function isValidDate(value: string): boolean {
