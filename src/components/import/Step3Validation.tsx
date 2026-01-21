@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Shield, Cpu } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -27,6 +27,9 @@ import {
   convertExcelDate,
   formatGender
 } from '@/lib/localBulkCorrections';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Step3ValidationProps {
   errors: ValidationError[];
@@ -217,6 +220,7 @@ export function Step3Validation({
   };
 
   // Check if current error is a duplicate error and find all related duplicates with full row data
+  // Now includes FULL column comparison to detect data differences
   const getDuplicateInfo = useCallback(() => {
     if (!currentError) return null;
     
@@ -278,64 +282,101 @@ export function Step3Validation({
     
     if (!currentGroup || currentGroup.rows.length < 2) return null;
 
-    // Get full row data for each duplicate occurrence
-    const rowsWithData = currentGroup.rows.map(rowNum => {
-      const rowData = rows[rowNum - 1]; // Convert to 0-indexed
+    // Get ALL columns from the data for full comparison
+    const allColumns = new Set<string>();
+    currentGroup.rows.forEach(rowNum => {
+      const rowData = rows[rowNum - 1];
+      if (rowData) {
+        Object.keys(rowData).forEach(key => allColumns.add(key));
+      }
+    });
+
+    // Build complete row data for comparison
+    interface RowWithFullData {
+      row: number;
+      studentName: string | null;
+      isCurrent: boolean;
+      hasError: boolean;
+      fullData: Record<string, string>;
+    }
+
+    const rowsWithData: RowWithFullData[] = currentGroup.rows.map(rowNum => {
+      const rowData = rows[rowNum - 1];
       const studentName = getStudentNameForRow(rowNum);
       
-      // Get key fields to display for comparison
-      const keyFields: { field: string; value: string }[] = [];
+      const fullData: Record<string, string> = {};
       if (rowData) {
-        // Add the duplicate column value
-        const dupValue = rowData[currentError.column];
-        if (dupValue !== undefined && dupValue !== null) {
-          keyFields.push({ field: currentError.column, value: String(dupValue) });
-        }
-        
-        // Add student name fields if available
-        const nameFields = ['S_Name', 'S_Vorname', 'S_name', 'S_vorname', 'S_Geburtsdatum', 'S_Klasse'];
-        nameFields.forEach(field => {
-          const val = rowData[field];
-          if (val !== undefined && val !== null && field !== currentError.column) {
-            keyFields.push({ field, value: String(val) });
-          }
+        allColumns.forEach(col => {
+          const val = rowData[col];
+          fullData[col] = val !== undefined && val !== null ? String(val) : '';
         });
-        
-        // Add parent fields for parent duplicates
-        if (currentError.column.includes('ERZ')) {
-          const parentFields = ['P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ2_Name', 'P_ERZ2_Vorname'];
-          parentFields.forEach(field => {
-            const val = rowData[field];
-            if (val !== undefined && val !== null && field !== currentError.column) {
-              keyFields.push({ field, value: String(val) });
-            }
-          });
-        }
       }
       
       return {
         row: rowNum,
         studentName,
         isCurrent: rowNum === currentError.row,
-        keyFields: keyFields.slice(0, 6), // Limit to 6 fields for display
-        hasError: errors.some(e => e.row === rowNum && e.column === currentError.column && !e.correctedValue)
+        hasError: errors.some(e => e.row === rowNum && e.column === currentError.column && !e.correctedValue),
+        fullData
       };
     });
 
-    // Suggest a solution based on the type of duplicate
+    // Find columns with DIFFERENT values across duplicate rows
+    const columnsWithDifferences: { column: string; values: { row: number; value: string }[] }[] = [];
+    
+    allColumns.forEach(col => {
+      const uniqueValues = new Map<string, number[]>();
+      
+      rowsWithData.forEach(rowInfo => {
+        const val = rowInfo.fullData[col] || '';
+        if (!uniqueValues.has(val)) {
+          uniqueValues.set(val, []);
+        }
+        uniqueValues.get(val)!.push(rowInfo.row);
+      });
+      
+      // If there are different values (more than 1 unique value, excluding empty)
+      const nonEmptyValues = Array.from(uniqueValues.entries()).filter(([v]) => v.trim() !== '');
+      if (nonEmptyValues.length > 1 || (uniqueValues.size > 1 && nonEmptyValues.length >= 1)) {
+        columnsWithDifferences.push({
+          column: col,
+          values: rowsWithData.map(r => ({ row: r.row, value: r.fullData[col] || '(leer)' }))
+        });
+      }
+    });
+
+    // Categorize differences by importance
+    const criticalColumns = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'S_Geburtsdatum', 'S_ID'];
+    const importantColumns = ['S_Email', 'P_ERZ1_Email', 'P_ERZ2_Email', 'S_Telefon', 'P_ERZ1_Telefon', 'P_ERZ2_Telefon', 'S_Adresse', 'S_PLZ', 'S_Ort'];
+    
+    const criticalDifferences = columnsWithDifferences.filter(d => criticalColumns.includes(d.column));
+    const importantDifferences = columnsWithDifferences.filter(d => importantColumns.includes(d.column));
+    const otherDifferences = columnsWithDifferences.filter(d => 
+      !criticalColumns.includes(d.column) && !importantColumns.includes(d.column)
+    );
+
+    const hasDifferences = columnsWithDifferences.length > 0;
+    const hasCriticalDifferences = criticalDifferences.length > 0;
+
+    // Suggest a solution based on the type of duplicate and differences
     let suggestedSolution = '';
-    let canAutoResolve = false;
+    let warningMessage = '';
+    
+    if (hasDifferences) {
+      warningMessage = `Achtung: ${columnsWithDifferences.length} Spalte(n) haben unterschiedliche Werte! `;
+      if (hasCriticalDifferences) {
+        warningMessage += 'Kritische Unterschiede (AHV, Geburtsdatum, ID) gefunden.';
+      }
+    }
     
     if (currentError.message.includes('Inkonsistente ID')) {
-      // For inconsistent IDs, suggest using the most common value
-      suggestedSolution = 'Die IDs sollten vereinheitlicht werden. Prüfen Sie welcher Wert korrekt ist.';
-      canAutoResolve = false;
+      suggestedSolution = 'Die IDs sollten vereinheitlicht werden. Wählen Sie den korrekten Datensatz.';
     } else if (currentError.column.includes('AHV')) {
-      suggestedSolution = 'AHV-Nummern müssen eindeutig sein. Prüfen Sie ob es sich um dieselbe Person handelt oder eine fehlerhafte Eingabe vorliegt.';
-      canAutoResolve = false;
+      suggestedSolution = 'AHV-Nummern müssen eindeutig sein. Wählen Sie den Datensatz, dessen Daten übernommen werden sollen.';
+    } else if (hasDifferences) {
+      suggestedSolution = 'Duplikate enthalten unterschiedliche Daten. Wählen Sie den Datensatz, dessen Werte für die Zusammenführung verwendet werden sollen.';
     } else {
-      suggestedSolution = 'Duplikate können zusammengeführt oder einzeln korrigiert werden.';
-      canAutoResolve = false;
+      suggestedSolution = 'Duplikate können zusammengeführt werden. Keine Unterschiede in den Daten gefunden.';
     }
 
     return {
@@ -343,12 +384,74 @@ export function Step3Validation({
       column: currentError.column,
       rows: rowsWithData,
       suggestedSolution,
-      canAutoResolve,
-      totalOccurrences: rowsWithData.length
+      warningMessage,
+      hasDifferences,
+      hasCriticalDifferences,
+      columnsWithDifferences,
+      criticalDifferences,
+      importantDifferences,
+      otherDifferences,
+      totalOccurrences: rowsWithData.length,
+      allColumns: Array.from(allColumns)
     };
   }, [currentError, errors, rows, getStudentNameForRow]);
 
   const duplicateInfo = useMemo(() => getDuplicateInfo(), [getDuplicateInfo]);
+  
+  // State for selected master record when merging duplicates
+  const [selectedMasterRow, setSelectedMasterRow] = useState<number | null>(null);
+  
+  // Reset selected master when duplicate info changes
+  useEffect(() => {
+    if (duplicateInfo && duplicateInfo.rows.length > 0) {
+      // Default to the first row (usually the "original")
+      setSelectedMasterRow(duplicateInfo.rows[0].row);
+    } else {
+      setSelectedMasterRow(null);
+    }
+  }, [duplicateInfo?.value, duplicateInfo?.column]);
+
+  // Apply selected master record's data to all duplicates
+  const applyMasterRecord = useCallback(() => {
+    if (!duplicateInfo || !selectedMasterRow) return;
+    
+    const masterRowData = rows[selectedMasterRow - 1];
+    if (!masterRowData) return;
+    
+    const corrections: { row: number; column: string; value: string }[] = [];
+    
+    // For each difference column, apply the master's value to all other rows
+    duplicateInfo.columnsWithDifferences.forEach(diff => {
+      const masterValue = masterRowData[diff.column];
+      const masterValueStr = masterValue !== undefined && masterValue !== null ? String(masterValue) : '';
+      
+      duplicateInfo.rows.forEach(rowInfo => {
+        if (rowInfo.row !== selectedMasterRow) {
+          const currentValue = rowInfo.fullData[diff.column] || '';
+          if (currentValue !== masterValueStr) {
+            corrections.push({
+              row: rowInfo.row,
+              column: diff.column,
+              value: masterValueStr
+            });
+          }
+        }
+      });
+    });
+    
+    if (corrections.length > 0) {
+      onBulkCorrect(corrections, 'bulk');
+      toast({
+        title: 'Datensatz übernommen',
+        description: `${corrections.length} Werte aus Zeile ${selectedMasterRow} auf ${duplicateInfo.rows.length - 1} andere Zeile(n) angewendet.`,
+      });
+    } else {
+      toast({
+        title: 'Keine Änderungen',
+        description: 'Alle Werte sind bereits identisch.',
+      });
+    }
+  }, [duplicateInfo, selectedMasterRow, rows, onBulkCorrect, toast]);
 
   // Convert worker patterns to LocalSuggestion format
   const convertPatternToSuggestion = useCallback((pattern: AnalysisPattern): LocalSuggestion => {
@@ -608,6 +711,20 @@ export function Step3Validation({
                   </Badge>
                 </div>
                 
+                {/* Warning about different data */}
+                {duplicateInfo.hasDifferences && (
+                  <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-sm">Unterschiedliche Daten gefunden!</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      {duplicateInfo.warningMessage}
+                      <br />
+                      <strong>{duplicateInfo.columnsWithDifferences.length} Spalte(n)</strong> haben unterschiedliche Werte.
+                      Bei Zusammenführung gehen Daten verloren, wenn Sie keinen Master-Datensatz wählen.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 {/* Suggested solution */}
                 <Alert className="border-primary/30 bg-primary/5">
                   <AlertCircle className="h-4 w-4 text-primary" />
@@ -616,18 +733,151 @@ export function Step3Validation({
                     {duplicateInfo.suggestedSolution}
                   </AlertDescription>
                 </Alert>
+
+                {/* Master Record Selection */}
+                {duplicateInfo.hasDifferences && (
+                  <div className="p-3 bg-muted/50 rounded-lg border space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Copy className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Master-Datensatz wählen</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Wählen Sie den Datensatz, dessen Werte bei der Zusammenführung übernommen werden sollen:
+                    </p>
+                    <RadioGroup 
+                      value={selectedMasterRow?.toString() || ''} 
+                      onValueChange={(val) => setSelectedMasterRow(parseInt(val))}
+                      className="space-y-2"
+                    >
+                      {duplicateInfo.rows.map((rowInfo) => (
+                        <div key={rowInfo.row} className="flex items-center space-x-2">
+                          <RadioGroupItem value={rowInfo.row.toString()} id={`master-${rowInfo.row}`} />
+                          <Label htmlFor={`master-${rowInfo.row}`} className="text-sm cursor-pointer flex-1">
+                            <span className="font-mono">Zeile {rowInfo.row}</span>
+                            {rowInfo.studentName && (
+                              <span className="text-muted-foreground ml-2">— {rowInfo.studentName}</span>
+                            )}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    <Button 
+                      size="sm" 
+                      onClick={applyMasterRecord}
+                      disabled={!selectedMasterRow}
+                      className="w-full gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Daten aus Zeile {selectedMasterRow} übernehmen
+                    </Button>
+                  </div>
+                )}
+
+                {/* Show differences in detail */}
+                {duplicateInfo.hasDifferences && duplicateInfo.columnsWithDifferences.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <span className="text-sm font-medium text-destructive">
+                        Spalten mit unterschiedlichen Werten:
+                      </span>
+                    </div>
+                    <ScrollArea className="max-h-48">
+                      <div className="space-y-2">
+                        {/* Critical differences first */}
+                        {duplicateInfo.criticalDifferences.map((diff, idx) => (
+                          <div key={`critical-${idx}`} className="p-2 bg-destructive/10 rounded border border-destructive/30">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="destructive" className="text-xs">Kritisch</Badge>
+                              <span className="text-xs font-mono font-medium">{diff.column}</span>
+                            </div>
+                            <div className="grid gap-1">
+                              {diff.values.map((v, vIdx) => (
+                                <div key={vIdx} className="flex items-center gap-2 text-xs">
+                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
+                                  <code className={`px-1 rounded ${
+                                    selectedMasterRow === v.row 
+                                      ? 'bg-primary/20 text-primary font-bold' 
+                                      : 'bg-muted'
+                                  }`}>
+                                    {v.value}
+                                  </code>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Important differences */}
+                        {duplicateInfo.importantDifferences.map((diff, idx) => (
+                          <div key={`important-${idx}`} className="p-2 bg-amber-500/10 rounded border border-amber-500/30">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className="bg-amber-500 text-xs">Wichtig</Badge>
+                              <span className="text-xs font-mono font-medium">{diff.column}</span>
+                            </div>
+                            <div className="grid gap-1">
+                              {diff.values.map((v, vIdx) => (
+                                <div key={vIdx} className="flex items-center gap-2 text-xs">
+                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
+                                  <code className={`px-1 rounded ${
+                                    selectedMasterRow === v.row 
+                                      ? 'bg-primary/20 text-primary font-bold' 
+                                      : 'bg-muted'
+                                  }`}>
+                                    {v.value}
+                                  </code>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Other differences */}
+                        {duplicateInfo.otherDifferences.slice(0, 5).map((diff, idx) => (
+                          <div key={`other-${idx}`} className="p-2 bg-muted/50 rounded border">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-mono font-medium">{diff.column}</span>
+                            </div>
+                            <div className="grid gap-1">
+                              {diff.values.map((v, vIdx) => (
+                                <div key={vIdx} className="flex items-center gap-2 text-xs">
+                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
+                                  <code className={`px-1 rounded ${
+                                    selectedMasterRow === v.row 
+                                      ? 'bg-primary/20 text-primary font-bold' 
+                                      : 'bg-muted'
+                                  }`}>
+                                    {v.value}
+                                  </code>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        {duplicateInfo.otherDifferences.length > 5 && (
+                          <p className="text-xs text-muted-foreground text-center py-1">
+                            + {duplicateInfo.otherDifferences.length - 5} weitere Unterschiede
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
                 
-                {/* All occurrences with full data */}
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                {/* All occurrences with navigation */}
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <span className="text-xs font-medium text-muted-foreground">Zu Datensatz springen:</span>
                   {duplicateInfo.rows.map((rowInfo, idx) => (
                     <div 
                       key={idx} 
-                      className={`p-3 rounded-lg border transition-colors ${
+                      className={`p-2 rounded-lg border transition-colors cursor-pointer ${
                         rowInfo.isCurrent 
                           ? 'border-primary bg-primary/10' 
-                          : rowInfo.hasError
-                            ? 'border-destructive/30 bg-destructive/5 cursor-pointer hover:bg-destructive/10'
-                            : 'border-muted bg-muted/30 cursor-pointer hover:bg-muted/50'
+                          : selectedMasterRow === rowInfo.row
+                            ? 'border-primary/50 bg-primary/5'
+                            : rowInfo.hasError
+                              ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
+                              : 'border-muted bg-muted/30 hover:bg-muted/50'
                       }`}
                       onClick={() => {
                         if (!rowInfo.isCurrent) {
@@ -644,40 +894,31 @@ export function Step3Validation({
                         }
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-medium">Zeile {rowInfo.row}</span>
+                          <span className="font-mono text-xs font-medium">Zeile {rowInfo.row}</span>
                           {rowInfo.studentName && (
-                            <span className="text-sm text-muted-foreground">— {rowInfo.studentName}</span>
+                            <span className="text-xs text-muted-foreground">— {rowInfo.studentName}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
                           {rowInfo.isCurrent && (
                             <Badge className="text-xs">aktuell</Badge>
                           )}
+                          {selectedMasterRow === rowInfo.row && !rowInfo.isCurrent && (
+                            <Badge variant="outline" className="text-xs border-primary text-primary">Master</Badge>
+                          )}
                           {!rowInfo.isCurrent && rowInfo.hasError && (
                             <Badge variant="destructive" className="text-xs">Fehler</Badge>
                           )}
-                          {!rowInfo.isCurrent && !rowInfo.hasError && (
+                          {!rowInfo.isCurrent && !rowInfo.hasError && selectedMasterRow !== rowInfo.row && (
                             <Badge variant="secondary" className="text-xs">Original</Badge>
                           )}
                           {!rowInfo.isCurrent && (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
                           )}
                         </div>
                       </div>
-                      
-                      {/* Show key fields for comparison */}
-                      {rowInfo.keyFields && rowInfo.keyFields.length > 0 && (
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                          {rowInfo.keyFields.map((field, fieldIdx) => (
-                            <div key={fieldIdx} className="flex gap-1">
-                              <span className="text-muted-foreground truncate">{field.field}:</span>
-                              <span className="font-mono truncate font-medium">{field.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
