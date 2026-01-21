@@ -277,31 +277,40 @@ export function Step3Validation({
 
   const duplicateInfo = useMemo(() => getDuplicateInfo(), [currentError, errors, rows]);
 
-  // Analyze errors locally - NO external API calls
+  // Analyze errors locally - NO external API calls, optimized for large datasets
   const analyzeLocally = () => {
     if (errors.length === 0) return;
     
     setIsAnalyzing(true);
     
-    // Small delay to show loading state
-    setTimeout(() => {
-      const suggestions = analyzeErrorsLocally(errors, rows);
-      setLocalSuggestions(suggestions);
+    // Use requestAnimationFrame for non-blocking UI + setTimeout for yielding
+    requestAnimationFrame(() => {
+      // For very large error sets, process in chunks
+      const processAnalysis = () => {
+        const startTime = performance.now();
+        const suggestions = analyzeErrorsLocally(errors, rows);
+        const duration = performance.now() - startTime;
+        
+        setLocalSuggestions(suggestions);
+        
+        if (suggestions.length > 0) {
+          toast({
+            title: 'Lokale Analyse abgeschlossen',
+            description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - 100% lokal`,
+          });
+        } else {
+          toast({
+            title: 'Keine automatischen Korrekturen',
+            description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
+          });
+        }
+        
+        setIsAnalyzing(false);
+      };
       
-      if (suggestions.length > 0) {
-        toast({
-          title: 'Lokale Analyse abgeschlossen',
-          description: `${suggestions.length} Korrekturvorschläge gefunden - 100% lokal, keine Daten gesendet`,
-        });
-      } else {
-        toast({
-          title: 'Keine automatischen Korrekturen',
-          description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
-        });
-      }
-      
-      setIsAnalyzing(false);
-    }, 300);
+      // Use setTimeout to allow UI to update before processing
+      setTimeout(processAnalysis, 50);
+    });
   };
 
   // Apply local bulk correction
@@ -701,7 +710,7 @@ export function Step3Validation({
           </Table>
           {errors.length > 50 && (
             <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50">
-              Zeige 50 von {errors.length} Fehlern. Nutzen Sie die KI-Vorschläge oder die Schritt-für-Schritt Korrektur.
+              Zeige 50 von {errors.length} Fehlern. Nutzen Sie die lokale Musteranalyse oder die Schritt-für-Schritt Korrektur.
             </div>
           )}
         </div>

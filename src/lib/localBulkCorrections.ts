@@ -103,7 +103,7 @@ export function formatGender(value: string): string | null {
 }
 
 // ============================================
-// Pattern Detection Functions
+// Pattern Detection Functions - Optimized for large datasets
 // ============================================
 
 interface PatternGroup {
@@ -116,212 +116,193 @@ interface PatternGroup {
   canAutoFix: boolean;
 }
 
-function detectPhonePattern(errors: ValidationError[]): PatternGroup[] {
+// Pre-index errors by column for O(1) lookup instead of O(n) filtering
+interface ErrorIndex {
+  byColumn: Map<string, ValidationError[]>;
+  uncorrected: ValidationError[];
+}
+
+function buildErrorIndex(errors: ValidationError[]): ErrorIndex {
+  const byColumn = new Map<string, ValidationError[]>();
+  const uncorrected: ValidationError[] = [];
+  
+  for (let i = 0; i < errors.length; i++) {
+    const error = errors[i];
+    if (error.correctedValue !== undefined) continue;
+    
+    uncorrected.push(error);
+    
+    const columnErrors = byColumn.get(error.column);
+    if (columnErrors) {
+      columnErrors.push(error);
+    } else {
+      byColumn.set(error.column, [error]);
+    }
+  }
+  
+  return { byColumn, uncorrected };
+}
+
+// Batch process pattern detection for a column type
+function detectPatternForColumns(
+  index: ErrorIndex,
+  columns: string[],
+  messageKeyword: string,
+  formatFn: (value: string) => string | null,
+  type: string,
+  fixFunction: string,
+  descriptionFn: (count: number) => string
+): PatternGroup[] {
   const groups: PatternGroup[] = [];
+  
+  for (const col of columns) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+    
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+    
+    for (let i = 0; i < columnErrors.length; i++) {
+      const e = columnErrors[i];
+      if (e.message.includes(messageKeyword) && formatFn(e.value) !== null) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+    
+    if (fixableRows.length > 0) {
+      groups.push({
+        type,
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction,
+        description: descriptionFn(fixableRows.length),
+        canAutoFix: true
+      });
+    }
+  }
+  
+  return groups;
+}
+
+function detectPhonePattern(index: ErrorIndex): PatternGroup[] {
   const phoneColumns = ['P_ERZ1_Tel', 'P_ERZ2_Tel', 'P_ERZ1_Mobile', 'P_ERZ2_Mobile', 'S_Tel', 'S_Mobile'];
-  
-  phoneColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column === col && 
-      !e.correctedValue &&
-      (e.message.includes('Telefonformat') || e.message.includes('phone'))
-    );
-    
-    if (columnErrors.length > 0) {
-      // Check if values can be auto-fixed
-      const fixableErrors = columnErrors.filter(e => formatSwissPhone(e.value) !== null);
-      
-      if (fixableErrors.length > 0) {
-        groups.push({
-          type: 'phone_format',
-          column: col,
-          rows: fixableErrors.map(e => e.row),
-          values: fixableErrors.map(e => e.value),
-          fixFunction: 'formatSwissPhone',
-          description: `${fixableErrors.length} Telefonnummern können ins Schweizer Format konvertiert werden`,
-          canAutoFix: true
-        });
-      }
-    }
-  });
-  
-  return groups;
+  return detectPatternForColumns(
+    index,
+    phoneColumns,
+    'Telefonformat',
+    formatSwissPhone,
+    'phone_format',
+    'formatSwissPhone',
+    (count) => `${count} Telefonnummern können ins Schweizer Format konvertiert werden`
+  );
 }
 
-function detectAHVPattern(errors: ValidationError[]): PatternGroup[] {
-  const groups: PatternGroup[] = [];
+function detectAHVPattern(index: ErrorIndex): PatternGroup[] {
   const ahvColumns = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
-  
-  ahvColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column === col && 
-      !e.correctedValue &&
-      e.message.includes('AHV')
-    );
-    
-    if (columnErrors.length > 0) {
-      const fixableErrors = columnErrors.filter(e => formatAHV(e.value) !== null);
-      
-      if (fixableErrors.length > 0) {
-        groups.push({
-          type: 'ahv_format',
-          column: col,
-          rows: fixableErrors.map(e => e.row),
-          values: fixableErrors.map(e => e.value),
-          fixFunction: 'formatAHV',
-          description: `${fixableErrors.length} AHV-Nummern können formatiert werden (756.XXXX.XXXX.XX)`,
-          canAutoFix: true
-        });
-      }
-    }
-  });
-  
-  return groups;
+  return detectPatternForColumns(
+    index,
+    ahvColumns,
+    'AHV',
+    formatAHV,
+    'ahv_format',
+    'formatAHV',
+    (count) => `${count} AHV-Nummern können formatiert werden (756.XXXX.XXXX.XX)`
+  );
 }
 
-function detectDatePattern(errors: ValidationError[]): PatternGroup[] {
+function detectDatePattern(index: ErrorIndex): PatternGroup[] {
   const groups: PatternGroup[] = [];
   const dateColumns = ['S_Geburtsdatum', 'P_ERZ1_Geburtsdatum', 'P_ERZ2_Geburtsdatum', 'Datum'];
   
-  dateColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column.includes(col) && 
-      !e.correctedValue &&
-      e.message.includes('Datum')
-    );
+  for (const col of dateColumns) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
     
-    if (columnErrors.length > 0) {
-      // Check for Excel serial numbers
-      const excelDates = columnErrors.filter(e => {
-        const num = parseInt(e.value);
-        return !isNaN(num) && num > 1 && num < 100000;
+    const excelDateRows: number[] = [];
+    const excelDateValues: string[] = [];
+    
+    for (let i = 0; i < columnErrors.length; i++) {
+      const e = columnErrors[i];
+      if (!e.message.includes('Datum')) continue;
+      
+      const num = parseInt(e.value);
+      if (!isNaN(num) && num > 1 && num < 100000) {
+        excelDateRows.push(e.row);
+        excelDateValues.push(e.value);
+      }
+    }
+    
+    if (excelDateRows.length > 0) {
+      groups.push({
+        type: 'excel_date',
+        column: col,
+        rows: excelDateRows,
+        values: excelDateValues,
+        fixFunction: 'convertExcelDate',
+        description: `${excelDateRows.length} Excel-Seriennummern können in Datumsformat konvertiert werden`,
+        canAutoFix: true
       });
-      
-      if (excelDates.length > 0) {
-        groups.push({
-          type: 'excel_date',
-          column: col,
-          rows: excelDates.map(e => e.row),
-          values: excelDates.map(e => e.value),
-          fixFunction: 'convertExcelDate',
-          description: `${excelDates.length} Excel-Seriennummern können in Datumsformat konvertiert werden`,
-          canAutoFix: true
-        });
-      }
     }
-  });
+  }
   
   return groups;
 }
 
-function detectEmailPattern(errors: ValidationError[]): PatternGroup[] {
-  const groups: PatternGroup[] = [];
+function detectEmailPattern(index: ErrorIndex): PatternGroup[] {
   const emailColumns = ['S_Email', 'P_ERZ1_Email', 'P_ERZ2_Email', 'P_Email'];
-  
-  emailColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column === col && 
-      !e.correctedValue &&
-      e.message.includes('E-Mail')
-    );
-    
-    if (columnErrors.length > 0) {
-      const fixableErrors = columnErrors.filter(e => formatEmail(e.value) !== null);
-      
-      if (fixableErrors.length > 0) {
-        groups.push({
-          type: 'email_format',
-          column: col,
-          rows: fixableErrors.map(e => e.row),
-          values: fixableErrors.map(e => e.value),
-          fixFunction: 'formatEmail',
-          description: `${fixableErrors.length} E-Mail-Adressen können bereinigt werden (Leerzeichen, Umlaute)`,
-          canAutoFix: true
-        });
-      }
-    }
-  });
-  
-  return groups;
-}
-
-function detectPLZPattern(errors: ValidationError[]): PatternGroup[] {
-  const groups: PatternGroup[] = [];
-  const plzColumns = ['S_PLZ', 'P_ERZ1_PLZ', 'P_ERZ2_PLZ'];
-  
-  plzColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column === col && 
-      !e.correctedValue &&
-      e.message.includes('PLZ')
-    );
-    
-    if (columnErrors.length > 0) {
-      const fixableErrors = columnErrors.filter(e => formatSwissPLZ(e.value) !== null);
-      
-      if (fixableErrors.length > 0) {
-        groups.push({
-          type: 'plz_format',
-          column: col,
-          rows: fixableErrors.map(e => e.row),
-          values: fixableErrors.map(e => e.value),
-          fixFunction: 'formatSwissPLZ',
-          description: `${fixableErrors.length} Postleitzahlen können bereinigt werden`,
-          canAutoFix: true
-        });
-      }
-    }
-  });
-  
-  return groups;
-}
-
-function detectGenderPattern(errors: ValidationError[]): PatternGroup[] {
-  const groups: PatternGroup[] = [];
-  const genderColumns = ['S_Geschlecht'];
-  
-  genderColumns.forEach(col => {
-    const columnErrors = errors.filter(e => 
-      e.column === col && 
-      !e.correctedValue &&
-      e.message.includes('Geschlecht')
-    );
-    
-    if (columnErrors.length > 0) {
-      const fixableErrors = columnErrors.filter(e => formatGender(e.value) !== null);
-      
-      if (fixableErrors.length > 0) {
-        groups.push({
-          type: 'gender_format',
-          column: col,
-          rows: fixableErrors.map(e => e.row),
-          values: fixableErrors.map(e => e.value),
-          fixFunction: 'formatGender',
-          description: `${fixableErrors.length} Geschlechtsangaben können normalisiert werden (M/W/D)`,
-          canAutoFix: true
-        });
-      }
-    }
-  });
-  
-  return groups;
-}
-
-function detectDuplicateGroups(errors: ValidationError[], rows: ParsedRow[]): PatternGroup[] {
-  const groups: PatternGroup[] = [];
-  
-  const duplicateErrors = errors.filter(e => 
-    !e.correctedValue && 
-    e.message.includes('Duplikat:')
+  return detectPatternForColumns(
+    index,
+    emailColumns,
+    'E-Mail',
+    formatEmail,
+    'email_format',
+    'formatEmail',
+    (count) => `${count} E-Mail-Adressen können bereinigt werden (Leerzeichen, Umlaute)`
   );
-  
-  // Group by column
+}
+
+function detectPLZPattern(index: ErrorIndex): PatternGroup[] {
+  const plzColumns = ['S_PLZ', 'P_ERZ1_PLZ', 'P_ERZ2_PLZ'];
+  return detectPatternForColumns(
+    index,
+    plzColumns,
+    'PLZ',
+    formatSwissPLZ,
+    'plz_format',
+    'formatSwissPLZ',
+    (count) => `${count} Postleitzahlen können bereinigt werden`
+  );
+}
+
+function detectGenderPattern(index: ErrorIndex): PatternGroup[] {
+  const genderColumns = ['S_Geschlecht'];
+  return detectPatternForColumns(
+    index,
+    genderColumns,
+    'Geschlecht',
+    formatGender,
+    'gender_format',
+    'formatGender',
+    (count) => `${count} Geschlechtsangaben können normalisiert werden (M/W/D)`
+  );
+}
+
+function detectDuplicateGroups(index: ErrorIndex): PatternGroup[] {
+  const groups: PatternGroup[] = [];
   const byColumn = new Map<string, ValidationError[]>();
-  duplicateErrors.forEach(e => {
-    const existing = byColumn.get(e.column) || [];
-    existing.push(e);
-    byColumn.set(e.column, existing);
-  });
+  
+  for (const error of index.uncorrected) {
+    if (!error.message.includes('Duplikat:')) continue;
+    
+    const existing = byColumn.get(error.column);
+    if (existing) {
+      existing.push(error);
+    } else {
+      byColumn.set(error.column, [error]);
+    }
+  }
   
   byColumn.forEach((columnErrors, column) => {
     if (columnErrors.length > 0) {
@@ -340,25 +321,23 @@ function detectDuplicateGroups(errors: ValidationError[], rows: ParsedRow[]): Pa
   return groups;
 }
 
-function detectParentIdInconsistencies(errors: ValidationError[], rows: ParsedRow[]): PatternGroup[] {
+function detectParentIdInconsistencies(index: ErrorIndex): PatternGroup[] {
   const groups: PatternGroup[] = [];
-  
-  const inconsistentErrors = errors.filter(e => 
-    !e.correctedValue && 
-    e.message.includes('Inkonsistente ID:')
-  );
-  
-  // Group by parent ID column
   const byColumn = new Map<string, ValidationError[]>();
-  inconsistentErrors.forEach(e => {
-    const existing = byColumn.get(e.column) || [];
-    existing.push(e);
-    byColumn.set(e.column, existing);
-  });
+  
+  for (const error of index.uncorrected) {
+    if (!error.message.includes('Inkonsistente ID:')) continue;
+    
+    const existing = byColumn.get(error.column);
+    if (existing) {
+      existing.push(error);
+    } else {
+      byColumn.set(error.column, [error]);
+    }
+  }
   
   byColumn.forEach((columnErrors, column) => {
     if (columnErrors.length > 0) {
-      // Extract the first ID from the first error message for potential consolidation
       const firstError = columnErrors[0];
       const idMatch = firstError.message.match(/die ID '([^']+)'/);
       const suggestedId = idMatch ? idMatch[1] : null;
@@ -381,34 +360,36 @@ function detectParentIdInconsistencies(errors: ValidationError[], rows: ParsedRo
 }
 
 // ============================================
-// Main Analysis Function
+// Main Analysis Function - Optimized
 // ============================================
 
 export function analyzeErrorsLocally(
   errors: ValidationError[],
-  rows: ParsedRow[]
+  _rows: ParsedRow[]
 ): LocalSuggestion[] {
   const suggestions: LocalSuggestion[] = [];
-  const uncorrectedErrors = errors.filter(e => !e.correctedValue);
   
-  if (uncorrectedErrors.length === 0) {
+  // Build index once for O(1) column lookups
+  const index = buildErrorIndex(errors);
+  
+  if (index.uncorrected.length === 0) {
     return suggestions;
   }
   
-  // Run all pattern detectors
+  // Run all pattern detectors with indexed data
   const patternGroups: PatternGroup[] = [
-    ...detectPhonePattern(uncorrectedErrors),
-    ...detectAHVPattern(uncorrectedErrors),
-    ...detectDatePattern(uncorrectedErrors),
-    ...detectEmailPattern(uncorrectedErrors),
-    ...detectPLZPattern(uncorrectedErrors),
-    ...detectGenderPattern(uncorrectedErrors),
-    ...detectDuplicateGroups(uncorrectedErrors, rows),
-    ...detectParentIdInconsistencies(uncorrectedErrors, rows),
+    ...detectPhonePattern(index),
+    ...detectAHVPattern(index),
+    ...detectDatePattern(index),
+    ...detectEmailPattern(index),
+    ...detectPLZPattern(index),
+    ...detectGenderPattern(index),
+    ...detectDuplicateGroups(index),
+    ...detectParentIdInconsistencies(index),
   ];
   
   // Convert pattern groups to suggestions
-  patternGroups.forEach(group => {
+  for (const group of patternGroups) {
     if (group.rows.length > 0) {
       suggestions.push({
         type: group.type,
@@ -422,13 +403,13 @@ export function analyzeErrorsLocally(
         fixFunction: group.fixFunction,
       });
     }
-  });
+  }
   
   return suggestions;
 }
 
 // ============================================
-// Apply Corrections Function
+// Apply Corrections Function - Optimized for bulk operations
 // ============================================
 
 export function applyLocalCorrection(
@@ -437,39 +418,32 @@ export function applyLocalCorrection(
 ): { row: number; column: string; value: string }[] {
   const corrections: { row: number; column: string; value: string }[] = [];
   
-  suggestion.affectedRows.forEach(rowNum => {
-    const error = errors.find(e => e.row === rowNum && e.column === suggestion.affectedColumn);
+  // Build a quick lookup map for errors by row+column
+  const errorMap = new Map<string, ValidationError>();
+  for (const error of errors) {
+    if (error.column === suggestion.affectedColumn) {
+      errorMap.set(`${error.row}:${error.column}`, error);
+    }
+  }
+  
+  // Get the fix function once
+  const fixFn = getFixFunction(suggestion.fixFunction);
+  
+  for (const rowNum of suggestion.affectedRows) {
+    const key = `${rowNum}:${suggestion.affectedColumn}`;
+    const error = errorMap.get(key);
     
-    if (!error || !error.value) return;
+    if (!error || !error.value) continue;
     
     let correctedValue: string | null = null;
     
-    switch (suggestion.fixFunction) {
-      case 'formatSwissPhone':
-        correctedValue = formatSwissPhone(error.value);
-        break;
-      case 'formatAHV':
-        correctedValue = formatAHV(error.value);
-        break;
-      case 'convertExcelDate':
-        correctedValue = convertExcelDate(error.value);
-        break;
-      case 'formatEmail':
-        correctedValue = formatEmail(error.value);
-        break;
-      case 'formatSwissPLZ':
-        correctedValue = formatSwissPLZ(error.value);
-        break;
-      case 'formatGender':
-        correctedValue = formatGender(error.value);
-        break;
-      case 'consolidateId':
-        // For ID consolidation, extract the target ID from the error message
-        const idMatch = error.message.match(/die ID '([^']+)'/);
-        if (idMatch) {
-          correctedValue = idMatch[1];
-        }
-        break;
+    if (fixFn) {
+      correctedValue = fixFn(error.value);
+    } else if (suggestion.fixFunction === 'consolidateId') {
+      const idMatch = error.message.match(/die ID '([^']+)'/);
+      if (idMatch) {
+        correctedValue = idMatch[1];
+      }
     }
     
     if (correctedValue) {
@@ -479,7 +453,20 @@ export function applyLocalCorrection(
         value: correctedValue,
       });
     }
-  });
+  }
   
   return corrections;
+}
+
+// Get the appropriate fix function
+function getFixFunction(name: string): ((value: string) => string | null) | null {
+  switch (name) {
+    case 'formatSwissPhone': return formatSwissPhone;
+    case 'formatAHV': return formatAHV;
+    case 'convertExcelDate': return convertExcelDate;
+    case 'formatEmail': return formatEmail;
+    case 'formatSwissPLZ': return formatSwissPLZ;
+    case 'formatGender': return formatGender;
+    default: return null;
+  }
 }
