@@ -7,6 +7,7 @@ import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
 import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
 import { ChangeLog } from '@/components/import/ChangeLog';
+import { Footer } from '@/components/layout/Footer';
 import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import { getColumnsByType, importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { checkColumnStatus, validateData, type ParseResult } from '@/lib/fileParser';
@@ -166,10 +167,10 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <WizardHeader title={getStepTitle()} />
       
-      <main className="container mx-auto px-4 py-6 max-w-5xl">
+      <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
         <WizardProgress 
           currentStep={currentStep}
           maxVisitedStep={maxVisitedStep}
@@ -234,6 +235,8 @@ export default function Index() {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
