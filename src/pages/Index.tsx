@@ -86,7 +86,7 @@ export default function Index() {
     return eintragFuer ? String(eintragFuer) : undefined;
   }, [correctedRows]);
 
-  const handleErrorCorrect = useCallback((rowIndex: number, column: string, value: string, correctionType: 'manual' | 'ai-bulk' | 'ai-auto' = 'manual') => {
+  const handleErrorCorrect = useCallback((rowIndex: number, column: string, value: string, correctionType: 'manual' | 'bulk' | 'auto' = 'manual') => {
     // Find original value from errors
     const error = errors.find(e => e.row === rowIndex && e.column === column);
     const originalValue = error?.correctedValue ?? error?.value ?? '';
@@ -118,7 +118,7 @@ export default function Index() {
     });
   }, [errors, getStudentName]);
 
-  const handleBulkCorrect = useCallback((corrections: { row: number; column: string; value: string }[], correctionType: 'ai-bulk' | 'ai-auto' = 'ai-bulk') => {
+  const handleBulkCorrect = useCallback((corrections: { row: number; column: string; value: string }[], correctionType: 'bulk' | 'auto' = 'bulk') => {
     // Add to change log
     corrections.forEach(c => {
       const error = errors.find(e => e.row === c.row && e.column === c.column);
