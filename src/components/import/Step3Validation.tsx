@@ -56,6 +56,7 @@ export function Step3Validation({
   const [stepEditValue, setStepEditValue] = useState('');
   const [filteredErrorRows, setFilteredErrorRows] = useState<number[] | null>(null);
   const [filteredErrorColumn, setFilteredErrorColumn] = useState<string | null>(null);
+  const [showAllOtherDifferences, setShowAllOtherDifferences] = useState(false);
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
   const { toast } = useToast();
   
@@ -230,8 +231,9 @@ export function Step3Validation({
                                         currentError.message.includes('gefunden');
     if (!isDuplicateOrInconsistency) return null;
 
-    // Find all errors for the same column with the same or similar values
-    const relatedErrors = errors.filter(e => 
+    // Find all UNCORRECTED errors for the same column with the same or similar values
+    // Filter out already resolved duplicates
+    const relatedErrors = uncorrectedErrors.filter(e => 
       e.column === currentError.column && 
       (e.message.includes('Duplikat') || e.message.includes('Inkonsistente ID') || e.message.includes('gefunden'))
     );
@@ -884,32 +886,47 @@ export function Step3Validation({
                           </div>
                         ))}
                         
-                        {/* Other differences */}
-                        {duplicateInfo.otherDifferences.slice(0, 5).map((diff, idx) => (
-                          <div key={`other-${idx}`} className="p-2 bg-muted/50 rounded border">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-mono font-medium">{diff.column}</span>
-                            </div>
-                            <div className="grid gap-1">
-                              {diff.values.map((v, vIdx) => (
-                                <div key={vIdx} className="flex items-center gap-2 text-xs">
-                                  <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
-                                  <code className={`px-1 rounded ${
-                                    selectedMasterRow === v.row 
-                                      ? 'bg-primary/20 text-primary font-bold' 
-                                      : 'bg-muted'
-                                  }`}>
-                                    {v.value}
-                                  </code>
+                        {/* Other differences - show all with expand option */}
+                        {duplicateInfo.otherDifferences.length > 0 && (
+                          <>
+                            {(showAllOtherDifferences 
+                              ? duplicateInfo.otherDifferences 
+                              : duplicateInfo.otherDifferences.slice(0, 5)
+                            ).map((diff, idx) => (
+                              <div key={`other-${idx}`} className="p-2 bg-muted/50 rounded border">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-mono font-medium">{diff.column}</span>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                        {duplicateInfo.otherDifferences.length > 5 && (
-                          <p className="text-xs text-muted-foreground text-center py-1">
-                            + {duplicateInfo.otherDifferences.length - 5} weitere Unterschiede
-                          </p>
+                                <div className="grid gap-1">
+                                  {diff.values.map((v, vIdx) => (
+                                    <div key={vIdx} className="flex items-center gap-2 text-xs">
+                                      <span className="text-muted-foreground w-16">Zeile {v.row}:</span>
+                                      <code className={`px-1 rounded ${
+                                        selectedMasterRow === v.row 
+                                          ? 'bg-primary/20 text-primary font-bold' 
+                                          : 'bg-muted'
+                                      }`}>
+                                        {v.value}
+                                      </code>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {duplicateInfo.otherDifferences.length > 5 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowAllOtherDifferences(!showAllOtherDifferences)}
+                                className="w-full text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                {showAllOtherDifferences 
+                                  ? 'Weniger anzeigen'
+                                  : `+ ${duplicateInfo.otherDifferences.length - 5} weitere Unterschiede anzeigen`
+                                }
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </ScrollArea>
