@@ -836,7 +836,7 @@ export function Step3Validation({
                         Spalten mit unterschiedlichen Werten:
                       </span>
                     </div>
-                    <ScrollArea className="max-h-48">
+                    <ScrollArea className="max-h-[400px]">
                       <div className="space-y-2">
                         {/* Critical differences first */}
                         {duplicateInfo.criticalDifferences.map((diff, idx) => (
