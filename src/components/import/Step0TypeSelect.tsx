@@ -56,34 +56,36 @@ export function Step0TypeSelect({
       </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {importConfigs.map((config) => {
-          const Icon = iconMap[config.icon as keyof typeof iconMap];
-          const isSelected = selectedType === config.type;
+        {importConfigs
+          .filter((config) => config.type === 'schueler') // Temporarily only show Schülerdaten
+          .map((config) => {
+            const Icon = iconMap[config.icon as keyof typeof iconMap];
+            const isSelected = selectedType === config.type;
 
-          return (
-            <Card
-              key={config.type}
-              className={cn(
-                'cursor-pointer transition-all hover:shadow-lg',
-                isSelected && 'ring-2 ring-primary shadow-lg'
-              )}
-              onClick={() => onSelectType(config.type)}
-            >
-              <CardHeader className="pb-3">
-                <div
-                  className={cn(
-                    'w-12 h-12 rounded-lg flex items-center justify-center mb-2',
-                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                </div>
-                <CardTitle className="text-lg">{config.name}</CardTitle>
-                <CardDescription>{config.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          );
-        })}
+            return (
+              <Card
+                key={config.type}
+                className={cn(
+                  'cursor-pointer transition-all hover:shadow-lg',
+                  isSelected && 'ring-2 ring-primary shadow-lg'
+                )}
+                onClick={() => onSelectType(config.type)}
+              >
+                <CardHeader className="pb-3">
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-lg flex items-center justify-center mb-2',
+                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    )}
+                  >
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <CardTitle className="text-lg">{config.name}</CardTitle>
+                  <CardDescription>{config.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })}
       </div>
 
       {selectedType === 'foerderplaner' && (
