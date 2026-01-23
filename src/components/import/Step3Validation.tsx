@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -30,6 +30,18 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Interface for parent ID inconsistency groups
+interface ParentIdInconsistencyGroup {
+  identifier: string; // e.g., "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
+  column: string; // e.g., "P_ERZ1_ID"
+  correctId: string; // The ID from the first occurrence
+  affectedRows: {
+    row: number;
+    currentId: string;
+    studentName: string | null;
+  }[];
+}
 
 interface Step3ValidationProps {
   errors: ValidationError[];
@@ -65,6 +77,113 @@ export function Step3Validation({
 
   const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
+
+  // Detect all parent ID inconsistency groups for bulk correction
+  const parentIdInconsistencyGroups = useMemo((): ParentIdInconsistencyGroup[] => {
+    const groups: ParentIdInconsistencyGroup[] = [];
+    
+    // Find all parent ID inconsistency errors (uncorrected only)
+    const parentInconsistencyErrors = uncorrectedErrors.filter(e => 
+      e.message.includes('Inkonsistente ID:') && e.column.startsWith('P_ERZ')
+    );
+    
+    if (parentInconsistencyErrors.length === 0) return groups;
+    
+    // Group by identifier (extracted from message)
+    const groupedByIdentifier = new Map<string, ValidationError[]>();
+    
+    for (const error of parentInconsistencyErrors) {
+      // Extract identifier like "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
+      const identifierMatch = error.message.match(/\(([^)]+)\)/);
+      const identifier = identifierMatch ? identifierMatch[1] : error.column;
+      
+      // Also extract the "correct" ID mentioned in the message
+      const correctIdMatch = error.message.match(/die ID '([^']+)'/);
+      const key = `${error.column}:${identifier}`;
+      
+      const existing = groupedByIdentifier.get(key);
+      if (existing) {
+        existing.push(error);
+      } else {
+        groupedByIdentifier.set(key, [error]);
+      }
+    }
+    
+    // Convert to groups
+    groupedByIdentifier.forEach((groupErrors, key) => {
+      const [column, identifier] = key.split(':', 2);
+      
+      // Get correct ID from first error message
+      const firstError = groupErrors[0];
+      const correctIdMatch = firstError.message.match(/die ID '([^']+)'/);
+      const correctId = correctIdMatch ? correctIdMatch[1] : '';
+      
+      if (!correctId) return;
+      
+      const affectedRows = groupErrors.map(e => ({
+        row: e.row,
+        currentId: e.value,
+        studentName: getStudentNameForRow(e.row),
+      }));
+      
+      groups.push({
+        identifier,
+        column,
+        correctId,
+        affectedRows,
+      });
+    });
+    
+    return groups;
+  }, [uncorrectedErrors, rows]);
+
+  // Helper function to get student name - moved up for use in parentIdInconsistencyGroups
+  const getStudentNameForRow = useCallback((rowNumber: number) => {
+    const row = rows.find((_, index) => index + 1 === rowNumber);
+    if (!row) return null;
+    const name = row['S_Name'] || row['S_name'] || '';
+    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
+    if (name || vorname) {
+      return `${vorname} ${name}`.trim();
+    }
+    // Fallback for other import types
+    const eintragFuer = row['Eintrag_fuer'] || '';
+    if (eintragFuer) return String(eintragFuer);
+    return null;
+  }, [rows]);
+
+  // Apply bulk correction for all parent ID inconsistencies at once
+  const applyBulkParentIdCorrection = useCallback(() => {
+    if (parentIdInconsistencyGroups.length === 0) return;
+    
+    const corrections: { row: number; column: string; value: string }[] = [];
+    let totalAffectedChildren = 0;
+    
+    for (const group of parentIdInconsistencyGroups) {
+      for (const affectedRow of group.affectedRows) {
+        corrections.push({
+          row: affectedRow.row,
+          column: group.column,
+          value: group.correctId,
+        });
+        totalAffectedChildren++;
+      }
+    }
+    
+    if (corrections.length > 0) {
+      onBulkCorrect(corrections, 'bulk');
+      toast({
+        title: 'Eltern-IDs konsolidiert',
+        description: `${parentIdInconsistencyGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+      });
+    }
+  }, [parentIdInconsistencyGroups, onBulkCorrect, toast]);
+
+  // Total count for summary
+  const totalParentIdInconsistencies = useMemo(() => 
+    parentIdInconsistencyGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
+    [parentIdInconsistencyGroups]
+  );
 
   // Filtered errors for step-by-step mode (only specific rows and column if set)
   const stepByStepErrors = useMemo(() => {
@@ -198,21 +317,6 @@ export function Step3Validation({
       setStepEditValue(currentError.value || '');
     }
   }, [currentErrorIndex, uncorrectedErrors.length, stepByStepMode]);
-
-  // Get student name for a specific row
-  const getStudentNameForRow = (rowNumber: number) => {
-    const row = rows.find((_, index) => index + 1 === rowNumber);
-    if (!row) return null;
-    const name = row['S_Name'] || row['S_name'] || '';
-    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
-    if (name || vorname) {
-      return `${vorname} ${name}`.trim();
-    }
-    // Fallback for other import types
-    const eintragFuer = row['Eintrag_fuer'] || '';
-    if (eintragFuer) return String(eintragFuer);
-    return null;
-  };
 
   // Get student name for current error row
   const getCurrentStudentName = () => {
@@ -634,6 +738,87 @@ export function Step3Validation({
           <p className="text-sm text-muted-foreground">Korrigiert</p>
         </div>
       </div>
+
+      {/* Bulk Parent ID Consolidation Card */}
+      {parentIdInconsistencyGroups.length > 0 && (
+        <Card className="border-blue-500/30 bg-blue-500/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                <CardTitle className="text-lg">Eltern-ID Konsolidierung</CardTitle>
+                <Badge variant="outline" className="text-blue-500 border-blue-500/30">
+                  {parentIdInconsistencyGroups.length} Eltern
+                </Badge>
+                <Badge variant="outline" className="text-blue-500 border-blue-500/30">
+                  {totalParentIdInconsistencies} Kinder
+                </Badge>
+              </div>
+              <Button 
+                onClick={applyBulkParentIdCorrection}
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Alle konsolidieren
+              </Button>
+            </div>
+            <CardDescription>
+              Gleiche Eltern wurden mit unterschiedlichen IDs erfasst. Mit einem Klick alle auf die korrekte ID vereinheitlichen.
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-3">
+            <ScrollArea className="max-h-64">
+              <div className="space-y-2">
+                {parentIdInconsistencyGroups.map((group, idx) => (
+                  <div key={idx} className="p-3 bg-background rounded-lg border space-y-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge variant="outline">{group.column}</Badge>
+                          <span className="text-sm font-medium text-muted-foreground">{group.identifier}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Korrekte ID:</span>
+                          <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs">
+                            {group.correctId}
+                          </code>
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
+                          <span className="ml-1">
+                            {group.affectedRows.slice(0, 3).map((r, i) => (
+                              <span key={r.row}>
+                                {i > 0 && ', '}
+                                {r.studentName || `Zeile ${r.row}`}
+                              </span>
+                            ))}
+                            {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            const rowNumbers = group.affectedRows.map(r => r.row);
+                            startStepByStep(rowNumbers, group.column);
+                          }}
+                          className="gap-1"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Details
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Local Bulk Correction - Web Worker Background Processing */}
       {uncorrectedErrors.length > 0 && (
