@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -30,6 +30,8 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Interface for parent ID inconsistency groups
 interface ParentIdInconsistencyGroup {
@@ -70,6 +72,12 @@ export function Step3Validation({
   const [filteredErrorColumn, setFilteredErrorColumn] = useState<string | null>(null);
   const [showAllOtherDifferences, setShowAllOtherDifferences] = useState(false);
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
+  
+  // Parent ID consolidation UI state
+  const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
+  const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
+  const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
+  const PARENTS_PER_PAGE = 20;
   const { toast } = useToast();
   
   // Web Worker for background processing
@@ -185,6 +193,31 @@ export function Step3Validation({
     parentIdInconsistencyGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
     [parentIdInconsistencyGroups]
   );
+
+  // Filtered parent ID groups for search
+  const filteredParentGroups = useMemo(() => {
+    if (!parentConsolidationSearch.trim()) return parentIdInconsistencyGroups;
+    const searchLower = parentConsolidationSearch.toLowerCase();
+    return parentIdInconsistencyGroups.filter(group => 
+      group.identifier.toLowerCase().includes(searchLower) ||
+      group.correctId.toLowerCase().includes(searchLower) ||
+      group.column.toLowerCase().includes(searchLower) ||
+      group.affectedRows.some(r => r.studentName?.toLowerCase().includes(searchLower))
+    );
+  }, [parentIdInconsistencyGroups, parentConsolidationSearch]);
+
+  // Paginated parent groups
+  const paginatedParentGroups = useMemo(() => {
+    const start = parentConsolidationPage * PARENTS_PER_PAGE;
+    return filteredParentGroups.slice(start, start + PARENTS_PER_PAGE);
+  }, [filteredParentGroups, parentConsolidationPage, PARENTS_PER_PAGE]);
+
+  const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setParentConsolidationPage(0);
+  }, [parentConsolidationSearch]);
 
   // Filtered errors for step-by-step mode (only specific rows and column if set)
   const stepByStepErrors = useMemo(() => {
@@ -740,12 +773,12 @@ export function Step3Validation({
         </div>
       </div>
 
-      {/* Bulk Parent ID Consolidation Card */}
+      {/* Bulk Parent ID Consolidation Card - Optimized for 800+ entries */}
       {parentIdInconsistencyGroups.length > 0 && (
         <Card className="border-blue-500/30 bg-blue-500/5">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Users className="h-5 w-5 text-blue-500" />
                 <CardTitle className="text-lg">Eltern-ID Konsolidierung</CardTitle>
                 <Badge variant="outline" className="text-blue-500 border-blue-500/30">
@@ -758,9 +791,10 @@ export function Step3Validation({
               <Button 
                 onClick={applyBulkParentIdCorrection}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
+                size="lg"
               >
                 <CheckCircle className="h-4 w-4" />
-                Alle konsolidieren
+                Alle {parentIdInconsistencyGroups.length} konsolidieren
               </Button>
             </div>
             <CardDescription>
@@ -768,55 +802,166 @@ export function Step3Validation({
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-3">
-            <ScrollArea className="max-h-64">
-              <div className="space-y-2">
-                {parentIdInconsistencyGroups.map((group, idx) => (
-                  <div key={idx} className="p-3 bg-background rounded-lg border space-y-2">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <Badge variant="outline">{group.column}</Badge>
-                          <span className="text-sm font-medium text-muted-foreground">{group.identifier}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Korrekte ID:</span>
-                          <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs">
-                            {group.correctId}
-                          </code>
-                        </div>
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
-                          <span className="ml-1">
-                            {group.affectedRows.slice(0, 3).map((r, i) => (
-                              <span key={r.row}>
-                                {i > 0 && ', '}
-                                {r.studentName || `Zeile ${r.row}`}
-                              </span>
-                            ))}
-                            {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            const rowNumbers = group.affectedRows.map(r => r.row);
-                            startStepByStep(rowNumbers, group.column);
-                          }}
-                          className="gap-1"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                          Details
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <CardContent className="space-y-4">
+            {/* Quick stats for large datasets */}
+            {parentIdInconsistencyGroups.length > 10 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">{parentIdInconsistencyGroups.length}</p>
+                  <p className="text-xs text-muted-foreground">Eltern zu konsolidieren</p>
+                </div>
+                <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">{totalParentIdInconsistencies}</p>
+                  <p className="text-xs text-muted-foreground">Betroffene Kinder</p>
+                </div>
+                <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {new Set(parentIdInconsistencyGroups.map(g => g.column)).size}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Spalten betroffen</p>
+                </div>
+                <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {Math.round((parentIdInconsistencyGroups.length / rows.length) * 100)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Betroffene Zeilen</p>
+                </div>
               </div>
-            </ScrollArea>
+            )}
+
+            {/* Collapsible detail list */}
+            <Collapsible open={parentConsolidationExpanded} onOpenChange={setParentConsolidationExpanded}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full gap-2">
+                  {parentConsolidationExpanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Details ausblenden
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      Details anzeigen ({parentIdInconsistencyGroups.length} Eltern)
+                    </>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-4 space-y-3">
+                {/* Search for large datasets */}
+                {parentIdInconsistencyGroups.length > 10 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Suchen nach Name, ID, Spalte..."
+                      value={parentConsolidationSearch}
+                      onChange={(e) => setParentConsolidationSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                    {parentConsolidationSearch && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        onClick={() => setParentConsolidationSearch('')}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Results info */}
+                {parentConsolidationSearch && (
+                  <p className="text-sm text-muted-foreground">
+                    {filteredParentGroups.length} von {parentIdInconsistencyGroups.length} Ergebnissen
+                  </p>
+                )}
+                
+                {/* Paginated list */}
+                <ScrollArea className="max-h-96">
+                  <div className="space-y-2">
+                    {paginatedParentGroups.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        Keine Ergebnisse für "{parentConsolidationSearch}"
+                      </p>
+                    ) : (
+                      paginatedParentGroups.map((group, idx) => (
+                        <div key={`${group.column}-${group.identifier}-${idx}`} className="p-3 bg-background rounded-lg border space-y-2">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <Badge variant="outline" className="shrink-0">{group.column}</Badge>
+                                <span className="text-sm font-medium text-muted-foreground truncate">{group.identifier}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
+                                <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
+                                  {group.correctId}
+                                </code>
+                              </div>
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
+                                <span className="ml-1">
+                                  {group.affectedRows.slice(0, 2).map((r, i) => (
+                                    <span key={r.row}>
+                                      {i > 0 && ', '}
+                                      {r.studentName || `Zeile ${r.row}`}
+                                    </span>
+                                  ))}
+                                  {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  const rowNumbers = group.affectedRows.map(r => r.row);
+                                  startStepByStep(rowNumbers, group.column);
+                                }}
+                                className="gap-1"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                                Details
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+                
+                {/* Pagination controls */}
+                {totalParentPages > 1 && (
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setParentConsolidationPage(p => Math.max(0, p - 1))}
+                      disabled={parentConsolidationPage === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Zurück
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Seite {parentConsolidationPage + 1} von {totalParentPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setParentConsolidationPage(p => Math.min(totalParentPages - 1, p + 1))}
+                      disabled={parentConsolidationPage >= totalParentPages - 1}
+                    >
+                      Weiter
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
       )}
