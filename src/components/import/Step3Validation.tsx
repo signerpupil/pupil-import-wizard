@@ -78,6 +78,21 @@ export function Step3Validation({
   const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
 
+  // Helper function to get student name - must be defined BEFORE useMemo that uses it
+  const getStudentNameForRow = useCallback((rowNumber: number) => {
+    const row = rows.find((_, index) => index + 1 === rowNumber);
+    if (!row) return null;
+    const name = row['S_Name'] || row['S_name'] || '';
+    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
+    if (name || vorname) {
+      return `${vorname} ${name}`.trim();
+    }
+    // Fallback for other import types
+    const eintragFuer = row['Eintrag_fuer'] || '';
+    if (eintragFuer) return String(eintragFuer);
+    return null;
+  }, [rows]);
+
   // Detect all parent ID inconsistency groups for bulk correction
   const parentIdInconsistencyGroups = useMemo((): ParentIdInconsistencyGroup[] => {
     const groups: ParentIdInconsistencyGroup[] = [];
@@ -135,22 +150,8 @@ export function Step3Validation({
     });
     
     return groups;
-  }, [uncorrectedErrors, rows]);
+  }, [uncorrectedErrors, getStudentNameForRow]);
 
-  // Helper function to get student name - moved up for use in parentIdInconsistencyGroups
-  const getStudentNameForRow = useCallback((rowNumber: number) => {
-    const row = rows.find((_, index) => index + 1 === rowNumber);
-    if (!row) return null;
-    const name = row['S_Name'] || row['S_name'] || '';
-    const vorname = row['S_Vorname'] || row['S_vorname'] || '';
-    if (name || vorname) {
-      return `${vorname} ${name}`.trim();
-    }
-    // Fallback for other import types
-    const eintragFuer = row['Eintrag_fuer'] || '';
-    if (eintragFuer) return String(eintragFuer);
-    return null;
-  }, [rows]);
 
   // Apply bulk correction for all parent ID inconsistencies at once
   const applyBulkParentIdCorrection = useCallback(() => {
