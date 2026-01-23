@@ -1,6 +1,7 @@
-// ... existing imports
-export default defineConfig(({ mode }) => ({
-  base: '/pupil-import-wizard-9117a8dc/', // <--- ADD THIS LINE (must include the slashes)
-  server: {
-    host: "::",
-    // ... rest of your existing config
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  base: "/pupil-import-wizard-9117a8dc/"
+});
