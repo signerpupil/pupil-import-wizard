@@ -103,7 +103,7 @@ export function ImpressumDialog({ open, onOpenChange }: ImpressumDialogProps) {
             <section>
               <h3 className="font-semibold text-foreground mb-2">Hosting</h3>
               <p className="text-muted-foreground">
-                Diese Anwendung wird auf der Plattform Lovable.dev gehostet.
+                Diese Anwendung wird auf GitHub Pages gehostet.
               </p>
             </section>
           </div>
