@@ -54,16 +54,38 @@ export function SaveCorrectionDialog({
   const [selectedIdentifier, setSelectedIdentifier] = useState<string | null>(null);
 
   // Find available identifiers from the row data
+  // Prioritize identifiers related to the column being corrected
   const availableIdentifiers = Object.entries(IDENTIFIER_COLUMNS)
     .filter(([col]) => {
       const value = rowData[col];
       return value !== undefined && value !== null && String(value).trim() !== '';
     })
-    .map(([col, label]) => ({
-      column: col,
-      label,
-      value: String(rowData[col]),
-    }));
+    .map(([col, label]) => {
+      // Determine if this identifier is relevant to the column being corrected
+      const isRelevant = 
+        (column.startsWith('P_ERZ1_') && col === 'P_ERZ1_AHV') ||
+        (column.startsWith('P_ERZ2_') && col === 'P_ERZ2_AHV') ||
+        (column.startsWith('S_') && col === 'S_AHV');
+      
+      return {
+        column: col,
+        label,
+        value: String(rowData[col]),
+        isRelevant,
+      };
+    })
+    // Sort so relevant identifiers come first
+    .sort((a, b) => (b.isRelevant ? 1 : 0) - (a.isRelevant ? 1 : 0));
+  
+  // Auto-select the most relevant identifier when switching to identifier mode
+  const handleSaveModeChange = (mode: 'skip' | 'exact' | 'identifier') => {
+    setSaveMode(mode);
+    if (mode === 'identifier' && !selectedIdentifier && availableIdentifiers.length > 0) {
+      // Auto-select the first relevant identifier, or the first available
+      const relevant = availableIdentifiers.find(i => i.isRelevant);
+      setSelectedIdentifier(relevant?.column || availableIdentifiers[0].column);
+    }
+  };
 
   const handleSave = () => {
     if (saveMode === 'skip') {
@@ -127,7 +149,7 @@ export function SaveCorrectionDialog({
           {/* Save options */}
           <RadioGroup
             value={saveMode}
-            onValueChange={(v) => setSaveMode(v as 'skip' | 'exact' | 'identifier')}
+            onValueChange={(v) => handleSaveModeChange(v as 'skip' | 'exact' | 'identifier')}
             className="space-y-3"
           >
             <div className="flex items-start space-x-3">
@@ -167,7 +189,12 @@ export function SaveCorrectionDialog({
                   {saveMode === 'identifier' && (
                     <div className="mt-3 space-y-2 pl-0">
                       {availableIdentifiers.map((identifier) => (
-                        <div key={identifier.column} className="flex items-center space-x-2">
+                        <div 
+                          key={identifier.column} 
+                          className={`flex items-center space-x-2 p-2 rounded-md transition-colors ${
+                            identifier.isRelevant ? 'bg-pupil-success/10 border border-pupil-success/20' : ''
+                          }`}
+                        >
                           <Checkbox
                             id={identifier.column}
                             checked={selectedIdentifier === identifier.column}
@@ -177,9 +204,17 @@ export function SaveCorrectionDialog({
                           />
                           <Label 
                             htmlFor={identifier.column} 
-                            className="font-normal text-sm cursor-pointer"
+                            className="font-normal text-sm cursor-pointer flex-1"
                           >
-                            {identifier.label}: <span className="font-mono text-xs">{identifier.value}</span>
+                            <span className="flex items-center gap-2">
+                              {identifier.label}
+                              {identifier.isRelevant && (
+                                <span className="text-xs text-pupil-success font-medium">(empfohlen)</span>
+                              )}
+                            </span>
+                            <span className="font-mono text-xs text-muted-foreground block mt-0.5">
+                              {identifier.value}
+                            </span>
                           </Label>
                         </div>
                       ))}
