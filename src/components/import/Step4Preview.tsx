@@ -11,10 +11,12 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus, ChangeLogEntry } from '@/types/importTypes';
+import type { CorrectionRule } from '@/types/correctionTypes';
 import { exportToCSV, exportToExcel } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { ChangeLog } from './ChangeLog';
+import { CorrectionMemoryExport } from './CorrectionMemoryExport';
 
 interface Step4PreviewProps {
   rows: ParsedRow[];
@@ -27,6 +29,12 @@ interface Step4PreviewProps {
   fileName?: string;
   onBack: () => void;
   onReset: () => void;
+  // Correction memory props
+  correctionRules?: CorrectionRule[];
+  onExportCorrectionRules?: (rules: CorrectionRule[], fileName?: string) => void;
+  onSaveCorrectionRulesToLocalStorage?: (rules: CorrectionRule[]) => void;
+  onClearCorrectionRulesFromLocalStorage?: () => void;
+  localStorageCorrectionRulesCount?: number;
 }
 
 export function Step4Preview({
@@ -40,6 +48,11 @@ export function Step4Preview({
   fileName,
   onBack,
   onReset,
+  correctionRules = [],
+  onExportCorrectionRules,
+  onSaveCorrectionRulesToLocalStorage,
+  onClearCorrectionRulesFromLocalStorage,
+  localStorageCorrectionRulesCount = 0,
 }: Step4PreviewProps) {
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
   const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
@@ -75,6 +88,31 @@ export function Step4Preview({
     }
     setExported(true);
   };
+
+  // Build correction rules from change log
+  const newCorrectionRules: CorrectionRule[] = changeLog
+    .filter(entry => entry.type === 'manual' || entry.type === 'bulk')
+    .map((entry, index) => ({
+      id: `${Date.now()}-${index}`,
+      column: entry.column,
+      originalValue: entry.originalValue,
+      correctedValue: entry.newValue,
+      matchType: 'exact' as const,
+      importType: 'schueler' as const, // TODO: Get from context
+      createdAt: entry.timestamp.toISOString(),
+      appliedCount: 0,
+    }));
+
+  // Combine existing rules with new ones (deduplicating)
+  const allRules = [...correctionRules];
+  for (const newRule of newCorrectionRules) {
+    const exists = allRules.some(
+      r => r.column === newRule.column && r.originalValue === newRule.originalValue
+    );
+    if (!exists) {
+      allRules.push(newRule);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -164,6 +202,19 @@ export function Step4Preview({
           </div>
         </CardContent>
       </Card>
+
+      {/* Correction Memory Export */}
+      {onExportCorrectionRules && onSaveCorrectionRulesToLocalStorage && onClearCorrectionRulesFromLocalStorage && (
+        <CorrectionMemoryExport
+          rules={allRules}
+          fileName={fileName}
+          importTypeName={importTypeName}
+          onExportToFile={onExportCorrectionRules}
+          onSaveToLocalStorage={onSaveCorrectionRulesToLocalStorage}
+          onClearLocalStorage={onClearCorrectionRulesFromLocalStorage}
+          localStorageCount={localStorageCorrectionRulesCount}
+        />
+      )}
 
       {/* Change Log */}
       <ChangeLog 
