@@ -688,13 +688,14 @@ export function Step3Validation({
 
   // Analyze errors using Web Worker - runs in background thread, never blocks UI
   const analyzeWithWorker = useCallback(async () => {
-    if (errors.length === 0) return;
+    if (uncorrectedErrors.length === 0) return;
     
     const startTime = performance.now();
     
     try {
       // This runs entirely in a background Web Worker thread
-      const result = await analyze(errors, rows);
+      // Use only uncorrected errors so resolved duplicates don't appear
+      const result = await analyze(uncorrectedErrors, rows);
       const duration = performance.now() - startTime;
       setAnalysisTime(duration);
       
@@ -721,7 +722,7 @@ export function Step3Validation({
         variant: 'destructive',
       });
     }
-  }, [errors, rows, analyze, convertPatternToSuggestion, toast]);
+  }, [uncorrectedErrors, rows, analyze, convertPatternToSuggestion, toast]);
 
   // Show worker errors
   useEffect(() => {
