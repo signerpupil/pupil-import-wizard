@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { WizardHeader } from '@/components/import/WizardHeader';
-import { WizardProgress } from '@/components/import/WizardProgress';
+import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
+import { WizardSummary } from '@/components/import/WizardSummary';
+import { StepHelpCard } from '@/components/import/StepHelpCard';
+import { OnboardingDialog } from '@/components/import/OnboardingDialog';
 import { Step0TypeSelect } from '@/components/import/Step0TypeSelect';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
 import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
@@ -14,12 +17,12 @@ import { checkColumnStatus, validateData, type ParseResult } from '@/lib/filePar
 import { useCorrectionMemory } from '@/hooks/useCorrectionMemory';
 import { useToast } from '@/hooks/use-toast';
 
-const wizardSteps = [
-  { label: 'Typ wählen' },
-  { label: 'Datei hochladen' },
-  { label: 'Spalten prüfen' },
-  { label: 'Validieren' },
-  { label: 'Export' },
+const wizardSteps: WizardStep[] = [
+  { label: 'Typ wählen', description: 'Import-Art und Modus' },
+  { label: 'Datei hochladen', description: 'CSV oder Excel' },
+  { label: 'Spalten prüfen', description: 'Vollständigkeit' },
+  { label: 'Validieren', description: 'Fehler korrigieren' },
+  { label: 'Export', description: 'Datei herunterladen' },
 ];
 
 export default function Index() {
@@ -286,9 +289,15 @@ export default function Index() {
     setAutoCorrectionsApplied(false);
   };
 
+  // Show summary from step 1 onwards
+  const showSummary = currentStep >= 1;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <WizardHeader title={getStepTitle()} />
+      
+      {/* Onboarding Dialog for first-time users */}
+      <OnboardingDialog />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
         <WizardProgress 
@@ -296,9 +305,26 @@ export default function Index() {
           maxVisitedStep={maxVisitedStep}
           steps={wizardSteps} 
           onStepClick={(step) => setCurrentStep(step)}
+          showDescriptions={true}
         />
 
-        <div className="mt-8">
+        {/* Summary Banner */}
+        {showSummary && (
+          <WizardSummary
+            importType={importType}
+            subType={subType}
+            processingMode={processingMode}
+            fileName={parseResult?.fileName}
+            rowCount={parseResult?.rows.length}
+            columnStatuses={currentStep >= 2 ? columnStatuses : undefined}
+            className="mt-4"
+          />
+        )}
+
+        <div className="mt-6 space-y-4">
+          {/* Contextual Help Card */}
+          <StepHelpCard step={currentStep} />
+
           {currentStep === 0 && (
             <Step0TypeSelect
               selectedType={importType}

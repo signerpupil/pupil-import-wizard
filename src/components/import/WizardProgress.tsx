@@ -1,14 +1,20 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export interface WizardStep {
+  label: string;
+  description?: string;
+}
+
 interface WizardProgressProps {
   currentStep: number;
   maxVisitedStep: number;
-  steps: { label: string; description?: string }[];
+  steps: WizardStep[];
   onStepClick?: (stepIndex: number) => void;
+  showDescriptions?: boolean;
 }
 
-export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick }: WizardProgressProps) {
+export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick, showDescriptions = true }: WizardProgressProps) {
   const handleStepClick = (index: number) => {
     // Allow clicking on any step up to the max visited step
     if (onStepClick && index <= maxVisitedStep) {
