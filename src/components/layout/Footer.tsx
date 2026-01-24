@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { ImpressumDialog } from '@/components/legal/ImpressumDialog';
 import { DatenschutzDialog } from '@/components/legal/DatenschutzDialog';
-import { CookiePolicyDialog } from '@/components/legal/CookiePolicyDialog';
 
 export function Footer() {
   const [impressumOpen, setImpressumOpen] = useState(false);
   const [datenschutzOpen, setDatenschutzOpen] = useState(false);
-  const [cookiePolicyOpen, setCookiePolicyOpen] = useState(false);
 
   return (
     <>
@@ -27,13 +25,6 @@ export function Footer() {
               >
                 Datenschutzerklärung
               </button>
-              <span className="hidden sm:inline text-muted-foreground/50">|</span>
-              <button
-                onClick={() => setCookiePolicyOpen(true)}
-                className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
-              >
-                Cookie-Policy
-              </button>
             </div>
             <div className="text-xs text-muted-foreground/70 text-center sm:text-right">
               © {new Date().getFullYear()} PUPIL
@@ -44,7 +35,6 @@ export function Footer() {
 
       <ImpressumDialog open={impressumOpen} onOpenChange={setImpressumOpen} />
       <DatenschutzDialog open={datenschutzOpen} onOpenChange={setDatenschutzOpen} />
-      <CookiePolicyDialog open={cookiePolicyOpen} onOpenChange={setCookiePolicyOpen} />
     </>
   );
 }
