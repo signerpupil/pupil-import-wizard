@@ -36,15 +36,7 @@ export function Footer() {
               </button>
             </div>
             <div className="text-xs text-muted-foreground/70 text-center sm:text-right">
-              Gehostet auf{' '}
-              <a
-                href="https://lovable.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
-              >
-                Lovable.dev
-              </a>
+              © {new Date().getFullYear()} PUPIL
             </div>
           </div>
         </div>
