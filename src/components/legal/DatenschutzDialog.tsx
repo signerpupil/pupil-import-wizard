@@ -64,42 +64,44 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             <section>
               <h3 className="font-semibold text-foreground mb-2">3. Hosting und technische Infrastruktur</h3>
               <p className="text-muted-foreground">
-                Diese Anwendung wird auf der Plattform <strong>Lovable.dev</strong> gehostet. 
-                Der Hosting-Anbieter erfasst grundlegende Nutzungsdaten zur Sicherstellung 
-                des technischen Betriebs:
+                Diese Anwendung wird auf <strong>GitHub Pages</strong> gehostet – einem statischen 
+                Hosting-Dienst von GitHub. GitHub kann grundlegende Nutzungsdaten zur Sicherstellung 
+                des technischen Betriebs erfassen:
               </p>
               <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                <li>IP-Adresse (kann anonymisiert werden)</li>
+                <li>IP-Adresse</li>
                 <li>Zugriffszeitpunkt</li>
                 <li>Browser-Typ und Version</li>
                 <li>Betriebssystem</li>
-                <li>Referrer-URL</li>
               </ul>
               <p className="text-muted-foreground mt-2">
-                Diese Daten sind technisch erforderlich, um die Anwendung bereitzustellen und 
-                die Sicherheit zu gewährleisten. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO 
-                (berechtigtes Interesse).
+                Diese Daten sind technisch erforderlich, um die Anwendung bereitzustellen. 
+                Weitere Informationen finden Sie in der{' '}
+                <a 
+                  href="https://docs.github.com/de/pages/getting-started-with-github-pages/about-github-pages#data-collection" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  GitHub Pages Dokumentation
+                </a>.
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">4. Cookies und Analytics</h3>
+              <h3 className="font-semibold text-foreground mb-2">4. Lokale Speicherung</h3>
               <p className="text-muted-foreground">
-                Diese Anwendung verwendet Cookies. Wir unterscheiden zwischen:
+                Diese Anwendung verwendet <strong>keine Cookies</strong>. Lediglich der lokale 
+                Speicher (localStorage) des Browsers wird für folgende Zwecke genutzt:
               </p>
               <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                <li>
-                  <strong>Technisch notwendige Cookies:</strong> Diese sind für den Betrieb 
-                  erforderlich und werden ohne Einwilligung gesetzt.
-                </li>
-                <li>
-                  <strong>Analytics-Cookies:</strong> Diese werden nur mit Ihrer ausdrücklichen 
-                  Einwilligung gesetzt (Art. 6 Abs. 1 lit. a DSGVO).
-                </li>
+                <li>Speicherung Ihrer Einstellungen (z.B. gewählte Sprache, Theme)</li>
+                <li>Authentifizierungs-Token für den Admin-Bereich (technisch notwendig)</li>
               </ul>
               <p className="text-muted-foreground mt-2">
-                Sie können Ihre Cookie-Einstellungen jederzeit über den entsprechenden Link 
-                im Footer der Seite anpassen.
+                Diese Daten werden ausschliesslich lokal in Ihrem Browser gespeichert und 
+                nicht an Server übertragen. Sie können diese Daten jederzeit über die 
+                Browser-Einstellungen löschen.
               </p>
             </section>
 
