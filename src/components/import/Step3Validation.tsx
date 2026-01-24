@@ -440,26 +440,34 @@ export function Step3Validation({
       fullData: Record<string, string>;
     }
 
-    const rowsWithData: RowWithFullData[] = currentGroup.rows.map(rowNum => {
-      const rowData = rows[rowNum - 1];
-      const studentName = getStudentNameForRow(rowNum);
-      
-      const fullData: Record<string, string> = {};
-      if (rowData) {
-        allColumns.forEach(col => {
-          const val = rowData[col];
-          fullData[col] = val !== undefined && val !== null ? String(val) : '';
-        });
-      }
-      
-      return {
-        row: rowNum,
-        studentName,
-        isCurrent: rowNum === currentError.row,
-        hasError: errors.some(e => e.row === rowNum && e.column === currentError.column && !e.correctedValue),
-        fullData
-      };
-    });
+    const rowsWithData: RowWithFullData[] = currentGroup.rows
+      .filter(rowNum => {
+        // Only include rows that still have uncorrected errors for this duplicate column
+        return uncorrectedErrors.some(e => e.row === rowNum && e.column === currentError.column);
+      })
+      .map(rowNum => {
+        const rowData = rows[rowNum - 1];
+        const studentName = getStudentNameForRow(rowNum);
+        
+        const fullData: Record<string, string> = {};
+        if (rowData) {
+          allColumns.forEach(col => {
+            const val = rowData[col];
+            fullData[col] = val !== undefined && val !== null ? String(val) : '';
+          });
+        }
+        
+        return {
+          row: rowNum,
+          studentName,
+          isCurrent: rowNum === currentError.row,
+          hasError: true, // All rows in this filtered list have errors
+          fullData
+        };
+      });
+
+    // If after filtering we have less than 2 rows, this duplicate is resolved
+    if (rowsWithData.length < 2) return null;
 
     // Determine if this is a parent-related inconsistency (different children, same parent)
     const isParentInconsistency = currentError.column.startsWith('P_ERZ');
