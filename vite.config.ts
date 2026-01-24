@@ -5,13 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Base path uses GITHUB_REPOSITORY env var in CI, or falls back to repo name
-  // For local development, use root path
-  base: mode === "production" 
-    ? (process.env.GITHUB_REPOSITORY 
-        ? `/${process.env.GITHUB_REPOSITORY.split('/')[1]}/` 
-        : "/pupil-import-wizard/")
-    : "/",
+  // Base path for GitHub Pages in production, root for development
+  base: mode === "production" ? "/pupil-import-wizard-9117a8dc/" : "/",
   server: {
     host: "::",
     port: 8080,
