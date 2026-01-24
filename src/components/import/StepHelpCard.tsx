@@ -64,16 +64,21 @@ interface StepHelpCardProps {
 }
 
 export function StepHelpCard({ step, className, defaultExpanded = true }: StepHelpCardProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
+  // Initialize from localStorage synchronously to avoid flash
+  const [isDismissed, setIsDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`${HELP_DISMISSED_PREFIX}${step}`) === 'true';
+    }
+    return false;
+  });
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const content = stepHelpContent[step];
 
+  // Update dismissed state when step changes
   useEffect(() => {
-    const dismissed = localStorage.getItem(`${HELP_DISMISSED_PREFIX}${step}`);
-    if (dismissed) {
-      setIsDismissed(true);
-    }
+    const dismissed = localStorage.getItem(`${HELP_DISMISSED_PREFIX}${step}`) === 'true';
+    setIsDismissed(dismissed);
   }, [step]);
 
   const handleDismiss = () => {
