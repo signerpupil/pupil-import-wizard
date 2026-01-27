@@ -5,8 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Base path for GitHub Pages in production, root for development
-  base: mode === "production" ? "/pupil-import-wizard/" : "/",
+  // Only use base path for GitHub Pages when GITHUB_PAGES env is set
+  // Lovable publishing uses root path
+  base: process.env.GITHUB_PAGES === 'true' ? "/pupil-import-wizard/" : "/",
   server: {
     host: "::",
     port: 8080,
