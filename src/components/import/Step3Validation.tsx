@@ -72,6 +72,8 @@ export function Step3Validation({
   const [filteredErrorColumn, setFilteredErrorColumn] = useState<string | null>(null);
   const [showAllOtherDifferences, setShowAllOtherDifferences] = useState(false);
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
+  const [hasRunAnalysis, setHasRunAnalysis] = useState(false);
+  const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
   
   // Parent ID consolidation UI state
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
@@ -687,8 +689,11 @@ export function Step3Validation({
   }, []);
 
   // Analyze errors using Web Worker - runs in background thread, never blocks UI
-  const analyzeWithWorker = useCallback(async () => {
-    if (uncorrectedErrors.length === 0) return;
+  const analyzeWithWorker = useCallback(async (silent: boolean = false) => {
+    if (uncorrectedErrors.length === 0) {
+      setLocalSuggestions([]);
+      return;
+    }
     
     const startTime = performance.now();
     
@@ -698,31 +703,52 @@ export function Step3Validation({
       const result = await analyze(uncorrectedErrors, rows);
       const duration = performance.now() - startTime;
       setAnalysisTime(duration);
+      setHasRunAnalysis(true);
       
       // Convert worker patterns to LocalSuggestion format
       const suggestions = result.patterns.map(convertPatternToSuggestion);
       setLocalSuggestions(suggestions);
       
-      if (suggestions.length > 0) {
-        toast({
-          title: 'Hintergrund-Analyse abgeschlossen',
-          description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - Web Worker`,
-        });
-      } else {
-        toast({
-          title: 'Keine automatischen Korrekturen',
-          description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
-        });
+      if (!silent) {
+        if (suggestions.length > 0) {
+          toast({
+            title: 'Hintergrund-Analyse abgeschlossen',
+            description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - Web Worker`,
+          });
+        } else {
+          toast({
+            title: 'Keine automatischen Korrekturen',
+            description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
+          });
+        }
       }
     } catch (err) {
       console.error('Worker analysis failed:', err);
-      toast({
-        title: 'Analysefehler',
-        description: 'Die Hintergrundanalyse konnte nicht durchgeführt werden.',
-        variant: 'destructive',
-      });
+      if (!silent) {
+        toast({
+          title: 'Analysefehler',
+          description: 'Die Hintergrundanalyse konnte nicht durchgeführt werden.',
+          variant: 'destructive',
+        });
+      }
     }
   }, [uncorrectedErrors, rows, analyze, convertPatternToSuggestion, toast]);
+
+  // Automatically re-run analysis when corrections are applied and analysis was already run
+  useEffect(() => {
+    // Initialize on first render
+    if (previousUncorrectedCount === null) {
+      setPreviousUncorrectedCount(uncorrectedErrors.length);
+      return;
+    }
+    
+    // If count decreased (corrections applied) and analysis was already run, re-analyze silently
+    if (hasRunAnalysis && uncorrectedErrors.length < previousUncorrectedCount) {
+      analyzeWithWorker(true); // Silent re-analysis
+    }
+    
+    setPreviousUncorrectedCount(uncorrectedErrors.length);
+  }, [uncorrectedErrors.length, hasRunAnalysis, previousUncorrectedCount, analyzeWithWorker]);
 
   // Show worker errors
   useEffect(() => {
@@ -991,7 +1017,7 @@ export function Step3Validation({
                 </Badge>
               </div>
               <Button 
-                onClick={analyzeWithWorker} 
+                onClick={() => analyzeWithWorker(false)} 
                 disabled={isAnalyzing}
                 className="gap-2"
                 variant="outline"
