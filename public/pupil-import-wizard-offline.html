@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PUPIL Import Wizard - Offline Version</title>
+  <meta name="description" content="Offline-Version des PUPIL Import Wizards für Schülerdaten, Journaldaten und Förderplaner">
+  
+  <!-- SheetJS für Excel-Parsing und -Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    /* Reset & Base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --primary: #0091ae;
+      --primary-dark: #007a94;
+      --primary-light: #e6f7fa;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --error: #ef4444;
+      --error-light: #fee2e2;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --radius: 0.5rem;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    
+    /* Layout */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 1.5rem 0;
+      margin-bottom: 2rem;
+    }
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header h1 { font-size: 1.5rem; font-weight: 600; }
+    .header-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    /* Progress */
+    .progress-container { margin-bottom: 2rem; }
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+    }
+    .progress-steps::before {
+      content: '';
+      position: absolute;
+      top: 1rem;
+      left: 2rem;
+      right: 2rem;
+      height: 2px;
+      background: var(--gray-200);
+    }
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    .step-circle {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      background: var(--gray-200);
+      color: var(--gray-500);
+      transition: all 0.2s;
+    }
+    .step-circle.active {
+      background: var(--primary);
+      color: white;
+    }
+    .step-circle.completed {
+      background: var(--success);
+      color: white;
+    }
+    .step-label {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      text-align: center;
+      max-width: 80px;
+    }
+    .step-label.active { color: var(--primary); font-weight: 500; }
+    
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-header { margin-bottom: 1rem; }
+    .card-title { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); }
+    .card-description { font-size: 0.875rem; color: var(--gray-500); margin-top: 0.25rem; }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--gray-200); }
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+    .btn-lg { padding: 0.875rem 1.5rem; font-size: 1rem; }
+    
+    /* Form Elements */
+    .input, .select {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input:focus, .select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+    }
+    
+    /* File Upload */
+    .file-upload {
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius);
+      padding: 3rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-upload:hover, .file-upload.dragover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .file-upload-icon {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto 1rem;
+      color: var(--gray-400);
+    }
+    .file-upload input[type="file"] { display: none; }
+    
+    /* Type Selection */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .type-card {
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-card:hover { border-color: var(--primary); }
+    .type-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .type-card-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+    .type-card-title { font-weight: 600; color: var(--gray-900); }
+    .type-card-desc { font-size: 0.875rem; color: var(--gray-500); margin-top: 0.25rem; }
+    
+    /* Sub-type Selection */
+    .subtype-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .subtype-btn {
+      padding: 0.75rem;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .subtype-btn:hover { border-color: var(--primary); }
+    .subtype-btn.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    /* Tables */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    th {
+      background: var(--gray-50);
+      font-weight: 600;
+      color: var(--gray-700);
+      white-space: nowrap;
+    }
+    tr:hover td { background: var(--gray-50); }
+    
+    /* Column Status */
+    .column-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem;
+    }
+    .column-status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+    }
+    .column-status-item.found { background: var(--success-light); color: #065f46; }
+    .column-status-item.missing { background: var(--error-light); color: #991b1b; }
+    .column-status-item.extra { background: var(--warning-light); color: #92400e; }
+    .status-icon { width: 1rem; height: 1rem; }
+    
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-success { background: var(--success-light); color: #065f46; }
+    .badge-warning { background: var(--warning-light); color: #92400e; }
+    .badge-error { background: var(--error-light); color: #991b1b; }
+    .badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-value.primary { color: var(--primary); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warning { color: var(--warning); }
+    .stat-value.error { color: var(--error); }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 0.25rem;
+    }
+    
+    /* Error List */
+    .error-list { max-height: 400px; overflow-y: auto; }
+    .error-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      background: var(--error-light);
+      margin-bottom: 0.5rem;
+    }
+    .error-item.corrected {
+      background: var(--success-light);
+    }
+    .error-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; color: var(--error); }
+    .error-item.corrected .error-icon { color: var(--success); }
+    .error-content { flex: 1; min-width: 0; }
+    .error-location { font-size: 0.75rem; color: var(--gray-500); }
+    .error-message { font-size: 0.875rem; color: var(--gray-800); }
+    .error-value { font-size: 0.875rem; color: var(--gray-600); }
+    .error-correction { margin-top: 0.5rem; }
+    .error-correction input {
+      padding: 0.375rem 0.5rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+      width: 200px;
+    }
+    
+    /* Navigation */
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--gray-200);
+    }
+    
+    /* Checkbox */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .checkbox-container input[type="checkbox"] {
+      width: 1.125rem;
+      height: 1.125rem;
+      accent-color: var(--primary);
+    }
+    
+    /* Alerts */
+    .alert {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .alert-info { background: var(--primary-light); color: var(--primary-dark); }
+    .alert-success { background: var(--success-light); color: #065f46; }
+    .alert-warning { background: var(--warning-light); color: #92400e; }
+    .alert-error { background: var(--error-light); color: #991b1b; }
+    .alert-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+    
+    /* Hidden */
+    .hidden { display: none !important; }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+      .subtype-options { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .progress-step .step-label { display: none; }
+    }
+    
+    /* Footer */
+    .footer {
+      margin-top: 3rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--gray-200);
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+    
+    /* Export Options */
+    .export-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .export-options .form-group { margin-bottom: 0; }
+    
+    /* Category sections */
+    .category-section {
+      margin-bottom: 1.5rem;
+    }
+    .category-title {
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <h1>📚 PUPIL Import Wizard</h1>
+        <span class="header-badge">Offline Version</span>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container">
+    <!-- Progress Steps -->
+    <div class="progress-container">
+      <div class="progress-steps">
+        <div class="progress-step" data-step="0">
+          <div class="step-circle active">1</div>
+          <span class="step-label active">Typ wählen</span>
+        </div>
+        <div class="progress-step" data-step="1">
+          <div class="step-circle">2</div>
+          <span class="step-label">Datei hochladen</span>
+        </div>
+        <div class="progress-step" data-step="2">
+          <div class="step-circle">3</div>
+          <span class="step-label">Spalten prüfen</span>
+        </div>
+        <div class="progress-step" data-step="3">
+          <div class="step-circle">4</div>
+          <span class="step-label">Validierung</span>
+        </div>
+        <div class="progress-step" data-step="4">
+          <div class="step-circle">5</div>
+          <span class="step-label">Export</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 0: Type Selection -->
+    <div id="step-0" class="step-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Import-Typ auswählen</h2>
+          <p class="card-description">Wählen Sie den Typ der Daten, die Sie importieren möchten.</p>
+        </div>
+        
+        <div class="type-grid">
+          <div class="type-card" data-type="schueler" onclick="selectType('schueler')">
+            <svg class="type-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <div class="type-card-title">Schülerdaten</div>
+            <div class="type-card-desc">Schüler, Klassen, Lehrpersonen und Erziehungsberechtigte</div>
+          </div>
+          
+          <div class="type-card" data-type="journal" onclick="selectType('journal')">
+            <svg class="type-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <div class="type-card-title">Journaldaten</div>
+            <div class="type-card-desc">Beobachtungen, Gespräche, Absenzen</div>
+          </div>
+          
+          <div class="type-card" data-type="foerderplaner" onclick="selectType('foerderplaner')">
+            <svg class="type-card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
+            </svg>
+            <div class="type-card-title">Förderplaner</div>
+            <div class="type-card-desc">Diagnostik, Förderplanung, Lernberichte</div>
+          </div>
+        </div>
+        
+        <!-- Förderplaner Sub-Types -->
+        <div id="foerderplaner-subtypes" class="hidden" style="margin-top: 1.5rem;">
+          <h3 style="font-weight: 600; margin-bottom: 0.75rem;">Förderplaner-Typ auswählen:</h3>
+          <div class="subtype-options">
+            <button class="subtype-btn" data-subtype="diagnostik" onclick="selectSubType('diagnostik')">Diagnostik</button>
+            <button class="subtype-btn" data-subtype="foerderplanung" onclick="selectSubType('foerderplanung')">Förderplanung</button>
+            <button class="subtype-btn" data-subtype="lernberichte" onclick="selectSubType('lernberichte')">Lernberichte</button>
+          </div>
+        </div>
+        
+        <div class="nav-buttons">
+          <div></div>
+          <button class="btn btn-primary" id="btn-step0-next" disabled onclick="goToStep(1)">
+            Weiter
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 1: File Upload -->
+    <div id="step-1" class="step-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Datei hochladen</h2>
+          <p class="card-description">Laden Sie eine CSV- oder Excel-Datei hoch.</p>
+        </div>
+        
+        <div class="file-upload" id="file-drop-zone" onclick="document.getElementById('file-input').click()">
+          <svg class="file-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p style="font-weight: 500; margin-bottom: 0.25rem;">Datei hierher ziehen oder klicken</p>
+          <p style="font-size: 0.875rem; color: var(--gray-500);">CSV oder Excel (.xlsx, .xls)</p>
+          <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+        </div>
+        
+        <div id="file-info" class="hidden" style="margin-top: 1rem;">
+          <div class="alert alert-success">
+            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <strong id="file-name"></strong>
+              <p id="file-stats" style="font-size: 0.875rem;"></p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(0)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück
+          </button>
+          <button class="btn btn-primary" id="btn-step1-next" disabled onclick="goToStep(2)">
+            Weiter
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 2: Column Check -->
+    <div id="step-2" class="step-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Spalten-Prüfung</h2>
+          <p class="card-description">Überprüfung der Spalten gegen die erwartete Struktur.</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value success" id="stat-found">0</div>
+            <div class="stat-label">Gefunden</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value error" id="stat-missing">0</div>
+            <div class="stat-label">Fehlend</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value warning" id="stat-extra">0</div>
+            <div class="stat-label">Zusätzlich</div>
+          </div>
+        </div>
+        
+        <div id="column-status-list"></div>
+        
+        <div id="extra-columns-option" class="hidden" style="margin-top: 1.5rem;">
+          <label class="checkbox-container">
+            <input type="checkbox" id="remove-extra-columns">
+            <span>Zusätzliche Spalten beim Export entfernen</span>
+          </label>
+        </div>
+        
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(1)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück
+          </button>
+          <button class="btn btn-primary" id="btn-step2-next" onclick="goToStep(3)">
+            Weiter zur Validierung
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 3: Validation -->
+    <div id="step-3" class="step-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Datenvalidierung</h2>
+          <p class="card-description">Prüfung der Datenwerte auf Korrektheit.</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value primary" id="stat-rows">0</div>
+            <div class="stat-label">Datensätze</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value error" id="stat-errors">0</div>
+            <div class="stat-label">Fehler</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value success" id="stat-corrected">0</div>
+            <div class="stat-label">Korrigiert</div>
+          </div>
+        </div>
+        
+        <div id="validation-progress" class="hidden" style="margin-bottom: 1rem;">
+          <div style="background: var(--gray-200); border-radius: 9999px; height: 0.5rem; overflow: hidden;">
+            <div id="validation-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+          </div>
+          <p style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">Validiere...</p>
+        </div>
+        
+        <div id="error-summary" class="hidden"></div>
+        
+        <div id="error-list-container" class="hidden" style="margin-top: 1rem;">
+          <h3 style="font-weight: 600; margin-bottom: 0.75rem;">Fehler (<span id="error-count">0</span>)</h3>
+          <div class="error-list" id="error-list"></div>
+        </div>
+        
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(2)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück
+          </button>
+          <button class="btn btn-primary" id="btn-step3-next" onclick="goToStep(4)">
+            Weiter zum Export
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 4: Export -->
+    <div id="step-4" class="step-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Vorschau & Export</h2>
+          <p class="card-description">Überprüfen Sie die Daten und exportieren Sie die bereinigte Datei.</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value primary" id="export-stat-rows">0</div>
+            <div class="stat-label">Datensätze</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value primary" id="export-stat-cols">0</div>
+            <div class="stat-label">Spalten</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value success" id="export-stat-clean">0</div>
+            <div class="stat-label">Fehlerfreie Zeilen</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value warning" id="export-stat-corrected">0</div>
+            <div class="stat-label">Korrekturen</div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <h3 style="font-weight: 600; margin-bottom: 0.75rem;">Export-Optionen</h3>
+          <div class="export-options">
+            <div class="form-group">
+              <label class="label">Format</label>
+              <select class="select" id="export-format">
+                <option value="csv">CSV (Semikolon-getrennt)</option>
+                <option value="xlsx">Excel (.xlsx)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="label">Daten</label>
+              <select class="select" id="export-filter">
+                <option value="all">Alle Datensätze</option>
+                <option value="errorFree">Nur fehlerfreie</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn btn-success btn-lg" style="width: 100%;" onclick="exportData()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Bereinigte Datei exportieren
+        </button>
+        
+        <div id="export-success" class="hidden" style="margin-top: 1rem;">
+          <div class="alert alert-success">
+            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Datei erfolgreich exportiert!</span>
+          </div>
+        </div>
+        
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(3)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück
+          </button>
+          <button class="btn btn-secondary" onclick="resetWizard()">
+            Neuen Import starten
+          </button>
+        </div>
+      </div>
+      
+      <!-- Data Preview -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Datenvorschau (erste 10 Zeilen)</h3>
+        </div>
+        <div class="table-container" id="preview-table-container"></div>
+      </div>
+    </div>
+  </main>
+  
+  <footer class="footer">
+    <div class="container">
+      <p>© 2025 PUPIL Import Wizard - Offline Version</p>
+      <p style="margin-top: 0.25rem;">Alle Daten werden lokal im Browser verarbeitet.</p>
+    </div>
+  </footer>
+  
+  <script>
+    // ==================== COLUMN DEFINITIONS ====================
+    const COLUMN_DEFINITIONS = {
+      schueler: [
+        { name: 'Q_System', required: false, category: 'System' },
+        { name: 'Q_Schuljahr', required: false, category: 'System' },
+        { name: 'Q_Semester', required: false, category: 'System' },
+        { name: 'S_AHV', required: true, category: 'Schüler', validationType: 'ahv' },
+        { name: 'S_ID', required: true, category: 'Schüler' },
+        { name: 'S_Name', required: true, category: 'Schüler' },
+        { name: 'S_Vorname', required: true, category: 'Schüler' },
+        { name: 'S_Geschlecht', required: true, category: 'Schüler', validationType: 'gender' },
+        { name: 'S_Geburtsdatum', required: true, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Heimatort', required: false, category: 'Schüler' },
+        { name: 'S_Konfession', required: false, category: 'Schüler' },
+        { name: 'S_Muttersprache', required: false, category: 'Schüler' },
+        { name: 'S_Umgangssprache', required: false, category: 'Schüler' },
+        { name: 'S_Nationalitaet', required: false, category: 'Schüler' },
+        { name: 'S_Strasse', required: false, category: 'Schüler' },
+        { name: 'S_PLZ', required: false, category: 'Schüler', validationType: 'plz' },
+        { name: 'S_Ort', required: false, category: 'Schüler' },
+        { name: 'S_EMail', required: false, category: 'Schüler', validationType: 'email' },
+        { name: 'S_Telefon', required: false, category: 'Schüler', validationType: 'phone' },
+        { name: 'S_Mobil', required: false, category: 'Schüler', validationType: 'phone' },
+        { name: 'S_Eintritt_Kiga_Datum', required: false, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Eintritt_Primar_Datum', required: false, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Eintritt_Sek_Datum', required: false, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Eintritt_Datum', required: false, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Austritt_Datum', required: false, category: 'Schüler', validationType: 'date' },
+        { name: 'S_Hausarzt_ID', required: false, category: 'Schüler' },
+        { name: 'S_Zahnarzt_ID', required: false, category: 'Schüler' },
+        { name: 'P_ERZ1_ID', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_AHV', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'ahv' },
+        { name: 'P_ERZ1_Name', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_Vorname', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_Beruf', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_Geschl', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'gender' },
+        { name: 'P_ERZ1_Rolle', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_Strasse', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_PLZ', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'plz' },
+        { name: 'P_ERZ1_Ort', required: false, category: 'Erziehungsberechtigte/r 1' },
+        { name: 'P_ERZ1_EMail', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'email' },
+        { name: 'P_ERZ1_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
+        { name: 'P_ERZ1_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
+        { name: 'P_ERZ1_Mobil', required: false, category: 'Erziehungsberechtigte/r 1', validationType: 'phone' },
+        { name: 'P_ERZ2_ID', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_AHV', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'ahv' },
+        { name: 'P_ERZ2_Name', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_Vorname', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_Beruf', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_Geschl', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'gender' },
+        { name: 'P_ERZ2_Rolle', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_Strasse', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_PLZ', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'plz' },
+        { name: 'P_ERZ2_Ort', required: false, category: 'Erziehungsberechtigte/r 2' },
+        { name: 'P_ERZ2_EMail', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'email' },
+        { name: 'P_ERZ2_TelefonPrivat', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
+        { name: 'P_ERZ2_TelefonGeschaeft', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
+        { name: 'P_ERZ2_Mobil', required: false, category: 'Erziehungsberechtigte/r 2', validationType: 'phone' },
+        { name: 'K_Schluessel', required: false, category: 'Klasse' },
+        { name: 'K_Name', required: true, category: 'Klasse' },
+        { name: 'K_Schulhaus_Name', required: false, category: 'Klasse' },
+        { name: 'L_KL1_AHV', required: false, category: 'Klassenlehrperson', validationType: 'ahv' },
+        { name: 'L_KL1_ID', required: false, category: 'Klassenlehrperson' },
+        { name: 'L_KL1_Name', required: false, category: 'Klassenlehrperson' },
+        { name: 'L_KL1_Vorname', required: false, category: 'Klassenlehrperson' },
+      ],
+      journal: [
+        { name: 'Klasse', required: true, category: 'Journal' },
+        { name: 'Eintrag_fuer', required: true, category: 'Journal' },
+        { name: 'Datum', required: true, category: 'Journal', validationType: 'date' },
+        { name: 'Kategorie', required: true, category: 'Journal' },
+        { name: 'Unterkategorie', required: false, category: 'Journal' },
+        { name: 'Fach', required: false, category: 'Journal' },
+        { name: 'Erledigt', required: false, category: 'Journal' },
+        { name: 'Versaeumnis', required: false, category: 'Journal' },
+        { name: 'Massnahme', required: false, category: 'Journal' },
+        { name: 'Absenz_von', required: false, category: 'Absenz', validationType: 'date' },
+        { name: 'Absenz_bis', required: false, category: 'Absenz', validationType: 'date' },
+        { name: 'Dauer', required: false, category: 'Absenz' },
+        { name: 'Entschuldigung_Datum', required: false, category: 'Absenz', validationType: 'date' },
+        { name: 'Entschuldigungsgrund', required: false, category: 'Absenz' },
+        { name: 'Anmerkung', required: false, category: 'Absenz' },
+        { name: 'Einheit', required: false, category: 'Absenz' },
+        { name: 'Uhrzeit_Ort', required: false, category: 'Gespräch' },
+      ],
+      diagnostik: [
+        { name: 'Eintrag_fuer', required: true, category: 'Diagnostik' },
+        { name: 'ICF_Bereich', required: true, category: 'Diagnostik' },
+        { name: 'Titel', required: true, category: 'Diagnostik' },
+        { name: 'Status', required: false, category: 'Diagnostik' },
+        { name: 'Ausgangslage', required: false, category: 'Diagnostik' },
+        { name: 'Beschreibung', required: false, category: 'Diagnostik' },
+        { name: 'Erklaerungsansaetze', required: false, category: 'Diagnostik' },
+        { name: 'Zeitraum_von', required: false, category: 'Diagnostik', validationType: 'date' },
+        { name: 'Zeitraum_bis', required: false, category: 'Diagnostik', validationType: 'date' },
+        { name: 'Prioritaet', required: false, category: 'Diagnostik' },
+      ],
+      foerderplanung: [
+        { name: 'Eintrag_fuer', required: true, category: 'Förderplanung' },
+        { name: 'Fragestellung', required: false, category: 'Förderplanung' },
+        { name: 'Fach_Kompetenzbereich', required: true, category: 'Förderplanung' },
+        { name: 'Foerderziel', required: true, category: 'Förderplanung' },
+        { name: 'Foerderung_abgeschlossen', required: false, category: 'Förderplanung' },
+        { name: 'Foerdermassnahmen', required: false, category: 'Förderplanung' },
+        { name: 'Verantwortliche_Person', required: false, category: 'Förderplanung' },
+        { name: 'Foerderverlauf_Datum', required: false, category: 'Förderplanung', validationType: 'date' },
+        { name: 'Foerderverlauf_Lernschritt', required: false, category: 'Förderplanung' },
+        { name: 'Foerderverlauf_Beobachtung', required: false, category: 'Förderplanung' },
+        { name: 'Lernfortschritt', required: false, category: 'Förderplanung' },
+        { name: 'Datum_Beginn', required: false, category: 'Förderplanung', validationType: 'date' },
+        { name: 'Datum_Abschluss', required: false, category: 'Förderplanung', validationType: 'date' },
+      ],
+      lernberichte: [
+        { name: 'Eintrag_fuer', required: true, category: 'Lernbericht' },
+        { name: 'Halbjahr', required: false, category: 'Lernbericht' },
+        { name: 'Lehrperson', required: false, category: 'Lernbericht' },
+        { name: 'Datum', required: false, category: 'Lernbericht', validationType: 'date' },
+        { name: 'Titel_Lernbericht', required: true, category: 'Lernbericht' },
+        { name: 'Lernbericht_abgeschlossen', required: false, category: 'Lernbericht' },
+        { name: 'Fuer_Zeugnis', required: false, category: 'Lernbericht' },
+        { name: 'Fach_Kompetenzbereich', required: false, category: 'Lernbericht' },
+        { name: 'Foerderziel', required: false, category: 'Lernbericht' },
+        { name: 'Beurteilung', required: false, category: 'Lernbericht' },
+        { name: 'Lernfortschritte', required: false, category: 'Lernbericht' },
+      ],
+    };
+    
+    // ==================== APP STATE ====================
+    let state = {
+      currentStep: 0,
+      importType: null,
+      importSubType: null,
+      headers: [],
+      rows: [],
+      columnStatuses: [],
+      errors: [],
+      fileName: '',
+    };
+    
+    // ==================== VALIDATION FUNCTIONS ====================
+    function isValidDate(value) {
+      const patterns = [
+        /^\d{2}\.\d{2}\.\d{4}$/,
+        /^\d{4}-\d{2}-\d{2}$/,
+        /^\d{2}\/\d{2}\/\d{4}$/,
+        /^\d+$/,
+      ];
+      return patterns.some(p => p.test(value)) || !isNaN(Date.parse(value));
+    }
+    
+    function isValidAHV(value) {
+      return /^756\.\d{4}\.\d{4}\.\d{2}$/.test(value);
+    }
+    
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+    
+    function isValidPLZ(value) {
+      return /^\d{4,5}$/.test(value.replace(/\s/g, ''));
+    }
+    
+    function isValidGender(value) {
+      const normalized = value.toUpperCase().trim();
+      return ['M', 'W', 'D', 'MÄNNLICH', 'WEIBLICH', 'DIVERS', 'MALE', 'FEMALE', 'DIVERSE'].includes(normalized);
+    }
+    
+    function isValidPhone(value) {
+      const cleaned = value.replace(/[\s\-\(\)\.\/]/g, '');
+      const patterns = [
+        /^\+\d{7,15}$/,
+        /^00\d{7,15}$/,
+        /^0\d{8,10}$/,
+        /^\d{10,11}$/,
+      ];
+      return patterns.some(p => p.test(cleaned));
+    }
+    
+    function validateField(validationType, value) {
+      if (!value || value.trim() === '') return null;
+      const strValue = String(value).trim();
+      
+      switch (validationType) {
+        case 'date':
+          return isValidDate(strValue) ? null : 'Ungültiges Datumsformat';
+        case 'ahv':
+          return isValidAHV(strValue) ? null : 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)';
+        case 'email':
+          return isValidEmail(strValue) ? null : 'Ungültige E-Mail-Adresse';
+        case 'plz':
+          return isValidPLZ(strValue) ? null : 'Ungültige PLZ (4-5 Ziffern)';
+        case 'gender':
+          return isValidGender(strValue) ? null : 'Ungültiges Geschlecht (M, W, D)';
+        case 'phone':
+          return isValidPhone(strValue) ? null : 'Ungültiges Telefonformat';
+        default:
+          return null;
+      }
+    }
+    
+    // ==================== FILE PARSING ====================
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length === 0) throw new Error('Die Datei ist leer.');
+      
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes(';') ? ';' : ',';
+      
+      function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      }
+      
+      const headers = parseCSVLine(lines[0]).map(h => h.trim());
+      const rows = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const rowData = parseCSVLine(lines[i]);
+        if (rowData.some(cell => cell !== '')) {
+          const row = {};
+          headers.forEach((header, idx) => {
+            row[header] = rowData[idx] ?? null;
+          });
+          rows.push(row);
+        }
+      }
+      
+      return { headers, rows };
+    }
+    
+    function parseExcel(arrayBuffer) {
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      
+      if (!worksheet) throw new Error('Die Datei ist leer.');
+      
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null, raw: false });
+      
+      if (jsonData.length === 0) throw new Error('Die Datei ist leer.');
+      
+      const headers = jsonData[0].map(h => String(h ?? '').trim()).filter(h => h !== '');
+      const rows = [];
+      
+      for (let i = 1; i < jsonData.length; i++) {
+        const rowData = jsonData[i];
+        if (rowData && rowData.some(cell => cell !== null && cell !== '')) {
+          const row = {};
+          headers.forEach((header, idx) => {
+            let value = rowData[idx];
+            // Format dates
+            if (value instanceof Date) {
+              value = `${String(value.getDate()).padStart(2, '0')}.${String(value.getMonth() + 1).padStart(2, '0')}.${value.getFullYear()}`;
+            }
+            row[header] = value ?? null;
+          });
+          rows.push(row);
+        }
+      }
+      
+      return { headers, rows };
+    }
+    
+    // ==================== UI FUNCTIONS ====================
+    function selectType(type) {
+      state.importType = type;
+      state.importSubType = null;
+      
+      document.querySelectorAll('.type-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.type === type);
+      });
+      
+      const subtypesEl = document.getElementById('foerderplaner-subtypes');
+      const nextBtn = document.getElementById('btn-step0-next');
+      
+      if (type === 'foerderplaner') {
+        subtypesEl.classList.remove('hidden');
+        nextBtn.disabled = true;
+        document.querySelectorAll('.subtype-btn').forEach(btn => btn.classList.remove('selected'));
+      } else {
+        subtypesEl.classList.add('hidden');
+        nextBtn.disabled = false;
+      }
+    }
+    
+    function selectSubType(subType) {
+      state.importSubType = subType;
+      document.querySelectorAll('.subtype-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.subtype === subType);
+      });
+      document.getElementById('btn-step0-next').disabled = false;
+    }
+    
+    function goToStep(step) {
+      state.currentStep = step;
+      
+      // Update progress
+      document.querySelectorAll('.progress-step').forEach((el, idx) => {
+        const circle = el.querySelector('.step-circle');
+        const label = el.querySelector('.step-label');
+        
+        circle.classList.remove('active', 'completed');
+        label.classList.remove('active');
+        
+        if (idx < step) {
+          circle.classList.add('completed');
+          circle.innerHTML = '✓';
+        } else if (idx === step) {
+          circle.classList.add('active');
+          label.classList.add('active');
+          circle.textContent = idx + 1;
+        } else {
+          circle.textContent = idx + 1;
+        }
+      });
+      
+      // Show/hide steps
+      document.querySelectorAll('.step-content').forEach((el, idx) => {
+        el.classList.toggle('hidden', idx !== step);
+      });
+      
+      // Step-specific actions
+      if (step === 2) checkColumns();
+      if (step === 3) runValidation();
+      if (step === 4) prepareExport();
+    }
+    
+    // ==================== FILE HANDLING ====================
+    const dropZone = document.getElementById('file-drop-zone');
+    
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+    
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) processFile(file);
+    }
+    
+    async function processFile(file) {
+      try {
+        state.fileName = file.name;
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        let result;
+        if (extension === 'csv') {
+          const text = await file.text();
+          result = parseCSV(text);
+        } else if (['xlsx', 'xls'].includes(extension)) {
+          const arrayBuffer = await file.arrayBuffer();
+          result = parseExcel(arrayBuffer);
+        } else {
+          throw new Error('Nicht unterstütztes Dateiformat.');
+        }
+        
+        state.headers = result.headers;
+        state.rows = result.rows;
+        
+        document.getElementById('file-name').textContent = file.name;
+        document.getElementById('file-stats').textContent = `${result.rows.length} Zeilen, ${result.headers.length} Spalten`;
+        document.getElementById('file-info').classList.remove('hidden');
+        document.getElementById('btn-step1-next').disabled = false;
+        
+      } catch (error) {
+        alert('Fehler beim Lesen der Datei: ' + error.message);
+      }
+    }
+    
+    // ==================== COLUMN CHECK ====================
+    function checkColumns() {
+      const expectedCols = getExpectedColumns();
+      const sourceHeadersSet = new Set(state.headers);
+      const expectedNamesSet = new Set(expectedCols.map(c => c.name));
+      
+      state.columnStatuses = [];
+      
+      // Check expected columns
+      expectedCols.forEach(col => {
+        state.columnStatuses.push({
+          name: col.name,
+          status: sourceHeadersSet.has(col.name) ? 'found' : 'missing',
+          required: col.required,
+          category: col.category,
+        });
+      });
+      
+      // Check extra columns
+      state.headers.forEach(header => {
+        if (!expectedNamesSet.has(header)) {
+          state.columnStatuses.push({
+            name: header,
+            status: 'extra',
+            required: false,
+          });
+        }
+      });
+      
+      // Update UI
+      const found = state.columnStatuses.filter(c => c.status === 'found').length;
+      const missing = state.columnStatuses.filter(c => c.status === 'missing').length;
+      const extra = state.columnStatuses.filter(c => c.status === 'extra').length;
+      
+      document.getElementById('stat-found').textContent = found;
+      document.getElementById('stat-missing').textContent = missing;
+      document.getElementById('stat-extra').textContent = extra;
+      
+      // Show extra columns option
+      if (extra > 0) {
+        document.getElementById('extra-columns-option').classList.remove('hidden');
+      } else {
+        document.getElementById('extra-columns-option').classList.add('hidden');
+      }
+      
+      // Render column status list grouped by category
+      const listContainer = document.getElementById('column-status-list');
+      const grouped = {};
+      
+      state.columnStatuses.forEach(col => {
+        const cat = col.category || 'Sonstige';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(col);
+      });
+      
+      let html = '';
+      for (const [category, cols] of Object.entries(grouped)) {
+        html += `<div class="category-section">
+          <div class="category-title">${category}</div>
+          <div class="column-status-grid">`;
+        
+        cols.forEach(col => {
+          const icon = col.status === 'found' ? '✓' : col.status === 'missing' ? '✗' : '?';
+          html += `<div class="column-status-item ${col.status}">
+            <span class="status-icon">${icon}</span>
+            <span>${col.name}${col.required ? ' *' : ''}</span>
+          </div>`;
+        });
+        
+        html += `</div></div>`;
+      }
+      
+      listContainer.innerHTML = html;
+    }
+    
+    function getExpectedColumns() {
+      if (state.importType === 'foerderplaner') {
+        return COLUMN_DEFINITIONS[state.importSubType] || [];
+      }
+      return COLUMN_DEFINITIONS[state.importType] || [];
+    }
+    
+    // ==================== VALIDATION ====================
+    function runValidation() {
+      const expectedCols = getExpectedColumns();
+      const colDefMap = new Map(expectedCols.map(c => [c.name, c]));
+      
+      state.errors = [];
+      
+      // Duplicate check fields
+      const duplicateFields = ['S_AHV', 'S_ID', 'L_KL1_AHV'];
+      const valueOccurrences = {};
+      duplicateFields.forEach(f => valueOccurrences[f] = {});
+      
+      state.rows.forEach((row, rowIndex) => {
+        const rowNum = rowIndex + 1;
+        
+        // Check duplicates
+        duplicateFields.forEach(field => {
+          const value = row[field];
+          if (value && String(value).trim() !== '') {
+            const strValue = String(value).trim();
+            if (!valueOccurrences[field][strValue]) {
+              valueOccurrences[field][strValue] = [];
+            }
+            valueOccurrences[field][strValue].push(rowNum);
+          }
+        });
+        
+        // Field validation
+        expectedCols.forEach(col => {
+          const value = row[col.name];
+          const strValue = String(value ?? '').trim();
+          
+          // Required check
+          if (col.required && strValue === '') {
+            state.errors.push({
+              row: rowNum,
+              column: col.name,
+              value: '',
+              message: `Pflichtfeld "${col.name}" ist leer`,
+            });
+            return;
+          }
+          
+          if (strValue === '') return;
+          
+          // Type validation
+          const error = validateField(col.validationType, strValue);
+          if (error) {
+            state.errors.push({
+              row: rowNum,
+              column: col.name,
+              value: strValue,
+              message: error,
+            });
+          }
+        });
+      });
+      
+      // Process duplicates
+      duplicateFields.forEach(field => {
+        for (const [value, rows] of Object.entries(valueOccurrences[field])) {
+          if (rows.length > 1) {
+            for (let i = 1; i < rows.length; i++) {
+              state.errors.push({
+                row: rows[i],
+                column: field,
+                value: value,
+                message: `Duplikat: "${value}" kommt auch in Zeile ${rows[0]} vor`,
+              });
+            }
+          }
+        }
+      });
+      
+      updateValidationUI();
+    }
+    
+    function updateValidationUI() {
+      const uncorrected = state.errors.filter(e => !e.correctedValue).length;
+      const corrected = state.errors.filter(e => e.correctedValue).length;
+      
+      document.getElementById('stat-rows').textContent = state.rows.length;
+      document.getElementById('stat-errors').textContent = uncorrected;
+      document.getElementById('stat-corrected').textContent = corrected;
+      
+      const errorListContainer = document.getElementById('error-list-container');
+      const errorList = document.getElementById('error-list');
+      
+      if (state.errors.length === 0) {
+        errorListContainer.classList.add('hidden');
+        document.getElementById('error-summary').classList.remove('hidden');
+        document.getElementById('error-summary').innerHTML = `
+          <div class="alert alert-success">
+            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Alle Daten sind valide! Keine Fehler gefunden.</span>
+          </div>
+        `;
+      } else {
+        errorListContainer.classList.remove('hidden');
+        document.getElementById('error-summary').classList.add('hidden');
+        document.getElementById('error-count').textContent = state.errors.length;
+        
+        let html = '';
+        state.errors.slice(0, 50).forEach((error, idx) => {
+          const isCorrected = !!error.correctedValue;
+          html += `<div class="error-item ${isCorrected ? 'corrected' : ''}">
+            <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isCorrected ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}"/>
+            </svg>
+            <div class="error-content">
+              <div class="error-location">Zeile ${error.row}, Spalte "${error.column}"</div>
+              <div class="error-message">${error.message}</div>
+              <div class="error-value">Wert: "${error.value}"</div>
+              <div class="error-correction">
+                <input type="text" placeholder="Korrigierter Wert" 
+                  value="${error.correctedValue || ''}"
+                  onchange="correctError(${idx}, this.value)">
+              </div>
+            </div>
+          </div>`;
+        });
+        
+        if (state.errors.length > 50) {
+          html += `<p style="padding: 1rem; color: var(--gray-500);">... und ${state.errors.length - 50} weitere Fehler</p>`;
+        }
+        
+        errorList.innerHTML = html;
+      }
+    }
+    
+    function correctError(index, value) {
+      if (state.errors[index]) {
+        state.errors[index].correctedValue = value || undefined;
+        
+        // Apply correction to row
+        if (value) {
+          const rowIndex = state.errors[index].row - 1;
+          const column = state.errors[index].column;
+          if (state.rows[rowIndex]) {
+            state.rows[rowIndex][column] = value;
+          }
+        }
+        
+        updateValidationUI();
+      }
+    }
+    
+    // ==================== EXPORT ====================
+    function prepareExport() {
+      const removeExtra = document.getElementById('remove-extra-columns')?.checked || false;
+      const expectedCols = getExpectedColumns().map(c => c.name);
+      const expectedSet = new Set(expectedCols);
+      
+      const exportHeaders = removeExtra 
+        ? state.headers.filter(h => expectedSet.has(h))
+        : state.headers;
+      
+      const uncorrectedErrors = state.errors.filter(e => !e.correctedValue);
+      const errorRows = new Set(uncorrectedErrors.map(e => e.row));
+      const errorFreeCount = state.rows.length - errorRows.size;
+      const correctedCount = state.errors.filter(e => e.correctedValue).length;
+      
+      document.getElementById('export-stat-rows').textContent = state.rows.length;
+      document.getElementById('export-stat-cols').textContent = exportHeaders.length;
+      document.getElementById('export-stat-clean').textContent = errorFreeCount;
+      document.getElementById('export-stat-corrected').textContent = correctedCount;
+      
+      // Update filter options
+      const filterSelect = document.getElementById('export-filter');
+      filterSelect.innerHTML = `
+        <option value="all">Alle Datensätze (${state.rows.length})</option>
+        <option value="errorFree">Nur fehlerfreie (${errorFreeCount})</option>
+      `;
+      
+      // Render preview table
+      renderPreviewTable(exportHeaders);
+    }
+    
+    function renderPreviewTable(headers) {
+      const container = document.getElementById('preview-table-container');
+      const previewRows = state.rows.slice(0, 10);
+      
+      let html = '<table><thead><tr><th>#</th>';
+      headers.slice(0, 8).forEach(h => html += `<th>${h}</th>`);
+      if (headers.length > 8) html += '<th>...</th>';
+      html += '</tr></thead><tbody>';
+      
+      previewRows.forEach((row, idx) => {
+        html += `<tr><td>${idx + 1}</td>`;
+        headers.slice(0, 8).forEach(h => {
+          const value = row[h];
+          html += `<td>${value !== null && value !== undefined ? String(value).substring(0, 30) : ''}</td>`;
+        });
+        if (headers.length > 8) html += '<td>...</td>';
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+    
+    function exportData() {
+      const format = document.getElementById('export-format').value;
+      const filter = document.getElementById('export-filter').value;
+      const removeExtra = document.getElementById('remove-extra-columns')?.checked || false;
+      
+      const expectedCols = getExpectedColumns().map(c => c.name);
+      const expectedSet = new Set(expectedCols);
+      
+      const exportHeaders = removeExtra
+        ? state.headers.filter(h => expectedSet.has(h))
+        : state.headers;
+      
+      let exportRows = state.rows;
+      if (filter === 'errorFree') {
+        const uncorrectedErrors = state.errors.filter(e => !e.correctedValue);
+        const errorRows = new Set(uncorrectedErrors.map(e => e.row));
+        exportRows = state.rows.filter((_, idx) => !errorRows.has(idx + 1));
+      }
+      
+      const typeName = getTypeName();
+      const date = new Date().toISOString().split('T')[0];
+      
+      if (format === 'csv') {
+        exportToCSV(exportRows, exportHeaders, typeName, date);
+      } else {
+        exportToExcel(exportRows, exportHeaders, typeName, date);
+      }
+      
+      document.getElementById('export-success').classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('export-success').classList.add('hidden');
+      }, 3000);
+    }
+    
+    function exportToCSV(rows, headers, typeName, date) {
+      const escapeCSV = (val) => {
+        const str = String(val ?? '');
+        if (str.includes('"') || str.includes(';') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      const lines = [];
+      lines.push(headers.map(escapeCSV).join(';'));
+      
+      rows.forEach(row => {
+        const values = headers.map(h => escapeCSV(row[h]));
+        lines.push(values.join(';'));
+      });
+      
+      const csvContent = '\ufeff' + lines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      downloadBlob(blob, `${typeName}_${date}_bereinigt.csv`);
+    }
+    
+    function exportToExcel(rows, headers, typeName, date) {
+      // Create worksheet data
+      const wsData = [headers];
+      rows.forEach(row => {
+        wsData.push(headers.map(h => row[h] ?? ''));
+      });
+      
+      // Create workbook
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Daten');
+      
+      // Generate and download
+      XLSX.writeFile(wb, `${typeName}_${date}_bereinigt.xlsx`);
+    }
+    
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    function getTypeName() {
+      if (state.importType === 'foerderplaner') {
+        return state.importSubType || 'foerderplaner';
+      }
+      return state.importType || 'export';
+    }
+    
+    function resetWizard() {
+      state = {
+        currentStep: 0,
+        importType: null,
+        importSubType: null,
+        headers: [],
+        rows: [],
+        columnStatuses: [],
+        errors: [],
+        fileName: '',
+      };
+      
+      document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.subtype-btn').forEach(b => b.classList.remove('selected'));
+      document.getElementById('foerderplaner-subtypes').classList.add('hidden');
+      document.getElementById('btn-step0-next').disabled = true;
+      document.getElementById('file-info').classList.add('hidden');
+      document.getElementById('btn-step1-next').disabled = true;
+      document.getElementById('file-input').value = '';
+      
+      goToStep(0);
+    }
+  </script>
+</body>
+</html>

@@ -16,8 +16,20 @@ export function Footer() {
   const [datenschutzOpen, setDatenschutzOpen] = useState(false);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
 
-  // URL to the standalone HTML file (hosted in public folder)
-  const standaloneDownloadUrl = 'https://pupil-import-wizard.lovable.app/pupil-import-wizard-offline.html';
+  // Dynamic URL for standalone HTML file (works on Lovable, GitHub Pages, and localhost)
+  const getStandaloneDownloadUrl = () => {
+    const host = window.location.hostname;
+    
+    // GitHub Pages (with subdirectory)
+    if (host.includes('github.io')) {
+      return `${window.location.origin}/pupil-import-wizard/pupil-import-wizard-offline.html`;
+    }
+    
+    // Lovable Publishing or local development
+    return `${window.location.origin}/pupil-import-wizard-offline.html`;
+  };
+
+  const standaloneDownloadUrl = getStandaloneDownloadUrl();
 
   return (
     <>
