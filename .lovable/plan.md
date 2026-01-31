@@ -139,8 +139,9 @@ const getStandaloneDownloadUrl = () => {
 
 ## Einschränkungen der Standalone-Version
 
-- **Kein Excel-Export**: Nur CSV-Export (Excel würde zu große Bibliotheken erfordern)
 - **Vereinfachte UI**: Grundlegende Styling ohne alle Animationen
 - **Keine Echtzeit-Vorschau**: Reduzierte Vorschau-Funktionen
 - **Kein Worker-Threading**: Validierung läuft im Hauptthread
+
+**Hinweis:** Excel-Export ist möglich, da SheetJS (für das Lesen) auch das Schreiben von Excel-Dateien unterstützt.
 
