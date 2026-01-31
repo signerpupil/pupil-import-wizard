@@ -6,8 +6,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
 
 interface ImpressumDialogProps {
   open: boolean;
@@ -27,20 +25,12 @@ export function ImpressumDialog({ open, onOpenChange }: ImpressumDialogProps) {
         
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-6 text-sm">
-            <Alert className="border-amber-500/30 bg-amber-500/5">
-              <Info className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-amber-700 dark:text-amber-400">
-                <strong>Hinweis:</strong> Die nachfolgenden Angaben sind Platzhalter und müssen 
-                vom Betreiber mit den korrekten Unternehmensdaten ersetzt werden.
-              </AlertDescription>
-            </Alert>
-
             <section>
               <h3 className="font-semibold text-foreground mb-2">Kontaktadresse</h3>
               <p className="text-muted-foreground">
-                [Firmenname]<br />
-                [Strasse und Hausnummer]<br />
-                [PLZ Ort]<br />
+                Pupil AG<br />
+                Lerchenfeldstrasse 3<br />
+                9014 St. Gallen<br />
                 Schweiz
               </p>
             </section>
@@ -48,42 +38,70 @@ export function ImpressumDialog({ open, onOpenChange }: ImpressumDialogProps) {
             <section>
               <h3 className="font-semibold text-foreground mb-2">Kontakt</h3>
               <p className="text-muted-foreground">
-                E-Mail: [E-Mail-Adresse]<br />
-                Telefon: [Telefonnummer]
+                Telefon: 071 511 96 60<br />
+                E-Mail: <a href="mailto:info@pupil.ch" className="underline hover:text-foreground">info@pupil.ch</a><br />
+                Website: <a href="https://www.pupil.ch" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">www.pupil.ch</a>
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">Vertretungsberechtigte Person(en)</h3>
+              <h3 className="font-semibold text-foreground mb-2">Vertretungsberechtigte Personen</h3>
               <p className="text-muted-foreground">
-                [Name des/der Vertretungsberechtigten]
+                Alexander Fust von Mosnang, in Wil SG, als VRP<br />
+                Arber Wagner von Wil SG, in Zuzwil SG, als CEO
               </p>
             </section>
 
             <section>
               <h3 className="font-semibold text-foreground mb-2">Handelsregistereintrag</h3>
               <p className="text-muted-foreground">
-                Eingetragener Firmenname: [Firmenname]<br />
-                Handelsregister-Nr.: [CHE-XXX.XXX.XXX]<br />
-                Handelsregisteramt: [Kanton]
+                Rechtsform: Aktiengesellschaft (AG)<br />
+                UID: CHE-333.777.723<br />
+                CH-ID: CH-320-3085809-5<br />
+                EHRA-ID: 1380319<br />
+                <a 
+                  href="https://sg.chregister.ch/cr-portal/auszug/auszug.xhtml?uid=CHE-333.777.723" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Link zum Handelsregister
+                </a>
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">Mehrwertsteuernummer</h3>
+              <h3 className="font-semibold text-foreground mb-2">Allgemeine Bedingungen</h3>
               <p className="text-muted-foreground">
-                CHE-[XXX.XXX.XXX] MWST
+                <a 
+                  href="https://www.pupil.ch/_files/ugd/bb4bd2_94e1daa52703452687cdc37f6f4a038c.pdf" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Allgemeine Geschäftsbedingungen (PDF)
+                </a><br />
+                <a 
+                  href="https://www.pupil.ch/_files/ugd/bb4bd2_806866bde41c48279801cf1dbd8a6a52.pdf" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Nutzungsbedingungen (PDF)
+                </a>
               </p>
             </section>
 
             <section>
               <h3 className="font-semibold text-foreground mb-2">Haftungsausschluss</h3>
               <p className="text-muted-foreground">
-                Der Autor übernimmt keine Gewähr für die Richtigkeit, Genauigkeit, Aktualität, 
-                Zuverlässigkeit und Vollständigkeit der Informationen.
+                Die Pupil AG übernimmt keine Haftung bezüglich übermittelter Inhalte oder der 
+                Einhaltung von Datenschutzbestimmungen durch die Nutzerinnen und Nutzer. 
+                Ebenso ist die Haftung für den Verlust von Daten oder deren Kenntnisnahme 
+                und Nutzung durch Dritte, soweit gesetzlich zulässig, ausgeschlossen.
               </p>
               <p className="text-muted-foreground mt-2">
-                Haftungsansprüche gegen den Autor wegen Schäden materieller oder immaterieller Art, 
+                Haftungsansprüche wegen Schäden materieller oder immaterieller Art, 
                 die aus dem Zugriff oder der Nutzung bzw. Nichtnutzung der veröffentlichten 
                 Informationen, durch Missbrauch der Verbindung oder durch technische Störungen 
                 entstanden sind, werden ausgeschlossen.
@@ -94,16 +112,9 @@ export function ImpressumDialog({ open, onOpenChange }: ImpressumDialogProps) {
               <h3 className="font-semibold text-foreground mb-2">Urheberrechte</h3>
               <p className="text-muted-foreground">
                 Die Urheber- und alle anderen Rechte an Inhalten, Bildern, Fotos oder anderen 
-                Dateien auf dieser Website gehören ausschliesslich dem Betreiber oder den 
+                Dateien auf dieser Website gehören ausschliesslich der Pupil AG oder den 
                 speziell genannten Rechteinhabern. Für die Reproduktion jeglicher Elemente ist 
                 die schriftliche Zustimmung des Urheberrechtsträgers im Voraus einzuholen.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="font-semibold text-foreground mb-2">Hosting</h3>
-              <p className="text-muted-foreground">
-                Diese Anwendung wird auf GitHub Pages gehostet.
               </p>
             </section>
           </div>

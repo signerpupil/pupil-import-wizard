@@ -6,8 +6,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 interface DatenschutzDialogProps {
   open: boolean;
@@ -30,25 +29,34 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
         
         <ScrollArea className="h-[60vh] pr-4">
           <div className="space-y-6 text-sm">
-            <Alert className="border-amber-500/30 bg-amber-500/5">
-              <Info className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-amber-700 dark:text-amber-400">
-                <strong>Hinweis:</strong> Diese Datenschutzerklärung ist eine Vorlage und muss 
-                vom Betreiber für den konkreten Anwendungsfall angepasst werden.
-              </AlertDescription>
-            </Alert>
-
             <section>
               <h3 className="font-semibold text-foreground mb-2">1. Verantwortliche Stelle</h3>
               <p className="text-muted-foreground">
-                [Firmenname]<br />
-                [Adresse]<br />
-                E-Mail: [E-Mail-Adresse]
+                Pupil AG<br />
+                Lerchenfeldstrasse 3<br />
+                9014 St. Gallen<br />
+                Schweiz<br /><br />
+                Website: <a href="https://www.pupil.ch" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">www.pupil.ch</a><br />
+                E-Mail: <a href="mailto:info@pupil.ch" className="underline hover:text-foreground">info@pupil.ch</a><br />
+                Datenschutzanfragen: <a href="mailto:datenschutz@pupil.ch" className="underline hover:text-foreground">datenschutz@pupil.ch</a>
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">2. Lokale Datenverarbeitung</h3>
+              <h3 className="font-semibold text-foreground mb-2">2. Unsere Grundsätze</h3>
+              <p className="text-muted-foreground">
+                Wir nehmen den Schutz persönlicher Daten sehr ernst. Folgende Grundsätze gelten:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
+                <li><strong>Server in der Schweiz:</strong> Daten werden in der Schweiz gespeichert und verarbeitet (DSGVO-konform)</li>
+                <li><strong>Privacy by Design:</strong> Keine unnötigen Daten werden erhoben</li>
+                <li><strong>Keine Datenweitergabe:</strong> Ihre Daten werden nicht an Dritte verkauft oder für Werbung verwendet</li>
+                <li><strong>Kein Surfverhalten-Tracking:</strong> Wir zeichnen Ihr Surfverhalten nicht auf</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-foreground mb-2">3. Lokale Datenverarbeitung im Import Wizard</h3>
               <p className="text-muted-foreground">
                 <strong>Ihre Dateiinhalte werden ausschliesslich lokal in Ihrem Browser verarbeitet.</strong> 
                 Die von Ihnen hochgeladenen Dateien (z.B. Excel, CSV) werden nicht auf unsere Server 
@@ -62,40 +70,14 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">3. Hosting und technische Infrastruktur</h3>
-              <p className="text-muted-foreground">
-                Diese Anwendung wird auf <strong>GitHub Pages</strong> gehostet – einem statischen 
-                Hosting-Dienst von GitHub. GitHub kann grundlegende Nutzungsdaten zur Sicherstellung 
-                des technischen Betriebs erfassen:
-              </p>
-              <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                <li>IP-Adresse</li>
-                <li>Zugriffszeitpunkt</li>
-                <li>Browser-Typ und Version</li>
-                <li>Betriebssystem</li>
-              </ul>
-              <p className="text-muted-foreground mt-2">
-                Diese Daten sind technisch erforderlich, um die Anwendung bereitzustellen. 
-                Weitere Informationen finden Sie in der{' '}
-                <a 
-                  href="https://docs.github.com/de/pages/getting-started-with-github-pages/about-github-pages#data-collection" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="underline hover:text-foreground"
-                >
-                  GitHub Pages Dokumentation
-                </a>.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="font-semibold text-foreground mb-2">4. Lokale Speicherung</h3>
+              <h3 className="font-semibold text-foreground mb-2">4. Lokale Speicherung (localStorage)</h3>
               <p className="text-muted-foreground">
                 Diese Anwendung verwendet <strong>keine Cookies</strong>. Lediglich der lokale 
                 Speicher (localStorage) des Browsers wird für folgende Zwecke genutzt:
               </p>
               <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                <li>Speicherung Ihrer Einstellungen (z.B. gewählte Sprache, Theme)</li>
+                <li>Speicherung des Korrektur-Gedächtnisses (gelernte Korrekturen)</li>
+                <li>Speicherung Ihrer Einstellungen</li>
                 <li>Authentifizierungs-Token für den Admin-Bereich (technisch notwendig)</li>
               </ul>
               <p className="text-muted-foreground mt-2">
@@ -106,16 +88,37 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">5. Keine Weitergabe an Dritte</h3>
+              <h3 className="font-semibold text-foreground mb-2">5. Bereitstellung der Anwendung</h3>
               <p className="text-muted-foreground">
-                Die von Ihnen hochgeladenen Dateiinhalte werden zu keinem Zeitpunkt an Dritte 
-                weitergegeben, da sie ausschliesslich lokal verarbeitet werden. Es erfolgt 
-                keine Übermittlung an externe Dienste oder Server.
+                Bei jedem Aufruf der Anwendung können folgende technische Daten erfasst werden:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
+                <li>IP-Adresse</li>
+                <li>Zugriffszeitpunkt (Datum und Uhrzeit)</li>
+                <li>Browser-Typ und Version</li>
+                <li>Betriebssystem</li>
+                <li>Informationen zum verwendeten Gerät</li>
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                Diese Daten sind technisch erforderlich, um die Anwendung bereitzustellen und 
+                die Sicherheit der Systeme zu gewährleisten. Eine Speicherung dieser Daten 
+                zusammen mit anderen personenbezogenen Daten findet nicht statt.
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">6. Ihre Rechte</h3>
+              <h3 className="font-semibold text-foreground mb-2">6. Datensicherheit</h3>
+              <p className="text-muted-foreground">
+                Wir haben geeignete technische und organisatorische Sicherheitsmassnahmen getroffen, 
+                um die bei uns gespeicherten Daten gegen unbeabsichtigte, rechtswidrige oder sonst 
+                unberechtigte Zugriffe, Manipulation, Löschung, Veränderung, Weitergabe, Nutzung 
+                oder Verlust zu schützen. Unsere Sicherheitsmassnahmen werden fortlaufend der 
+                technologischen Entwicklung angepasst.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-foreground mb-2">7. Ihre Rechte</h3>
               <p className="text-muted-foreground">
                 Sie haben das Recht auf:
               </p>
@@ -129,22 +132,26 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
                 <li>Widerruf erteilter Einwilligungen</li>
               </ul>
               <p className="text-muted-foreground mt-2">
-                Zur Ausübung Ihrer Rechte wenden Sie sich bitte an die oben genannte 
-                verantwortliche Stelle.
+                Falls Sie zum Datenschutz Fragen haben, Auskünfte einholen oder eine Löschung 
+                Ihrer Daten beantragen möchten, wenden Sie sich bitte an{' '}
+                <a href="mailto:datenschutz@pupil.ch" className="underline hover:text-foreground">
+                  datenschutz@pupil.ch
+                </a>.
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">7. Beschwerderecht</h3>
+              <h3 className="font-semibold text-foreground mb-2">8. Rechtsgrundlagen</h3>
               <p className="text-muted-foreground">
-                Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, 
-                wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer personenbezogenen Daten 
-                gegen die DSGVO verstösst.
+                Diese Datenschutzerklärung orientiert sich am schweizerischen Datenschutzgesetz (DSG) 
+                sowie an der EU-Datenschutz-Grundverordnung (DSGVO). Die Verarbeitung personenbezogener 
+                Daten erfolgt auf Grundlage von Art. 6 Abs. 1 DSGVO (Einwilligung, Vertragserfüllung, 
+                rechtliche Verpflichtung oder berechtigtes Interesse).
               </p>
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">8. Änderungen dieser Datenschutzerklärung</h3>
+              <h3 className="font-semibold text-foreground mb-2">9. Änderungen</h3>
               <p className="text-muted-foreground">
                 Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen, um sie 
                 an geänderte Rechtslagen oder bei Änderungen unserer Dienste anzupassen.
@@ -152,7 +159,18 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             </section>
 
             <section className="text-xs text-muted-foreground/70 pt-4 border-t">
-              <p>Stand: Januar 2026</p>
+              <p>
+                Stand: Januar 2026<br />
+                Ausführliche Datenschutzerklärung:{' '}
+                <a 
+                  href="https://www.pupil.ch/datenschutz" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  www.pupil.ch/datenschutz
+                </a>
+              </p>
             </section>
           </div>
         </ScrollArea>
