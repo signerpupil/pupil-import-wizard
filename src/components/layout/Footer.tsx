@@ -16,8 +16,8 @@ export function Footer() {
   const [datenschutzOpen, setDatenschutzOpen] = useState(false);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
 
-  // URL to the standalone HTML file (hosted on GitHub Pages or similar)
-  const standaloneDownloadUrl = 'https://pupil-ag.github.io/pupil-import-wizard/standalone/pupil-import-wizard.html';
+  // URL to the standalone HTML file (hosted in public folder)
+  const standaloneDownloadUrl = 'https://pupil-import-wizard.lovable.app/pupil-import-wizard-offline.html';
 
   return (
     <>
