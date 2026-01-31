@@ -85,7 +85,7 @@ export function Footer() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
               <h4 className="font-medium text-sm text-amber-900">Hinweis</h4>
               <p className="text-sm text-amber-800">
-                Die Offline-Version funktioniert ohne Internetverbindung. Der Admin-Bereich ist nicht enthalten.
+                Die Offline-Version funktioniert ohne Internetverbindung.
               </p>
             </div>
             
