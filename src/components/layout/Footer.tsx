@@ -50,6 +50,7 @@ export function Footer() {
               >
                 Datenschutzerklärung
               </button>
+              {/* Download temporarily disabled
               <span className="hidden sm:inline text-muted-foreground/50">|</span>
               <button
                 onClick={() => setDownloadDialogOpen(true)}
@@ -58,6 +59,7 @@ export function Footer() {
                 <Download className="h-3 w-3" />
                 Offline-Version
               </button>
+              */}
             </div>
             <div className="text-xs text-muted-foreground/70 text-center sm:text-right">
               © {new Date().getFullYear()} PUPIL
