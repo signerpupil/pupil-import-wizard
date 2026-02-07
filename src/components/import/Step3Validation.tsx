@@ -734,7 +734,14 @@ export function Step3Validation({
     }
   }, [uncorrectedErrors, rows, analyze, convertPatternToSuggestion, toast]);
 
-  // Automatically re-run analysis when corrections are applied and analysis was already run
+  // Automatically run analysis on mount when there are uncorrected errors
+  useEffect(() => {
+    if (!hasRunAnalysis && uncorrectedErrors.length > 0) {
+      analyzeWithWorker(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Automatically re-run analysis when corrections are applied
   useEffect(() => {
     // Initialize on first render
     if (previousUncorrectedCount === null) {
@@ -742,7 +749,7 @@ export function Step3Validation({
       return;
     }
     
-    // If count decreased (corrections applied) and analysis was already run, re-analyze silently
+    // If count decreased (corrections applied), re-analyze silently
     if (hasRunAnalysis && uncorrectedErrors.length < previousUncorrectedCount) {
       analyzeWithWorker(true); // Silent re-analysis
     }
