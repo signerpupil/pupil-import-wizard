@@ -10,16 +10,18 @@ import { ArrowLeft, Download, RotateCcw, Info } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { GroupData, StudentGroupAssignment } from '@/types/importTypes';
+import type { SubjectMapping } from '../GroupImportWizard';
 import { useToast } from '@/hooks/use-toast';
 
 interface GroupStep3ExportProps {
   groups: GroupData[];
   assignments: StudentGroupAssignment[];
+  subjectMap: SubjectMapping[];
   onBack: () => void;
   onReset: () => void;
 }
 
-export function GroupStep3Export({ groups, assignments, onBack, onReset }: GroupStep3ExportProps) {
+export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onReset }: GroupStep3ExportProps) {
   const [schuljahr, setSchuljahr] = useState('');
   const [semester, setSemester] = useState('1');
   const [schuleinheiten, setSchuleinheiten] = useState('');

@@ -7,6 +7,13 @@ import type { GroupData, StudentGroupAssignment } from '@/types/importTypes';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
+export interface SubjectMapping {
+  ordnung: string;
+  fachname: string;
+  kuerzel: string;
+  fachbereich: string;
+}
+
 const groupWizardSteps: WizardStep[] = [
   { label: 'Gruppen erfassen', description: 'Copy-Paste aus LehrerOffice' },
   { label: 'Schüler zuweisen', description: 'CSV/Excel Upload' },
@@ -22,6 +29,7 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [groups, setGroups] = useState<GroupData[]>([]);
   const [assignments, setAssignments] = useState<StudentGroupAssignment[]>([]);
+  const [subjectMap, setSubjectMap] = useState<SubjectMapping[]>([]);
 
   const handleNext = useCallback(() => {
     const nextStep = Math.min(currentStep + 1, 2);
@@ -62,6 +70,8 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
         <GroupStep1Groups
           groups={groups}
           onGroupsChange={setGroups}
+          subjectMap={subjectMap}
+          onSubjectMapChange={setSubjectMap}
           onBack={handleBack}
           onNext={handleNext}
         />
@@ -81,6 +91,7 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
         <GroupStep3Export
           groups={groups}
           assignments={assignments}
+          subjectMap={subjectMap}
           onBack={handleBack}
           onReset={onReset}
         />
