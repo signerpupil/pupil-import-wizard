@@ -14,6 +14,11 @@ export interface SubjectMapping {
   zeugnisname: string;
 }
 
+export interface PupilSubject {
+  name: string;
+  schluessel: string;
+}
+
 const groupWizardSteps: WizardStep[] = [
   { label: 'Gruppen erfassen', description: 'Copy-Paste aus LehrerOffice' },
   { label: 'Schüler zuweisen', description: 'CSV/Excel Upload' },
@@ -30,6 +35,7 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
   const [groups, setGroups] = useState<GroupData[]>([]);
   const [assignments, setAssignments] = useState<StudentGroupAssignment[]>([]);
   const [subjectMap, setSubjectMap] = useState<SubjectMapping[]>([]);
+  const [pupilSubjects, setPupilSubjects] = useState<PupilSubject[]>([]);
 
   const handleNext = useCallback(() => {
     const nextStep = Math.min(currentStep + 1, 2);
@@ -72,6 +78,8 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
           onGroupsChange={setGroups}
           subjectMap={subjectMap}
           onSubjectMapChange={setSubjectMap}
+          pupilSubjects={pupilSubjects}
+          onPupilSubjectsChange={setPupilSubjects}
           onBack={handleBack}
           onNext={handleNext}
         />
