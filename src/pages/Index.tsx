@@ -20,7 +20,6 @@ import { useCorrectionMemory } from '@/hooks/useCorrectionMemory';
 import { useToast } from '@/hooks/use-toast';
 
 const wizardSteps: WizardStep[] = [
-  { label: 'Typ wählen', description: 'Import-Art und Modus' },
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
   { label: 'Spalten prüfen', description: 'Vollständigkeit' },
   { label: 'Validieren', description: 'Fehler korrigieren' },
@@ -307,12 +306,12 @@ export default function Index() {
       <OnboardingDialog />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
-        {!showSpecialWizard && (
+        {!showSpecialWizard && currentStep >= 1 && (
           <WizardProgress 
-            currentStep={currentStep}
-            maxVisitedStep={maxVisitedStep}
+            currentStep={currentStep - 1}
+            maxVisitedStep={Math.max(maxVisitedStep - 1, 0)}
             steps={wizardSteps} 
-            onStepClick={(step) => setCurrentStep(step)}
+            onStepClick={(step) => setCurrentStep(step + 1)}
             showDescriptions={true}
           />
         )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,7 +18,6 @@ interface Step0TypeSelectProps {
   onSelectType: (type: ImportType) => void;
   onSelectSubType: (subType: FoerderplanerSubType) => void;
   onNext: () => void;
-  // New props for correction memory
   processingMode: ProcessingMode;
   onProcessingModeChange: (mode: ProcessingMode) => void;
   correctionSource: CorrectionSource;
@@ -59,10 +58,8 @@ export function Step0TypeSelect({
   localStorageRulesCount,
   loadedCorrectionRules,
 }: Step0TypeSelectProps) {
-  // Track if file upload is needed
   const [showFileUpload, setShowFileUpload] = useState(false);
 
-  // Update file upload visibility when source changes
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
@@ -79,29 +76,23 @@ export function Step0TypeSelect({
     );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Import-Typ auswählen</h2>
-        <p className="text-muted-foreground mt-1">
-          Wählen Sie, welche Art von Daten Sie aus LehrerOffice importieren möchten.
+    <div className="space-y-8">
+      {/* Hero section */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+          <Sparkles className="h-3.5 w-3.5" />
+          Willkommen im Import Wizard
+        </div>
+        <h2 className="text-3xl font-bold text-foreground tracking-tight">
+          Was möchten Sie importieren?
+        </h2>
+        <p className="text-muted-foreground max-w-lg mx-auto">
+          Wählen Sie den passenden Import-Typ für Ihre Daten aus LehrerOffice.
         </p>
       </div>
 
-      {/* Privacy Notice */}
-      <Alert className="border-pupil-teal/30 bg-pupil-teal/5">
-        <ShieldCheck className="h-4 w-4 text-pupil-teal" />
-        <AlertDescription className="text-sm">
-          <span className="font-medium text-foreground">Datenschutz-Hinweis:</span>{' '}
-          <span className="text-muted-foreground">
-            Ihre Dateiinhalte werden ausschliesslich lokal in Ihrem Browser verarbeitet und niemals auf einem Server gespeichert. 
-            Die automatische Musteranalyse zur Erkennung von Formatierungsfehlern erfolgt vollständig im Browser. 
-            Nach Schliessen des Browsers oder Neuladen der Seite werden alle importierten Daten automatisch gelöscht.
-          </span>
-        </AlertDescription>
-      </Alert>
-
       {/* Import Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {importConfigs
           .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung')
           .map((config) => {
@@ -112,22 +103,26 @@ export function Step0TypeSelect({
               <Card
                 key={config.type}
                 className={cn(
-                  'cursor-pointer transition-all hover:shadow-lg',
-                  isSelected && 'ring-2 ring-primary shadow-lg'
+                  'cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group',
+                  isSelected
+                    ? 'ring-2 ring-primary shadow-lg bg-primary/[0.03]'
+                    : 'hover:border-primary/30'
                 )}
                 onClick={() => onSelectType(config.type)}
               >
                 <CardHeader className="pb-3">
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-lg flex items-center justify-center mb-2',
-                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      'w-14 h-14 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                      isSelected
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
                     )}
                   >
-                    <Icon className="h-6 w-6" />
+                    <Icon className="h-7 w-7" />
                   </div>
                   <CardTitle className="text-lg">{config.name}</CardTitle>
-                  <CardDescription>{config.description}</CardDescription>
+                  <CardDescription className="text-sm leading-relaxed">{config.description}</CardDescription>
                 </CardHeader>
               </Card>
             );
@@ -174,16 +169,17 @@ export function Step0TypeSelect({
         </div>
       )}
 
-      {/* Processing Mode Selection - Only show if type is selected and not gruppen */}
+      {/* Processing Mode Selection */}
       {selectedType && !isSpecialType && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Aufbereitungsmodus</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Initial Processing */}
             <Card
               className={cn(
-                'cursor-pointer transition-all hover:shadow-md',
-                processingMode === 'initial' && 'ring-2 ring-primary shadow-md'
+                'cursor-pointer transition-all duration-200 hover:shadow-md group',
+                processingMode === 'initial'
+                  ? 'ring-2 ring-primary shadow-md bg-primary/[0.03]'
+                  : 'hover:border-primary/30'
               )}
               onClick={() => onProcessingModeChange('initial')}
             >
@@ -191,8 +187,10 @@ export function Step0TypeSelect({
                 <div className="flex items-start gap-4">
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0',
-                      processingMode === 'initial' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors',
+                      processingMode === 'initial'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted group-hover:bg-primary/10'
                     )}
                   >
                     <FileUp className="h-6 w-6" />
@@ -207,11 +205,12 @@ export function Step0TypeSelect({
               </CardContent>
             </Card>
 
-            {/* Continued Processing */}
             <Card
               className={cn(
-                'cursor-pointer transition-all hover:shadow-md',
-                processingMode === 'continued' && 'ring-2 ring-primary shadow-md'
+                'cursor-pointer transition-all duration-200 hover:shadow-md group',
+                processingMode === 'continued'
+                  ? 'ring-2 ring-primary shadow-md bg-primary/[0.03]'
+                  : 'hover:border-primary/30'
               )}
               onClick={() => onProcessingModeChange('continued')}
             >
@@ -219,8 +218,10 @@ export function Step0TypeSelect({
                 <div className="flex items-start gap-4">
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0',
-                      processingMode === 'continued' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors',
+                      processingMode === 'continued'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted group-hover:bg-primary/10'
                     )}
                   >
                     <RefreshCw className="h-6 w-6" />
@@ -243,21 +244,20 @@ export function Step0TypeSelect({
         </div>
       )}
 
-      {/* Correction Source Selection - Only show for continued mode and not gruppen */}
+      {/* Correction Source Selection */}
       {selectedType && !isSpecialType && processingMode === 'continued' && (
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-primary/20 bg-primary/[0.02]">
           <CardContent className="pt-6">
             <h4 className="font-semibold mb-4">Korrektur-Quelle wählen</h4>
             <RadioGroup
               value={correctionSource}
               onValueChange={(v) => onCorrectionSourceChange(v as CorrectionSource)}
-              className="space-y-4"
+              className="space-y-3"
             >
-              {/* localStorage option */}
               <div 
                 className={cn(
-                  'flex items-start space-x-3 p-3 rounded-lg border transition-colors',
-                  correctionSource === 'localStorage' ? 'bg-background border-primary' : 'border-transparent hover:bg-background/50',
+                  'flex items-start space-x-3 p-4 rounded-xl border transition-all',
+                  correctionSource === 'localStorage' ? 'bg-background border-primary shadow-sm' : 'border-transparent hover:bg-background/50',
                   localStorageRulesCount === 0 && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -286,11 +286,10 @@ export function Step0TypeSelect({
                 </Label>
               </div>
 
-              {/* File upload option */}
               <div 
                 className={cn(
-                  'flex items-start space-x-3 p-3 rounded-lg border transition-colors',
-                  correctionSource === 'file' ? 'bg-background border-primary' : 'border-transparent hover:bg-background/50'
+                  'flex items-start space-x-3 p-4 rounded-xl border transition-all',
+                  correctionSource === 'file' ? 'bg-background border-primary shadow-sm' : 'border-transparent hover:bg-background/50'
                 )}
               >
                 <RadioGroupItem value="file" id="file" className="mt-1" />
@@ -327,10 +326,25 @@ export function Step0TypeSelect({
         </Card>
       )}
 
-      <div className="flex justify-end pt-4">
-        <Button onClick={onNext} disabled={!canProceed} size="lg">
+      {/* Privacy Notice - compact at the bottom */}
+      <Alert className="border-muted bg-muted/30">
+        <ShieldCheck className="h-4 w-4 text-pupil-teal" />
+        <AlertDescription className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Datenschutz:</span>{' '}
+          Alle Daten werden ausschliesslich lokal in Ihrem Browser verarbeitet – nichts wird auf einem Server gespeichert.
+        </AlertDescription>
+      </Alert>
+
+      {/* CTA Button */}
+      <div className="flex justify-center pt-2">
+        <Button 
+          onClick={onNext} 
+          disabled={!canProceed} 
+          size="lg"
+          className="px-8 text-base shadow-md hover:shadow-lg transition-all"
+        >
           Weiter
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>
