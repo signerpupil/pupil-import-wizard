@@ -202,6 +202,11 @@ const PARENT_CONSISTENCY_CHECKS = [
   }
 ];
 
+// Normalize string by removing diacritical marks for comparison
+function normalizeForComparison(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -254,15 +259,15 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`);
       }
 
-      // Strategy 2: Name + Vorname + Strasse
+      // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
       if (name && vorname && strasse) {
-        const key = `NAME_STRASSE:${name.toLowerCase()}|${vorname.toLowerCase()}|${strasse.toLowerCase()}`;
+        const key = `NAME_STRASSE:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}|${normalizeForComparison(strasse)}`;
         addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`);
       }
 
-      // Strategy 3: Name + Vorname only
+      // Strategy 3: Name + Vorname only (with diacritic normalization)
       if (name && vorname) {
-        const key = `NAME:${name.toLowerCase()}|${vorname.toLowerCase()}`;
+        const key = `NAME:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}`;
         addError(parentMapByNameOnly, key, `${vorname} ${name}`);
       }
     }
