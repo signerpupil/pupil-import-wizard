@@ -13,6 +13,12 @@ const testColumns: ColumnDefinition[] = [
   { name: "P_ERZ1_Name", required: false, category: "Eltern" },
   { name: "P_ERZ1_Vorname", required: false, category: "Eltern" },
   { name: "P_ERZ1_AHV", required: false, category: "Eltern", validationType: "ahv" },
+  { name: "P_ERZ1_Strasse", required: false, category: "Eltern" },
+  { name: "P_ERZ2_ID", required: false, category: "Eltern" },
+  { name: "P_ERZ2_Name", required: false, category: "Eltern" },
+  { name: "P_ERZ2_Vorname", required: false, category: "Eltern" },
+  { name: "P_ERZ2_AHV", required: false, category: "Eltern", validationType: "ahv" },
+  { name: "P_ERZ2_Strasse", required: false, category: "Eltern" },
 ];
 
 describe("Duplicate Detection", () => {
@@ -100,6 +106,44 @@ describe("Parent ID Consistency Check", () => {
     
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBe(0);
+  });
+
+  it("should detect inconsistent parent IDs across ERZ1 and ERZ2 slots", () => {
+    const rows: ParsedRow[] = [
+      { 
+        S_ID: "1", S_Name: "Bolt", S_Vorname: "Emilia", S_AHV: "756.1111.1111.11",
+        P_ERZ2_ID: "399423", P_ERZ2_Name: "Bolt", P_ERZ2_Vorname: "Nina", P_ERZ2_Strasse: "Pupilstr. 79"
+      },
+      { 
+        S_ID: "2", S_Name: "Castelberg", S_Vorname: "Gloria", S_AHV: "756.2222.2222.22",
+        P_ERZ2_ID: "399423abc", P_ERZ2_Name: "Bolt", P_ERZ2_Vorname: "Nina", P_ERZ2_Strasse: "Pupilstr. 79"
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
+  });
+
+  it("should detect inconsistency when same parent is in ERZ1 in one row and ERZ2 in another", () => {
+    const rows: ParsedRow[] = [
+      { 
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Bolt", P_ERZ1_Vorname: "Nina", P_ERZ1_Strasse: "Pupilstr. 79"
+      },
+      { 
+        S_ID: "2", S_Name: "Schmidt", S_Vorname: "Anna", S_AHV: "756.2222.2222.22",
+        P_ERZ2_ID: "PARENT-999", P_ERZ2_Name: "Bolt", P_ERZ2_Vorname: "Nina", P_ERZ2_Strasse: "Pupilstr. 79"
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
   });
 
   it("should detect inconsistent parent IDs when names differ only by diacritics", () => {
