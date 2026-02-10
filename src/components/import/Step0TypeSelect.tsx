@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,6 +38,7 @@ const iconMap = {
   Search,
   Target,
   FileText,
+  FolderOpen,
 };
 
 export function Step0TypeSelect({
@@ -67,7 +68,8 @@ export function Step0TypeSelect({
 
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
-    (processingMode === 'initial' || 
+    (selectedType === 'gruppen' ||
+     processingMode === 'initial' || 
      (processingMode === 'continued' && (
        (correctionSource === 'localStorage' && localStorageRulesCount > 0) ||
        (correctionSource === 'file' && loadedCorrectionRules.length > 0)
@@ -99,7 +101,7 @@ export function Step0TypeSelect({
       {/* Import Type Selection */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {importConfigs
-          .filter((config) => config.type === 'schueler') // Temporarily only show Schülerdaten
+          .filter((config) => config.type === 'schueler' || config.type === 'gruppen')
           .map((config) => {
             const Icon = iconMap[config.icon as keyof typeof iconMap];
             const isSelected = selectedType === config.type;
@@ -170,8 +172,8 @@ export function Step0TypeSelect({
         </div>
       )}
 
-      {/* Processing Mode Selection - Only show if type is selected */}
-      {selectedType && (
+      {/* Processing Mode Selection - Only show if type is selected and not gruppen */}
+      {selectedType && selectedType !== 'gruppen' && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Aufbereitungsmodus</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,8 +241,8 @@ export function Step0TypeSelect({
         </div>
       )}
 
-      {/* Correction Source Selection - Only show for continued mode */}
-      {selectedType && processingMode === 'continued' && (
+      {/* Correction Source Selection - Only show for continued mode and not gruppen */}
+      {selectedType && selectedType !== 'gruppen' && processingMode === 'continued' && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-6">
             <h4 className="font-semibold mb-4">Korrektur-Quelle wählen</h4>
