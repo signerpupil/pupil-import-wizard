@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ImpressumDialog } from '@/components/legal/ImpressumDialog';
 import { DatenschutzDialog } from '@/components/legal/DatenschutzDialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ export function Footer() {
   const [impressumOpen, setImpressumOpen] = useState(false);
   const [datenschutzOpen, setDatenschutzOpen] = useState(false);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Dynamic URL for standalone HTML file (works on Lovable, GitHub Pages, and localhost)
   const getStandaloneDownloadUrl = () => {
@@ -49,6 +51,14 @@ export function Footer() {
                 className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
               >
                 Datenschutzerklärung
+              </button>
+              <span className="hidden sm:inline text-muted-foreground/50">|</span>
+              <button
+                onClick={() => navigate('/docs')}
+                className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
+              >
+                <BookOpen className="h-3 w-3" />
+                Hilfe & FAQ
               </button>
               {/* Download temporarily disabled
               <span className="hidden sm:inline text-muted-foreground/50">|</span>
