@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, ArrowRight, ClipboardPaste, CheckCircle2, Info } from 'lucide-react';
 import type { ClassTeacherData } from '@/types/importTypes';
 
-// Role mapping based on column position relative to the first LP column
 const ROLE_POSITIONS: { offset: number; rolle: string }[] = [
   { offset: 0, rolle: 'Klassenlehrperson' },
   { offset: 1, rolle: 'Klassenlehrperson' },
@@ -45,7 +44,6 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       return;
     }
 
-    // Find header row - look for "Klasse" and teacher-related keywords
     let headerIndex = -1;
     let headerCols: string[] = [];
     for (let i = 0; i < Math.min(lines.length, 5); i++) {
@@ -59,11 +57,9 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
     }
 
     if (headerIndex === -1) {
-      // Try without header - assume first column is class name, status is second
       headerIndex = -1;
     }
 
-    // Find LP column indices dynamically
     let lpStartIndex = -1;
     let statusIndex = -1;
     
@@ -76,10 +72,6 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
         }
       }
     }
-
-    // If we couldn't find LP columns in header, use the Zuweisungen-sheet structure
-    // where columns are: Klasse | Klasse(repeat) | KLP1 | KLP2 | KLP3 | WLP1...
-    // Or the LO-Export where LP columns start around index 9-10
     
     const results: ClassTeacherData[] = [];
     const dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
@@ -91,16 +83,11 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       const klasse = cols[0];
       if (!klasse) continue;
 
-      // Check status if we know the column
       if (statusIndex >= 0 && cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
 
-      // Determine where LP data starts
       let effectiveLpStart = lpStartIndex >= 0 ? lpStartIndex : 2;
       
-      // If no header found, try to auto-detect: skip non-name columns
       if (lpStartIndex < 0 && headerIndex < 0) {
-        // Heuristic: LP columns start after the class info columns
-        // In the Zuweisungen format: col0=Klasse, col1=Klasse(repeat), col2+=LPs
         effectiveLpStart = 2;
       }
 
@@ -133,19 +120,22 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ClipboardPaste className="h-5 w-5" />
-            Klassen-Daten einfügen
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <ClipboardPaste className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Klassen-Daten einfügen</CardTitle>
+              <CardDescription>Zuweisungsdaten aus LehrerOffice (Tab-getrennt)</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="border-blue-200 bg-blue-50">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-sm text-blue-800">
-              Kopieren Sie die Zuweisungsdaten aus LehrerOffice (Tab-getrennt). 
-              Die Daten sollten pro Zeile eine Klasse mit den zugewiesenen Lehrpersonen enthalten.
+          <Alert className="border-primary/20 bg-primary/[0.03]">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
               Format: Klasse | [Klasse] | KLP 1 | KLP 2 | KLP 3 | WLP 1-3 | HP 1-3 | WFL 1-3 | Vikariat
             </AlertDescription>
           </Alert>
@@ -163,7 +153,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
             </Alert>
           )}
 
-          <Button onClick={parseData} disabled={!rawText.trim()}>
+          <Button onClick={parseData} disabled={!rawText.trim()} className="shadow-sm">
             <ClipboardPaste className="h-4 w-4 mr-2" />
             Daten verarbeiten
           </Button>
@@ -173,11 +163,11 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       {classData.length > 0 && (
         <>
         <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} className="shadow-sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Zurück
           </Button>
-          <Button onClick={onNext} disabled={classData.length === 0}>
+          <Button onClick={onNext} disabled={classData.length === 0} className="shadow-sm">
             Weiter
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -185,24 +175,28 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Erkannte Zuweisungen
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Erkannte Zuweisungen</CardTitle>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
+            <div className="flex gap-3 flex-wrap">
               <Badge variant="secondary">{classData.length} Klassen</Badge>
               <Badge variant="secondary">{totalTeachers} Zuweisungen</Badge>
               <Badge variant="secondary">{uniqueTeachers} eindeutige LPs</Badge>
             </div>
 
-            <div className="max-h-[400px] overflow-auto border rounded-lg">
+            <div className="max-h-[400px] overflow-auto border rounded-xl">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky top-0 bg-background">Klasse</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Lehrpersonen</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Klasse</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Lehrpersonen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -234,11 +228,11 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={onBack} className="shadow-sm">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Zurück
         </Button>
-        <Button onClick={onNext} disabled={classData.length === 0}>
+        <Button onClick={onNext} disabled={classData.length === 0} className="shadow-sm">
           Weiter
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

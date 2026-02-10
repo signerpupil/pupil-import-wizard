@@ -5,7 +5,7 @@ import { GroupStep2Students } from './groups/GroupStep2Students';
 import { GroupStep3Export } from './groups/GroupStep3Export';
 import type { GroupData, StudentGroupAssignment } from '@/types/importTypes';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FolderOpen } from 'lucide-react';
 
 export interface SubjectMapping {
   fachname: string;
@@ -52,15 +52,20 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
   }, [currentStep, onReset]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onReset}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück zur Typauswahl
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-5">
+        <Button variant="ghost" size="icon" onClick={onReset} className="shrink-0 h-10 w-10 rounded-xl hover:bg-muted">
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Gruppenzuweisungen</h2>
-          <p className="text-sm text-muted-foreground">Manuelle Gruppen und Schüler-Zuweisungen für PUPIL erstellen</p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md">
+            <FolderOpen className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Gruppenzuweisungen</h2>
+            <p className="text-sm text-muted-foreground">Manuelle Gruppen und Schüler-Zuweisungen für PUPIL erstellen</p>
+          </div>
         </div>
       </div>
 
