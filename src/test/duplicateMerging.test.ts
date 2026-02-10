@@ -121,6 +121,34 @@ describe("Parent ID Consistency Check", () => {
     expect(inconsistentIds.length).toBeGreaterThan(0);
     expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
   });
+
+  it("should auto-correct names without diacritics to the accented version", () => {
+    const rows: ParsedRow[] = [
+      { 
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Juhász", P_ERZ1_Vorname: "Krisztián"
+      },
+      { 
+        S_ID: "2", S_Name: "Müller", S_Vorname: "Anna", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Juhasz", P_ERZ1_Vorname: "Krisztian"
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    
+    // The non-accented versions should be auto-corrected to the accented ones
+    const diacriticCorrections = errors.filter(e => e.message.includes("Diakritische Korrektur"));
+    expect(diacriticCorrections.length).toBe(2); // Name + Vorname
+    
+    const nameCorrection = diacriticCorrections.find(e => e.column === "P_ERZ1_Name");
+    expect(nameCorrection).toBeDefined();
+    expect(nameCorrection!.correctedValue).toBe("Juhász");
+    expect(nameCorrection!.row).toBe(2);
+    
+    const vornameCorrection = diacriticCorrections.find(e => e.column === "P_ERZ1_Vorname");
+    expect(vornameCorrection).toBeDefined();
+    expect(vornameCorrection!.correctedValue).toBe("Krisztián");
+  });
 });
 
 describe("Error Correction Simulation", () => {
