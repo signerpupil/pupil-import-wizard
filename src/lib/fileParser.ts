@@ -565,6 +565,17 @@ export function applyCorrectedValues(
   return correctedRows;
 }
 
+// Build a lookup map for corrections from validation errors
+function buildCorrectionMap(errors: ValidationError[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const e of errors) {
+    if (e.correctedValue !== undefined) {
+      map.set(`${e.row}:${e.column}`, String(e.correctedValue));
+    }
+  }
+  return map;
+}
+
 // Export to CSV - keeps original column names
 export function exportToCSV(
   rows: ParsedRow[],
@@ -578,12 +589,13 @@ export function exportToCSV(
   } = {}
 ): void {
   const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
+  const correctionMap = buildCorrectionMap(errors);
 
-  // Filter rows if onlyErrorFree
-  let exportRows = rows;
+  // Filter rows if onlyErrorFree, keeping track of original row numbers
+  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 1 }));
   if (onlyErrorFree && errors.length > 0) {
     const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
-    exportRows = rows.filter((_, idx) => !errorRows.has(idx + 1));
+    exportRowsWithIndex = exportRowsWithIndex.filter(({ rowNum }) => !errorRows.has(rowNum));
   }
 
   // Determine which headers to use
@@ -604,8 +616,11 @@ export function exportToCSV(
   const csvLines: string[] = [];
   csvLines.push(exportHeaders.map(escapeCSVValue).join(';'));
   
-  exportRows.forEach(row => {
+  exportRowsWithIndex.forEach(({ row, rowNum }) => {
     const values = exportHeaders.map(header => {
+      // Apply correction if available
+      const corrected = correctionMap.get(`${rowNum}:${header}`);
+      if (corrected !== undefined) return escapeCSVValue(corrected);
       const value = row[header];
       return escapeCSVValue(value !== null && value !== undefined ? String(value) : '');
     });
@@ -635,12 +650,13 @@ export async function exportToExcel(
   } = {}
 ): Promise<void> {
   const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
+  const correctionMap = buildCorrectionMap(errors);
 
-  // Filter rows if onlyErrorFree
-  let exportRows = rows;
+  // Filter rows if onlyErrorFree, keeping track of original row numbers
+  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 1 }));
   if (onlyErrorFree && errors.length > 0) {
     const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
-    exportRows = rows.filter((_, idx) => !errorRows.has(idx + 1));
+    exportRowsWithIndex = exportRowsWithIndex.filter(({ rowNum }) => !errorRows.has(rowNum));
   }
 
   // Determine which headers to use
@@ -657,9 +673,11 @@ export async function exportToExcel(
   // Add header row
   worksheet.addRow(exportHeaders);
 
-  // Add data rows
-  exportRows.forEach(row => {
+  // Add data rows with corrections applied
+  exportRowsWithIndex.forEach(({ row, rowNum }) => {
     const values = exportHeaders.map(header => {
+      const corrected = correctionMap.get(`${rowNum}:${header}`);
+      if (corrected !== undefined) return corrected;
       const value = row[header];
       return value !== null && value !== undefined ? String(value) : '';
     });
