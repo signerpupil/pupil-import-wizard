@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,15 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
-import type { SubjectMapping } from '../GroupImportWizard';
+import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
   onGroupsChange: (groups: GroupData[]) => void;
   subjectMap: SubjectMapping[];
   onSubjectMapChange: (map: SubjectMapping[]) => void;
+  pupilSubjects: PupilSubject[];
+  onPupilSubjectsChange: (subjects: PupilSubject[]) => void;
   onBack: () => void;
   onNext: () => void;
 }
@@ -107,9 +110,6 @@ function parseGroupData(text: string): { groups: GroupData[]; skippedAutomatic: 
 }
 
 function parseSubjectData(text: string): SubjectMapping[] {
-  // LehrerOffice Fächerübersicht format (tab-separated):
-  // Col 0: Fach (name), Col 1: Typ, Col 2: Jahresnote, Col 3: (empty), Col 4: Kürzel,
-  // Col 5: Teilbereiche, Col 6: (empty), Col 7: Schlüssel, Col 8: Im Zeugnis
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length === 0) return [];
 
@@ -124,11 +124,9 @@ function parseSubjectData(text: string): SubjectMapping[] {
     const schluessel = cols.length > 7 ? cols[7] : '';
     const zeugnisname = cols.length > 8 ? cols[8] : '';
 
-    // Skip header rows, section headers, and empty entries
     if (!fachname || !kuerzel) continue;
     if (fachname.toLowerCase() === 'fach') continue;
     if (fachname.toLowerCase() === 'schulfächer') continue;
-    // Skip section headers (rows with only first column filled)
     if (cols.slice(1).every(c => !c)) continue;
 
     subjects.push({ fachname, kuerzel, schluessel, zeugnisname });
@@ -137,16 +135,39 @@ function parseSubjectData(text: string): SubjectMapping[] {
   return subjects;
 }
 
-export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubjectMapChange, onBack, onNext }: GroupStep1GroupsProps) {
+function parsePupilSubjects(text: string): PupilSubject[] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return [];
+
+  const subjects: PupilSubject[] = [];
+
+  for (const line of lines) {
+    const cols = line.split('\t').map(c => c.trim());
+    const name = cols[0] || '';
+    // Try to find a schluessel-like column (short code)
+    const schluessel = cols.length > 1 ? cols[1] : '';
+
+    if (!name) continue;
+    // Skip obvious headers
+    if (name.toLowerCase() === 'fach' || name.toLowerCase() === 'name' || name.toLowerCase() === 'bezeichnung') continue;
+
+    subjects.push({ name, schluessel });
+  }
+
+  return subjects;
+}
+
+export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubjectMapChange, pupilSubjects, onPupilSubjectsChange, onBack, onNext }: GroupStep1GroupsProps) {
   const [pasteText, setPasteText] = useState('');
   const [parseStats, setParseStats] = useState<{ skippedAutomatic: number; skippedInactive: number } | null>(null);
   const [subjectPasteText, setSubjectPasteText] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
+  const [pupilPasteText, setPupilPasteText] = useState('');
+  const [pupilFilter, setPupilFilter] = useState('');
 
   const handleParse = () => {
     const result = parseGroupData(pasteText);
     
-    // If subject map is loaded, replace kürzel with fachname in schulfach field
     if (subjectMap.length > 0) {
       const kuerzelToName = new Map(subjectMap.map(s => [s.kuerzel, s.fachname]));
       const updatedGroups = result.groups.map(g => ({
@@ -164,7 +185,6 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
     const parsed = parseSubjectData(subjectPasteText);
     onSubjectMapChange(parsed);
 
-    // If groups already loaded, update schulfach with fachname
     if (groups.length > 0 && parsed.length > 0) {
       const kuerzelToName = new Map(parsed.map(s => [s.kuerzel, s.fachname]));
       const updatedGroups = groups.map(g => ({
@@ -173,6 +193,11 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       }));
       onGroupsChange(updatedGroups);
     }
+  };
+
+  const handleParsePupilSubjects = () => {
+    const parsed = parsePupilSubjects(pupilPasteText);
+    onPupilSubjectsChange(parsed);
   };
 
   const handleRemoveGroup = (index: number) => {
@@ -203,6 +228,27 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
     onGroupsChange(updated);
   };
 
+  // Compare group subjects against PUPIL subjects
+  const missingSubjects = useMemo(() => {
+    if (groups.length === 0 || pupilSubjects.length === 0) return [];
+    const pupilNames = new Set(pupilSubjects.map(s => s.name.toLowerCase()));
+    const usedSubjects = new Set(groups.map(g => g.schulfach).filter(Boolean));
+    const missing: string[] = [];
+    usedSubjects.forEach(subject => {
+      if (!pupilNames.has(subject.toLowerCase())) {
+        missing.push(subject);
+      }
+    });
+    return missing;
+  }, [groups, pupilSubjects]);
+
+  const handleReassignSubject = (oldSubject: string, newSubject: string) => {
+    const updatedGroups = groups.map(g =>
+      g.schulfach === oldSubject ? { ...g, schulfach: newSubject } : g
+    );
+    onGroupsChange(updatedGroups);
+  };
+
   const filteredSubjects = subjectMap.filter(s =>
     !subjectFilter ||
     s.fachname.toLowerCase().includes(subjectFilter.toLowerCase()) ||
@@ -210,14 +256,20 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
     s.schluessel.toLowerCase().includes(subjectFilter.toLowerCase())
   );
 
+  const filteredPupilSubjects = pupilSubjects.filter(s =>
+    !pupilFilter ||
+    s.name.toLowerCase().includes(pupilFilter.toLowerCase()) ||
+    s.schluessel.toLowerCase().includes(pupilFilter.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <Alert className="border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Anleitung:</strong> Fügen Sie zuerst die <strong>Fächerübersicht</strong> aus LehrerOffice ein (Fächer → alles markieren → Ctrl+C).
-          Danach die <strong>Gruppenübersicht</strong> einfügen. Nur manuelle, aktive Gruppen werden übernommen.
-          Die Fach-Kürzel werden automatisch durch die vollen Fachnamen ersetzt.
+          <strong>Anleitung:</strong> Fügen Sie zuerst die <strong>Fächerübersicht</strong> aus LehrerOffice ein,
+          dann die <strong>Fächer aus PUPIL</strong>, und zuletzt die <strong>Gruppenübersicht</strong>.
+          Fehlende Fächer werden automatisch erkannt.
         </AlertDescription>
       </Alert>
 
@@ -226,7 +278,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            Fächerübersicht aus LehrerOffice
+            1. Fächerübersicht aus LehrerOffice
           </CardTitle>
           <CardDescription>
             Fächer aus LehrerOffice einfügen, um Kürzel automatisch durch Fachnamen zu ersetzen
@@ -291,11 +343,76 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
         </CardContent>
       </Card>
 
+      {/* PUPIL Subjects */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <School className="h-5 w-5" />
+            2. Fächer aus PUPIL
+          </CardTitle>
+          <CardDescription>
+            Fächerliste aus PUPIL einfügen, um zu prüfen ob alle benötigten Fächer vorhanden sind
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder="Fächerliste aus PUPIL hier einfügen (Tab-getrennt, z.B. Fachname und Schlüssel)..."
+            rows={4}
+            value={pupilPasteText}
+            onChange={(e) => setPupilPasteText(e.target.value)}
+            className="font-mono text-xs"
+          />
+          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="secondary">
+            <School className="h-4 w-4 mr-2" />
+            PUPIL-Fächer erkennen
+          </Button>
+
+          {pupilSubjects.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  {pupilSubjects.length} PUPIL-Fächer erkannt
+                </Badge>
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="PUPIL-Fächer filtern..."
+                    value={pupilFilter}
+                    onChange={(e) => setPupilFilter(e.target.value)}
+                    className="h-9 pl-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="max-h-[200px] overflow-auto border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky top-0 bg-background">Fachname</TableHead>
+                      <TableHead className="sticky top-0 bg-background">Schlüssel</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPupilSubjects.map((s, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{s.schluessel}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Groups paste */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clipboard className="h-5 w-5" />
-            Gruppen aus LehrerOffice einfügen
+            3. Gruppen aus LehrerOffice einfügen
           </CardTitle>
           <CardDescription>
             Kopierte Tabelle (Tab-getrennt) hier einfügen
@@ -326,6 +443,68 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
           )}
         </CardContent>
       </Card>
+
+      {/* Missing subjects warning */}
+      {missingSubjects.length > 0 && (
+        <Card className="border-orange-300 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <AlertTriangle className="h-5 w-5" />
+              Fehlende Fächer in PUPIL ({missingSubjects.length})
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              Diese Fächer werden von Gruppen verwendet, sind aber nicht in PUPIL vorhanden.
+              Sie können ein anderes PUPIL-Fach zuweisen oder die Fächer zuerst in PUPIL erfassen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {missingSubjects.map((subject) => {
+                const affectedGroups = groups.filter(g => g.schulfach === subject);
+                return (
+                  <div key={subject} className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{subject}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Betrifft {affectedGroups.length} Gruppe{affectedGroups.length !== 1 ? 'n' : ''}: {affectedGroups.map(g => g.name).join(', ')}
+                      </div>
+                    </div>
+                    <Select onValueChange={(val) => {
+                      if (val !== '__skip__') {
+                        handleReassignSubject(subject, val);
+                      }
+                    }}>
+                      <SelectTrigger className="w-[220px] h-9 text-sm">
+                        <SelectValue placeholder="Anderes Fach zuweisen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__skip__" className="text-muted-foreground italic">
+                          In PUPIL erfassen (nicht ändern)
+                        </SelectItem>
+                        {pupilSubjects.map((ps) => (
+                          <SelectItem key={ps.name} value={ps.name}>
+                            {ps.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show success if all subjects matched */}
+      {groups.length > 0 && pupilSubjects.length > 0 && missingSubjects.length === 0 && (
+        <Alert className="border-green-300 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-700" />
+          <AlertDescription className="text-green-800">
+            <strong>Alle Fächer vorhanden!</strong> Alle in den Gruppen verwendeten Fächer sind in PUPIL erfasst.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {groups.length > 0 && (
         <>
