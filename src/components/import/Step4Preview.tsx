@@ -54,7 +54,7 @@ export function Step4Preview({
   onClearCorrectionRulesFromLocalStorage,
   localStorageCorrectionRulesCount = 0,
 }: Step4PreviewProps) {
-  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
   const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
   const [exported, setExported] = useState(false);
 
@@ -163,8 +163,8 @@ export function Step4Preview({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="csv">CSV (Semikolon-getrennt)</SelectItem>
                   <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
+                  <SelectItem value="csv">CSV (Semikolon-getrennt)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
