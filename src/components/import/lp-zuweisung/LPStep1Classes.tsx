@@ -68,10 +68,9 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
     let statusIndex = -1;
     
     if (headerCols.length > 0) {
-      // Look for "Lehrperson 1" or "Klassenlehrperson" in header
       for (let i = 0; i < headerCols.length; i++) {
         const col = headerCols[i].toLowerCase();
-        if (col === 'status') statusIndex = i;
+        if (col === 'status' || col.startsWith('im ') || col.includes('semester')) statusIndex = i;
         if ((col.includes('lehrperson 1') || col === 'klassenlehrperson 1') && lpStartIndex === -1) {
           lpStartIndex = i;
         }
