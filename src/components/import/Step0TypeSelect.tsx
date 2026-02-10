@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,6 +39,7 @@ const iconMap = {
   Target,
   FileText,
   FolderOpen,
+  ClipboardList,
 };
 
 export function Step0TypeSelect({
@@ -66,9 +67,10 @@ export function Step0TypeSelect({
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
 
+  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung';
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
-    (selectedType === 'gruppen' ||
+    (isSpecialType ||
      processingMode === 'initial' || 
      (processingMode === 'continued' && (
        (correctionSource === 'localStorage' && localStorageRulesCount > 0) ||
@@ -101,7 +103,7 @@ export function Step0TypeSelect({
       {/* Import Type Selection */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {importConfigs
-          .filter((config) => config.type === 'schueler' || config.type === 'gruppen')
+          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung')
           .map((config) => {
             const Icon = iconMap[config.icon as keyof typeof iconMap];
             const isSelected = selectedType === config.type;
@@ -173,7 +175,7 @@ export function Step0TypeSelect({
       )}
 
       {/* Processing Mode Selection - Only show if type is selected and not gruppen */}
-      {selectedType && selectedType !== 'gruppen' && (
+      {selectedType && !isSpecialType && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Aufbereitungsmodus</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -242,7 +244,7 @@ export function Step0TypeSelect({
       )}
 
       {/* Correction Source Selection - Only show for continued mode and not gruppen */}
-      {selectedType && selectedType !== 'gruppen' && processingMode === 'continued' && (
+      {selectedType && !isSpecialType && processingMode === 'continued' && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-6">
             <h4 className="font-semibold mb-4">Korrektur-Quelle wählen</h4>

@@ -10,6 +10,7 @@ import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
 import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
 import { GroupImportWizard } from '@/components/import/GroupImportWizard';
+import { LPImportWizard } from '@/components/import/LPImportWizard';
 import { Footer } from '@/components/layout/Footer';
 import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
@@ -290,11 +291,13 @@ export default function Index() {
     setAutoCorrectionsApplied(false);
   };
 
-  // Show summary from step 1 onwards (not for gruppen type)
-  const showSummary = currentStep >= 1 && importType !== 'gruppen';
+  // Show summary from step 1 onwards (not for special types)
+  const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung';
 
   // If gruppen type is selected and step 0 is done, show the group wizard
   const showGroupWizard = importType === 'gruppen' && currentStep >= 1;
+  const showLPWizard = importType === 'lp-zuweisung' && currentStep >= 1;
+  const showSpecialWizard = showGroupWizard || showLPWizard;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -304,7 +307,7 @@ export default function Index() {
       <OnboardingDialog />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
-        {!showGroupWizard && (
+        {!showSpecialWizard && (
           <WizardProgress 
             currentStep={currentStep}
             maxVisitedStep={maxVisitedStep}
@@ -329,7 +332,7 @@ export default function Index() {
 
         <div className="mt-6 space-y-4">
           {/* Contextual Help Card */}
-          {!showGroupWizard && <StepHelpCard step={currentStep} />}
+          {!showSpecialWizard && <StepHelpCard step={currentStep} />}
 
           {currentStep === 0 && (
             <Step0TypeSelect
@@ -355,7 +358,11 @@ export default function Index() {
             <GroupImportWizard onReset={handleReset} />
           )}
 
-          {!showGroupWizard && currentStep === 1 && (
+          {showLPWizard && (
+            <LPImportWizard onReset={handleReset} />
+          )}
+
+          {!showSpecialWizard && currentStep === 1 && (
             <Step1FileUpload
               parseResult={parseResult}
               onFileLoaded={setParseResult}
@@ -364,7 +371,7 @@ export default function Index() {
             />
           )}
 
-          {!showGroupWizard && currentStep === 2 && (
+          {!showSpecialWizard && currentStep === 2 && (
             <Step2ColumnCheck
               columnStatuses={columnStatuses}
               removeExtraColumns={removeExtraColumns}
@@ -374,7 +381,7 @@ export default function Index() {
             />
           )}
 
-          {!showGroupWizard && currentStep === 3 && (
+          {!showSpecialWizard && currentStep === 3 && (
             <Step3Validation
               errors={errors}
               rows={correctedRows}
@@ -385,7 +392,7 @@ export default function Index() {
             />
           )}
 
-          {!showGroupWizard && currentStep === 4 && parseResult && (
+          {!showSpecialWizard && currentStep === 4 && parseResult && (
             <Step4Preview
               rows={correctedRows}
               headers={parseResult.headers}
