@@ -1,147 +1,35 @@
 
-# Plan: Standalone HTML-Datei für Offline-Nutzung
 
-## Zusammenfassung
-Erstellung einer vollständigen, eigenständigen HTML-Datei (`pupil-import-wizard-offline.html`) im `public`-Ordner, die alle Import-Wizard-Funktionen enthält und ohne Internetverbindung funktioniert.
+## Problem
 
----
+Die Eltern-ID Konsistenzprüfung erkennt den Fall nicht, weil sie **ERZ1 und ERZ2 getrennt prüft**. Wenn dieselbe Person (z.B. "Bolt Nina") in einer Zeile als ERZ1 und in einer anderen als ERZ2 erfasst ist, wird die Inkonsistenz nicht erkannt.
 
-## Warum eine einzelne HTML-Datei?
-- **Offline-Nutzung**: Benutzer können die Datei lokal speichern und ohne Internet nutzen
-- **Einfache Verteilung**: Eine Datei zum Herunterladen und Teilen
-- **Datenschutz**: Alle Daten bleiben lokal im Browser
+Im konkreten Beispiel:
+- Zeile 1: Bolt Nina als **ERZ2** mit ID `399423`
+- Zeile 2: Bolt Nina als **ERZ2** mit ID `399423abc`
 
----
+Zusätzlich könnte es auch vorkommen, dass dieselbe Person einmal als ERZ1 und einmal als ERZ2 aufgeführt ist -- auch das wird aktuell nicht erkannt.
 
-## Was wird enthalten sein?
+## Lösung
 
-### Funktionen
-- Datei-Upload (CSV & Excel)
-- Spalten-Prüfung gegen die definierten Spalten-Definitionen
-- Datenvalidierung (AHV, Datum, E-Mail, PLZ, Geschlecht, Telefon)
-- Fehler-Korrektur (manuell und automatische Formatierung)
-- Export als bereinigte CSV-Datei
-- Korrektur-Gedächtnis (localStorage)
-
-### Import-Typen
-- Schülerdaten
-- Journaldaten  
-- Förderplaner (Diagnostik, Förderplanung, Lernberichte)
-
----
+Die Konsistenzprüfung wird so erweitert, dass **alle Eltern-Slots (ERZ1 + ERZ2) in einem einzigen, gemeinsamen Pool** verglichen werden. So werden Inkonsistenzen erkannt, egal in welchem Slot die Person steht.
 
 ## Technische Umsetzung
 
-### Datei-Struktur
-Die Standalone-HTML-Datei wird als **vollständige, in sich geschlossene Datei** erstellt:
+### 1. `checkParentIdConsistency` in `src/lib/fileParser.ts` anpassen
 
-```text
-public/pupil-import-wizard-offline.html
-├── <!DOCTYPE html>
-├── <head>
-│   ├── Meta-Tags & Titel
-│   └── <style> (eingebettetes CSS mit Tailwind-ähnlichen Klassen)
-│       
-├── <body>
-│   ├── <div id="app">  (React-ähnliche UI-Struktur)
-│   │   ├── Header mit Logo
-│   │   ├── Wizard-Fortschritt
-│   │   └── Step-Container
-│   │       ├── Step 0: Typ-Auswahl
-│   │       ├── Step 1: Datei-Upload
-│   │       ├── Step 2: Spalten-Check
-│   │       ├── Step 3: Validierung
-│   │       └── Step 4: Export
-│   │
-│   └── <script>
-│       ├── Spalten-Definitionen (aus importTypes.ts)
-│       ├── Validierungslogik (aus fileParser.ts)
-│       ├── Korrektur-Funktionen (aus localBulkCorrections.ts)
-│       ├── CSV/Excel-Parser (SheetJS/ExcelJS)
-│       └── UI-Steuerung (Vanilla JS)
-```
+Statt zwei separate Durchläufe (einen für ERZ1, einen für ERZ2) wird ein **einziger, slot-übergreifender Pool** für die Matching-Maps (AHV, Name+Strasse, Name) verwendet.
 
-### Bibliotheken (eingebettet)
-- **SheetJS (xlsx.mini.min.js)**: Excel-Parsing - wird als CDN-Link eingebunden oder inline
-- **Vanilla JavaScript**: Keine React-Abhängigkeit für Standalone
+Ablauf:
+- Für jede Zeile werden **beide** ERZ-Slots ausgelesen
+- Jeder gefundene Elternteil wird in die gemeinsamen Maps eingetragen
+- Wenn derselbe Elternteil (via AHV oder Name) mit unterschiedlicher ID gefunden wird, wird ein Fehler generiert -- unabhängig davon, ob er als ERZ1 oder ERZ2 erfasst ist
 
-### Validierungsregeln
-Alle Validierungstypen aus dem Hauptprojekt:
-- `date`: DD.MM.YYYY, YYYY-MM-DD, Excel-Seriennummern
-- `ahv`: 756.XXXX.XXXX.XX
-- `email`: Standard E-Mail-Format
-- `plz`: 4-5 Ziffern
-- `gender`: M, W, D
-- `phone`: Schweizer Telefonnummern
+### 2. Test erweitern in `src/test/duplicateMerging.test.ts`
 
----
+Neuer Testfall: Derselbe Elternteil erscheint in zwei Zeilen in verschiedenen ERZ-Slots (z.B. ERZ1 in Zeile 1, ERZ2 in Zeile 2) mit unterschiedlichen IDs -- muss als Inkonsistenz erkannt werden.
 
-## Änderungen am bestehenden Code
+### 3. Bestehende Tests beibehalten
 
-### 1. Neue Datei erstellen
-**`public/pupil-import-wizard-offline.html`**
-
-Eine vollständige HTML-Datei (~2500-3000 Zeilen) mit:
-- Eingebettetem CSS (Tailwind-inspiriertes Styling)
-- Vollständiger JavaScript-Logik
-- Alle Spalten-Definitionen
-- Alle Validierungsregeln
-
-### 2. Footer anpassen
-**`src/components/layout/Footer.tsx`**
-
-Änderung der Download-URL, um sowohl für Lovable Publishing als auch GitHub Pages zu funktionieren:
-
-```typescript
-// Dynamische URL basierend auf aktuellem Host
-const getStandaloneDownloadUrl = () => {
-  const host = window.location.hostname;
-  
-  // GitHub Pages (mit Subdirectory)
-  if (host.includes('github.io')) {
-    return `${window.location.origin}/pupil-import-wizard/pupil-import-wizard-offline.html`;
-  }
-  
-  // Lovable Publishing oder lokale Entwicklung
-  return `${window.location.origin}/pupil-import-wizard-offline.html`;
-};
-```
-
----
-
-## Dateien die erstellt/geändert werden
-
-| Datei | Aktion | Beschreibung |
-|-------|--------|--------------|
-| `public/pupil-import-wizard-offline.html` | Erstellen | Vollständige Standalone-HTML-Datei |
-| `src/components/layout/Footer.tsx` | Ändern | Dynamische URL für Download |
-
----
-
-## Testen nach Implementierung
-
-1. **Lokaler Test**: 
-   - Datei im Browser öffnen
-   - CSV-Datei hochladen
-   - Validierung durchführen
-   - Export testen
-
-2. **Deployment-Test**:
-   - Auf Lovable Publishing prüfen
-   - Auf GitHub Pages prüfen
-
-3. **Offline-Test**:
-   - Datei lokal speichern
-   - Internet trennen
-   - Funktionalität prüfen
-
----
-
-## Einschränkungen der Standalone-Version
-
-- **Vereinfachte UI**: Grundlegende Styling ohne alle Animationen
-- **Keine Echtzeit-Vorschau**: Reduzierte Vorschau-Funktionen
-- **Kein Worker-Threading**: Validierung läuft im Hauptthread
-
-**Hinweis:** Excel-Export ist möglich, da SheetJS (für das Lesen) auch das Schreiben von Excel-Dateien unterstützt.
+Alle bestehenden Tests für die Konsistenzprüfung bleiben bestehen und müssen weiterhin bestanden werden.
 
