@@ -79,7 +79,7 @@ export function Step3Validation({
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
   const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
   const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
-  const PARENTS_PER_PAGE = 20;
+  const PARENTS_PER_PAGE = 4;
   const { toast } = useToast();
   
   // Web Worker for background processing
@@ -921,7 +921,7 @@ export function Step3Validation({
                 )}
                 
                 {/* Paginated list */}
-                <ScrollArea className="max-h-96">
+                <div>
                   <div className="space-y-2">
                     {paginatedParentGroups.length === 0 ? (
                       <p className="text-center text-muted-foreground py-4">
@@ -974,7 +974,7 @@ export function Step3Validation({
                       ))
                     )}
                   </div>
-                </ScrollArea>
+                </div>
                 
                 {/* Pagination controls */}
                 {totalParentPages > 1 && (
