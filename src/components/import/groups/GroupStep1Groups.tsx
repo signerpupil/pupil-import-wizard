@@ -107,7 +107,9 @@ function parseGroupData(text: string): { groups: GroupData[]; skippedAutomatic: 
 }
 
 function parseSubjectData(text: string): SubjectMapping[] {
-  // The pasted data is tab-separated: Ordnung | Fachname | Fachname Zeugnis | Kürzel | Fachbereich | Farbe | Niveau
+  // LehrerOffice Fächerübersicht format (tab-separated):
+  // Col 0: Fach (name), Col 1: Typ, Col 2: Jahresnote, Col 3: (empty), Col 4: Kürzel,
+  // Col 5: Teilbereiche, Col 6: (empty), Col 7: Schlüssel, Col 8: Im Zeugnis
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length === 0) return [];
 
@@ -115,21 +117,21 @@ function parseSubjectData(text: string): SubjectMapping[] {
 
   for (const line of lines) {
     const cols = line.split('\t').map(c => c.trim());
-    // Need at least 4 columns (Ordnung, Fachname, Fachname Zeugnis, Kürzel)
-    if (cols.length < 4) continue;
+    if (cols.length < 5) continue;
 
-    const ordnung = cols[0];
-    const fachname = cols[1];
-    const kuerzel = cols[3];
-    const fachbereich = cols[4] || '';
+    const fachname = cols[0];
+    const kuerzel = cols[4];
+    const schluessel = cols.length > 7 ? cols[7] : '';
+    const zeugnisname = cols.length > 8 ? cols[8] : '';
 
-    // Skip header row
-    if (ordnung.toLowerCase() === 'ordnung') continue;
+    // Skip header rows, section headers, and empty entries
+    if (!fachname || !kuerzel) continue;
+    if (fachname.toLowerCase() === 'fach') continue;
+    if (fachname.toLowerCase() === 'schulfächer') continue;
+    // Skip section headers (rows with only first column filled)
+    if (cols.slice(1).every(c => !c)) continue;
 
-    // Only include entries with a kürzel
-    if (fachname && kuerzel) {
-      subjects.push({ ordnung, fachname, kuerzel, fachbereich });
-    }
+    subjects.push({ fachname, kuerzel, schluessel, zeugnisname });
   }
 
   return subjects;
@@ -205,7 +207,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
     !subjectFilter ||
     s.fachname.toLowerCase().includes(subjectFilter.toLowerCase()) ||
     s.kuerzel.toLowerCase().includes(subjectFilter.toLowerCase()) ||
-    s.fachbereich.toLowerCase().includes(subjectFilter.toLowerCase())
+    s.schluessel.toLowerCase().includes(subjectFilter.toLowerCase())
   );
 
   return (
@@ -213,26 +215,26 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       <Alert className="border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Anleitung:</strong> Öffnen Sie in LehrerOffice die Gruppenübersicht, markieren Sie alle Zeilen
-          (inkl. Header) und kopieren Sie diese (Ctrl+C). Fügen Sie die Daten unten ein. Nur manuelle,
-          aktive Gruppen werden übernommen.
+          <strong>Anleitung:</strong> Fügen Sie zuerst die <strong>Fächerübersicht</strong> aus LehrerOffice ein (Fächer → alles markieren → Ctrl+C).
+          Danach die <strong>Gruppenübersicht</strong> einfügen. Nur manuelle, aktive Gruppen werden übernommen.
+          Die Fach-Kürzel werden automatisch durch die vollen Fachnamen ersetzt.
         </AlertDescription>
       </Alert>
 
-      {/* Subject Mapping - optional, before groups */}
+      {/* Subject Mapping from LehrerOffice */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            Fächerübersicht (optional)
+            Fächerübersicht aus LehrerOffice
           </CardTitle>
           <CardDescription>
-            Fächer aus PUPIL einfügen, um Kürzel automatisch durch Fachnamen zu ersetzen
+            Fächer aus LehrerOffice einfügen, um Kürzel automatisch durch Fachnamen zu ersetzen
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            placeholder="Fächerübersicht aus PUPIL hier einfügen (Tab-getrennt: Ordnung, Fachname, Fachname Zeugnis, Kürzel, Fachbereich, ...)..."
+            placeholder="Fächerübersicht aus LehrerOffice hier einfügen (Tab-getrennt: Fach, Typ, Jahresnote, ..., Kürzel, ..., Schlüssel, Im Zeugnis)..."
             rows={4}
             value={subjectPasteText}
             onChange={(e) => setSubjectPasteText(e.target.value)}
@@ -265,8 +267,9 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
                   <TableHeader>
                     <TableRow>
                       <TableHead className="sticky top-0 bg-background">Fachname</TableHead>
-                      <TableHead className="sticky top-0 bg-background">Kürzel</TableHead>
-                      <TableHead className="sticky top-0 bg-background">Fachbereich</TableHead>
+                      <TableHead className="sticky top-0 bg-background">Kürzel (LO)</TableHead>
+                      <TableHead className="sticky top-0 bg-background">Schlüssel</TableHead>
+                      <TableHead className="sticky top-0 bg-background">Im Zeugnis</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -276,7 +279,8 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
                         <TableCell>
                           <Badge variant="outline" className="font-mono text-xs">{s.kuerzel}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{s.fachbereich}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{s.schluessel}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{s.zeugnisname}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 export interface SubjectMapping {
-  ordnung: string;
   fachname: string;
   kuerzel: string;
-  fachbereich: string;
+  schluessel: string;
+  zeugnisname: string;
 }
 
 const groupWizardSteps: WizardStep[] = [
