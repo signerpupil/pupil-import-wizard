@@ -283,18 +283,20 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
 }
 
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
+// Uses a UNIFIED pool across ERZ1 and ERZ2 so cross-slot inconsistencies are detected
 function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
   const errorSet = new Set<string>(); // Avoid duplicate error messages
 
-  for (const check of PARENT_CONSISTENCY_CHECKS) {
-    // Use Maps for O(1) lookup
-    const parentMapByAhv = new Map<string, { id: string; firstRow: number; identifier: string }>();
-    const parentMapByNameStrasse = new Map<string, { id: string; firstRow: number; identifier: string }>();
-    const parentMapByNameOnly = new Map<string, { id: string; firstRow: number; identifier: string }>();
+  // Single unified pool across all ERZ slots
+  const parentMapByAhv = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
+  const parentMapByNameStrasse = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
+  const parentMapByNameOnly = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
 
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      const row = rows[rowIndex];
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+
+    for (const check of PARENT_CONSISTENCY_CHECKS) {
       const id = String(row[check.idField] ?? '').trim();
       const ahv = String(row[check.ahvField] ?? '').trim();
       const name = String(row[check.nameField] ?? '').trim();
@@ -305,7 +307,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       if (!ahv && (!name || !vorname)) continue;
 
       const addError = (
-        map: Map<string, { id: string; firstRow: number; identifier: string }>,
+        map: Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>,
         key: string,
         displayIdentifier: string
       ) => {
@@ -320,12 +322,12 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
                 row: rowIndex + 1,
                 column: check.idField,
                 value: id,
-                message: `Inkonsistente ID: ${check.label} (${displayIdentifier}) hat in Zeile ${existing.firstRow} die ID '${existing.id}', aber hier die ID '${id}'`,
+                message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${check.label}) die ID '${id}'`,
               });
             }
           }
         } else {
-          map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier });
+          map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: check.label });
         }
       };
 
