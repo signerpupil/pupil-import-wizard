@@ -207,6 +207,81 @@ function normalizeForComparison(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// Count diacritical marks in a string (more = "richer")
+function countDiacritics(value: string): number {
+  const nfd = value.normalize('NFD');
+  const stripped = nfd.replace(/[\u0300-\u036f]/g, '');
+  return nfd.length - stripped.length;
+}
+
+// Name fields to check for diacritic inconsistencies
+const DIACRITIC_NAME_FIELDS = [
+  'S_Name', 'S_Vorname',
+  'P_ERZ1_Name', 'P_ERZ1_Vorname',
+  'P_ERZ2_Name', 'P_ERZ2_Vorname',
+  'L_KL1_Name', 'L_KL1_Vorname',
+];
+
+// Check for names that match when normalized but differ by diacritics,
+// and auto-correct to the version with more diacritical marks
+function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  for (const field of DIACRITIC_NAME_FIELDS) {
+    // Group values by their normalized form
+    const normalizedGroups = new Map<string, { original: string; rows: number[] }[]>();
+
+    for (let i = 0; i < rows.length; i++) {
+      const raw = String(rows[i][field] ?? '').trim();
+      if (!raw) continue;
+      const normalized = normalizeForComparison(raw);
+      
+      const group = normalizedGroups.get(normalized);
+      if (group) {
+        // Check if this exact original form already exists
+        const existing = group.find(g => g.original === raw);
+        if (existing) {
+          existing.rows.push(i);
+        } else {
+          group.push({ original: raw, rows: [i] });
+        }
+      } else {
+        normalizedGroups.set(normalized, [{ original: raw, rows: [i] }]);
+      }
+    }
+
+    // For groups with multiple different original forms, pick the richest
+    normalizedGroups.forEach(variants => {
+      if (variants.length <= 1) return; // All identical
+
+      // Find the variant with the most diacritics
+      let best = variants[0];
+      for (const v of variants) {
+        if (countDiacritics(v.original) > countDiacritics(best.original)) {
+          best = v;
+        }
+      }
+
+      // Create corrections for all rows that don't have the best version
+      for (const variant of variants) {
+        if (variant.original === best.original) continue;
+        for (const rowIndex of variant.rows) {
+          errors.push({
+            row: rowIndex + 1,
+            column: field,
+            value: variant.original,
+            message: `Diakritische Korrektur: "${variant.original}" → "${best.original}"`,
+            correctedValue: best.original,
+            severity: 'warning',
+          });
+        }
+      }
+    });
+  }
+
+  return errors;
+}
+
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -364,6 +439,10 @@ export function validateData(
   // Check parent ID consistency
   const parentIdErrors = checkParentIdConsistency(rows);
   errors.push(...parentIdErrors);
+
+  // Check diacritic name inconsistencies and auto-correct
+  const diacriticErrors = checkDiacriticNameInconsistencies(rows);
+  errors.push(...diacriticErrors);
 
   return errors;
 }
