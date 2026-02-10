@@ -76,6 +76,23 @@ export function LPStep3Export({ assignments, onBack, onReset }: LPStep3ExportPro
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Zurück
+        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onReset}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Neuer Import
+          </Button>
+          <Button onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            LP-Zuteilung.xlsx herunterladen
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

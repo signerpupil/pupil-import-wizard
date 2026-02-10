@@ -211,6 +211,18 @@ export function LPStep2Teachers({
       </Card>
 
       {persons.length > 0 && (
+        <>
+        <div className="flex justify-between pt-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Zurück
+          </Button>
+          <Button onClick={onNext} disabled={persons.length === 0}>
+            Weiter
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -308,6 +320,7 @@ export function LPStep2Teachers({
             )}
           </CardContent>
         </Card>
+        </>
       )}
 
       <div className="flex justify-between">

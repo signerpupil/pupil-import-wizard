@@ -171,6 +171,18 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       </Card>
 
       {classData.length > 0 && (
+        <>
+        <div className="flex justify-between pt-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Zurück
+          </Button>
+          <Button onClick={onNext} disabled={classData.length === 0}>
+            Weiter
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -218,6 +230,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       <div className="flex justify-between">

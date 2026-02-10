@@ -324,6 +324,18 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       </Card>
 
       {groups.length > 0 && (
+        <>
+        <div className="flex justify-between pt-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Zurück
+          </Button>
+          <Button onClick={onNext} disabled={groups.length === 0}>
+            Weiter
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -402,6 +414,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       <div className="flex justify-between pt-4">
