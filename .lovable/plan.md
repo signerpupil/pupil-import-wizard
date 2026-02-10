@@ -1,35 +1,67 @@
 
 
-## Problem
+## Neuer Import-Typ: Gruppenzuweisungen
 
-Die Eltern-ID Konsistenzprüfung erkennt den Fall nicht, weil sie **ERZ1 und ERZ2 getrennt prüft**. Wenn dieselbe Person (z.B. "Bolt Nina") in einer Zeile als ERZ1 und in einer anderen als ERZ2 erfasst ist, wird die Inkonsistenz nicht erkannt.
+### Zusammenfassung
 
-Im konkreten Beispiel:
-- Zeile 1: Bolt Nina als **ERZ2** mit ID `399423`
-- Zeile 2: Bolt Nina als **ERZ2** mit ID `399423abc`
+Ein neuer Import-Typ "Gruppenzuweisungen" wird dem Wizard hinzugefuegt. Er hat einen eigenen 3-Schritt-Workflow mit mehreren Eingabequellen und zwei Export-Dateien.
 
-Zusätzlich könnte es auch vorkommen, dass dieselbe Person einmal als ERZ1 und einmal als ERZ2 aufgeführt ist -- auch das wird aktuell nicht erkannt.
+### Ablauf
 
-## Lösung
+```text
+Schritt 0: Typ waehlen --> "Gruppenzuweisungen" auswaehlen
+Schritt 1: Gruppen erfassen (Copy-Paste aus LehrerOffice)
+Schritt 2: Schueler-Zuweisungen (CSV/Excel-Upload + optionaler PUPIL-Schluesselabgleich)
+Schritt 3: Export (Schuljahr/Semester/Schuleinheiten eingeben + zwei Excel-Dateien herunterladen)
+```
 
-Die Konsistenzprüfung wird so erweitert, dass **alle Eltern-Slots (ERZ1 + ERZ2) in einem einzigen, gemeinsamen Pool** verglichen werden. So werden Inkonsistenzen erkannt, egal in welchem Slot die Person steht.
+### Technische Umsetzung
 
-## Technische Umsetzung
+#### 1. Import-Typ erweitern (`src/types/importTypes.ts`)
 
-### 1. `checkParentIdConsistency` in `src/lib/fileParser.ts` anpassen
+- `ImportType` um `'gruppen'` erweitern
+- Neuen `importConfig`-Eintrag fuer "Gruppenzuweisungen" hinzufuegen
 
-Statt zwei separate Durchläufe (einen für ERZ1, einen für ERZ2) wird ein **einziger, slot-übergreifender Pool** für die Matching-Maps (AHV, Name+Strasse, Name) verwendet.
+#### 2. Neue Komponenten
 
-Ablauf:
-- Für jede Zeile werden **beide** ERZ-Slots ausgelesen
-- Jeder gefundene Elternteil wird in die gemeinsamen Maps eingetragen
-- Wenn derselbe Elternteil (via AHV oder Name) mit unterschiedlicher ID gefunden wird, wird ein Fehler generiert -- unabhängig davon, ob er als ERZ1 oder ERZ2 erfasst ist
+**`src/components/import/GroupImportWizard.tsx`**
+- Eigenstaendiger 3-Schritt-Wizard mit eigener Navigation und Progress-Anzeige
+- Verwaltet den gesamten State (Gruppen, Schueler-Zuweisungen, Export-Einstellungen)
 
-### 2. Test erweitern in `src/test/duplicateMerging.test.ts`
+**`src/components/import/groups/GroupStep1Groups.tsx`**
+- Textarea fuer Copy-Paste der LehrerOffice-Gruppendaten (Tab-getrennt)
+- Parser: Header-Zeile erkennen ("Lehrperson 1"), Spaltenindizes dynamisch bestimmen
+- Nur Zeilen mit Status "aktiv" und nicht-automatischer Selektion uebernehmen
+- Schluessel automatisch generieren, falls leer
+- Bearbeitbare Gruppenliste (Name, Schluessel, Lehrpersonen 1-8, Schulfach)
 
-Neuer Testfall: Derselbe Elternteil erscheint in zwei Zeilen in verschiedenen ERZ-Slots (z.B. ERZ1 in Zeile 1, ERZ2 in Zeile 2) mit unterschiedlichen IDs -- muss als Inkonsistenz erkannt werden.
+**`src/components/import/groups/GroupStep2Students.tsx`**
+- CSV/Excel-Upload fuer Schuelerdaten (bestehender fileParser wird wiederverwendet)
+- Spalten auslesen: S_ID, S_Gruppen (komma-/semikolon-getrennt), S_Name, S_Vorname
+- Abgleich: Nur Zuweisungen behalten, deren Gruppenschluessel in den manuellen Gruppen existieren
+- Optional: PUPIL-Schluessel-Mapping-Datei hochladen (LO-ID zu PUPIL-ID) und S_ID ersetzen
 
-### 3. Bestehende Tests beibehalten
+**`src/components/import/groups/GroupStep3Export.tsx`**
+- Eingabefelder fuer Schuljahr, Semester und Schuleinheiten (werden in die Export-Dateien geschrieben)
+- Vorschau der beiden Export-Dateien
+- Export-Button 1: "Gruppen-Importieren.xlsx"
+  - Spalten: Gruppe, Schluessel, Lehrperson 1-8, Schulfach, Schuleinheiten
+- Export-Button 2: "SuS_Gruppen_Import.xlsx"
+  - Spalten: Q_Schuljahr, Q_Semester, S_ID, S_Gruppen, (SuS Name), (Gruppen Name)
+  - Verifikationsspalten (Name, Gruppenname) werden von PUPIL ignoriert
 
-Alle bestehenden Tests für die Konsistenzprüfung bleiben bestehen und müssen weiterhin bestanden werden.
+#### 3. Integration in Step0TypeSelect
+
+- "Gruppenzuweisungen" als neue Kachel anzeigen
+- Aufbereitungsmodus (initial/continued) wird fuer diesen Typ ausgeblendet
+
+#### 4. Integration in Index.tsx
+
+- Wenn `importType === 'gruppen'` und Step 0 abgeschlossen, wird `GroupImportWizard` angezeigt statt des normalen Wizard-Flows
+
+### Nicht betroffen
+
+- Bestehende Wizard-Schritte (Step1-Step4) bleiben unveraendert
+- Validierungslogik, Korrektur-Gedaechtnis und Duplikat-Erkennung sind fuer diesen Typ nicht relevant
+- Bestehende Tests werden nicht veraendert
 
