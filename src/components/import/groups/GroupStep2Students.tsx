@@ -206,6 +206,18 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
       )}
 
       {assignments.length > 0 && (
+        <>
+        <div className="flex justify-between pt-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Zurück
+          </Button>
+          <Button onClick={onNext}>
+            Weiter
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Zuweisungen ({assignments.length})</CardTitle>
@@ -254,6 +266,7 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       <div className="flex justify-between pt-4">
