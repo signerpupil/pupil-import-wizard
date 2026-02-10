@@ -3,7 +3,7 @@ import { WizardHeader } from '@/components/import/WizardHeader';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { WizardSummary } from '@/components/import/WizardSummary';
 import { StepHelpCard } from '@/components/import/StepHelpCard';
-import { OnboardingDialog } from '@/components/import/OnboardingDialog';
+
 import { Step0TypeSelect } from '@/components/import/Step0TypeSelect';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
 import { Step2ColumnCheck } from '@/components/import/Step2ColumnCheck';
@@ -302,8 +302,6 @@ export default function Index() {
     <div className="min-h-screen bg-background flex flex-col">
       <WizardHeader title={getStepTitle()} />
       
-      {/* Onboarding Dialog for first-time users */}
-      <OnboardingDialog />
       
       <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
         {!showSpecialWizard && currentStep >= 1 && (
