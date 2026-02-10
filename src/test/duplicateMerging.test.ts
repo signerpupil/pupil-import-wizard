@@ -101,6 +101,26 @@ describe("Parent ID Consistency Check", () => {
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBe(0);
   });
+
+  it("should detect inconsistent parent IDs when names differ only by diacritics", () => {
+    const rows: ParsedRow[] = [
+      { 
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Juhász", P_ERZ1_Vorname: "Krisztián"
+      },
+      { 
+        S_ID: "2", S_Name: "Müller", S_Vorname: "Anna", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "PARENT-002", P_ERZ1_Name: "Juhasz", P_ERZ1_Vorname: "Krisztian"
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    
+    // "Juhász Krisztián" and "Juhasz Krisztian" should be recognized as the same person
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
+  });
 });
 
 describe("Error Correction Simulation", () => {
