@@ -193,6 +193,31 @@ describe("Parent ID Consistency Check", () => {
     expect(vornameCorrection).toBeDefined();
     expect(vornameCorrection!.correctedValue).toBe("Krisztián");
   });
+
+  it("should auto-correct 'Moos' to 'Môos' (circumflex) and detect ID inconsistency", () => {
+    const rows: ParsedRow[] = [
+      { 
+        S_ID: "9000389", S_Name: "Meier", S_Vorname: "Tanishqa", S_AHV: "756.7279.8570.47",
+        P_ERZ1_ID: "756631abc", P_ERZ1_Name: "Môos", P_ERZ1_Vorname: "Rolf", P_ERZ1_Strasse: "Pupilstr. 43"
+      },
+      { 
+        S_ID: "9000390", S_Name: "Moos", S_Vorname: "Anuar", S_AHV: "756.9842.7430.67",
+        P_ERZ1_ID: "756631", P_ERZ1_Name: "Moos", P_ERZ1_Vorname: "Rolf", P_ERZ1_Strasse: "Pupilstr. 43"
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    
+    // Should detect inconsistent parent ID (756631abc vs 756631)
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    
+    // Should auto-correct "Moos" → "Môos" 
+    const diacriticCorrections = errors.filter(e => e.message.includes("Diakritische Korrektur") && e.column === "P_ERZ1_Name");
+    expect(diacriticCorrections.length).toBe(1);
+    expect(diacriticCorrections[0].correctedValue).toBe("Môos");
+    expect(diacriticCorrections[0].row).toBe(2);
+  });
 });
 
 describe("Error Correction Simulation", () => {
