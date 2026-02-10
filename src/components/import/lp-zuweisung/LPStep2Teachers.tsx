@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -30,10 +30,8 @@ function normalizeName(name: string): string {
 function buildLookupMap(persons: PupilPerson[]): Map<string, PupilPerson> {
   const map = new Map<string, PupilPerson>();
   for (const p of persons) {
-    // "nachname vorname" format
     const key1 = normalizeName(`${p.nachname} ${p.vorname}`);
     map.set(key1, p);
-    // "vorname nachname" format
     const key2 = normalizeName(`${p.vorname} ${p.nachname}`);
     if (!map.has(key2)) map.set(key2, p);
   }
@@ -46,7 +44,6 @@ function matchTeacher(
   manualOverrides: Map<string, string>,
   persons: PupilPerson[]
 ): PupilPerson | null {
-  // Check manual override first
   const override = manualOverrides.get(name);
   if (override) {
     return persons.find(p => p.schluessel === override) || null;
@@ -54,14 +51,11 @@ function matchTeacher(
 
   const normalized = normalizeName(name);
   
-  // Direct lookup
   const direct = lookupMap.get(normalized);
   if (direct) return direct;
 
-  // Try splitting and reversing the name
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
-    // Try "last first" -> "first last" 
     const reversed = normalizeName(`${parts[parts.length - 1]} ${parts.slice(0, -1).join(' ')}`);
     const rev = lookupMap.get(reversed);
     if (rev) return rev;
@@ -78,7 +72,6 @@ export function LPStep2Teachers({
   const [error, setError] = useState<string | null>(null);
   const [manualOverrides, setManualOverrides] = useState<Map<string, string>>(new Map());
 
-  // Get unique teacher names from class data
   const uniqueTeacherNames = useMemo(() => {
     const names = new Set<string>();
     classData.forEach(cd => cd.teachers.forEach(t => names.add(t.name)));
@@ -87,7 +80,6 @@ export function LPStep2Teachers({
 
   const lookupMap = useMemo(() => buildLookupMap(persons), [persons]);
 
-  // Match results
   const matchResults = useMemo(() => {
     return uniqueTeacherNames.map(name => ({
       name,
@@ -98,7 +90,6 @@ export function LPStep2Teachers({
   const matched = matchResults.filter(r => r.person);
   const unmatched = matchResults.filter(r => !r.person);
 
-  // Build assignments whenever matches change
   useEffect(() => {
     if (persons.length === 0) return;
     
@@ -175,16 +166,20 @@ export function LPStep2Teachers({
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Personen-PUPIL Datei hochladen
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Personen-PUPIL Datei hochladen</CardTitle>
+              <CardDescription>Excel/CSV mit Nachname, Vorname, Schlüssel</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Laden Sie die Personen-PUPIL-Datei hoch (Excel/CSV mit Nachname, Vorname, Schlüssel).
             Die LP-Namen aus Schritt 1 werden automatisch mit den PUPIL-Schlüsseln abgeglichen.
           </p>
           <div className="flex items-center gap-4">
@@ -192,11 +187,11 @@ export function LPStep2Teachers({
               type="file"
               accept=".csv,.xlsx,.xls"
               onChange={handleFileUpload}
-              className="block text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              className="block text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:shadow-sm file:cursor-pointer"
               disabled={isLoading}
             />
             {persons.length > 0 && (
-              <Badge variant="secondary">
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-0">
                 <Users className="h-3 w-3 mr-1" />
                 {persons.length} Personen geladen
               </Badge>
@@ -213,11 +208,11 @@ export function LPStep2Teachers({
       {persons.length > 0 && (
         <>
         <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} className="shadow-sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Zurück
           </Button>
-          <Button onClick={onNext} disabled={persons.length === 0}>
+          <Button onClick={onNext} disabled={persons.length === 0} className="shadow-sm">
             Weiter
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -225,19 +220,23 @@ export function LPStep2Teachers({
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5" />
-              Zuordnungsergebnisse
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Zuordnungsergebnisse</CardTitle>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <div className="flex gap-3">
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-0">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 {matched.length} zugeordnet
               </Badge>
               {unmatched.length > 0 && (
-                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10 border-0">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {unmatched.length} nicht zugeordnet
                 </Badge>
@@ -245,9 +244,9 @@ export function LPStep2Teachers({
             </div>
 
             {unmatched.length > 0 && (
-              <div className="border rounded-lg">
-                <div className="p-3 bg-amber-50 border-b">
-                  <p className="text-sm font-medium text-amber-800">
+              <div className="border rounded-xl overflow-hidden">
+                <div className="p-3 bg-destructive/[0.03] border-b">
+                  <p className="text-sm font-medium">
                     Folgende Lehrpersonen konnten nicht automatisch zugeordnet werden:
                   </p>
                 </div>
@@ -255,8 +254,8 @@ export function LPStep2Teachers({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>LP Name (aus LO)</TableHead>
-                        <TableHead>Manuelle Zuordnung</TableHead>
+                        <TableHead className="bg-muted/50">LP Name (aus LO)</TableHead>
+                        <TableHead className="bg-muted/50">Manuelle Zuordnung</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -271,7 +270,7 @@ export function LPStep2Teachers({
                               <SelectTrigger className="w-[280px]">
                                 <SelectValue placeholder="Person auswählen..." />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-popover z-50">
                                 <SelectItem value="__none__">— Nicht zuordnen —</SelectItem>
                                 {persons.map((p) => (
                                   <SelectItem key={p.schluessel} value={p.schluessel}>
@@ -290,17 +289,17 @@ export function LPStep2Teachers({
             )}
 
             {matched.length > 0 && (
-              <details className="border rounded-lg">
-                <summary className="p-3 cursor-pointer text-sm font-medium text-green-800 bg-green-50 hover:bg-green-100 rounded-t-lg">
+              <details className="border rounded-xl overflow-hidden">
+                <summary className="p-3 cursor-pointer text-sm font-medium bg-primary/[0.03] hover:bg-primary/[0.05] transition-colors">
                   Erfolgreich zugeordnete Lehrpersonen anzeigen ({matched.length})
                 </summary>
                 <div className="max-h-[300px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>LP Name (aus LO)</TableHead>
-                        <TableHead>PUPIL-Schlüssel</TableHead>
-                        <TableHead>Name (PUPIL)</TableHead>
+                        <TableHead className="bg-muted/50">LP Name (aus LO)</TableHead>
+                        <TableHead className="bg-muted/50">PUPIL-Schlüssel</TableHead>
+                        <TableHead className="bg-muted/50">Name (PUPIL)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -324,11 +323,11 @@ export function LPStep2Teachers({
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={onBack} className="shadow-sm">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Zurück
         </Button>
-        <Button onClick={onNext} disabled={persons.length === 0}>
+        <Button onClick={onNext} disabled={persons.length === 0} className="shadow-sm">
           Weiter
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

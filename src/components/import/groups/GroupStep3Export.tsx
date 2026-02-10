@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Download, RotateCcw, Info } from 'lucide-react';
+import { ArrowLeft, Download, RotateCcw, Info, Settings, FileSpreadsheet } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { GroupData, StudentGroupAssignment } from '@/types/importTypes';
@@ -29,7 +29,6 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
 
   const groupKeyToName = new Map(groups.map(g => [g.schluessel, g.name]));
 
-  // Flatten: one row per student per group
   const flatAssignments = assignments.flatMap(a =>
     a.gruppenKeys.map(key => ({
       sId: a.sId,
@@ -60,7 +59,6 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
         { header: 'Schuleinheiten', key: 'schuleinheiten', width: 20 },
       ];
 
-      // Style header row
       const headerRow = ws.getRow(1);
       headerRow.font = { bold: true };
       headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FE' } };
@@ -129,96 +127,93 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
 
   return (
     <div className="space-y-6">
-      <Alert className="border-primary/30 bg-primary/5">
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Geben Sie Schuljahr, Semester und Schuleinheiten ein. Diese Werte werden in die Export-Dateien geschrieben.
-          Die Spalten <code>(SuS Name)</code> und <code>(Gruppen Name)</code> dienen nur zur Verifikation und werden von PUPIL ignoriert.
+      <Alert className="border-primary/20 bg-primary/[0.03]">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          Geben Sie Schuljahr, Semester und Schuleinheiten ein. Die Spalten <code className="bg-muted px-1 rounded text-xs">(SuS Name)</code> und <code className="bg-muted px-1 rounded text-xs">(Gruppen Name)</code> dienen nur zur Verifikation.
         </AlertDescription>
       </Alert>
 
       {/* Settings */}
-      <Card>
+      <Card className="transition-all duration-200 hover:shadow-md">
         <CardHeader>
-          <CardTitle>Einstellungen</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Settings className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Einstellungen</CardTitle>
+              <CardDescription>Metadaten für die Export-Dateien</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="schuljahr">Schuljahr</Label>
-              <Input
-                id="schuljahr"
-                placeholder="z.B. 2025/26"
-                value={schuljahr}
-                onChange={(e) => setSchuljahr(e.target.value)}
-              />
+              <Input id="schuljahr" placeholder="z.B. 2025/26" value={schuljahr} onChange={(e) => setSchuljahr(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="semester">Semester</Label>
-              <Input
-                id="semester"
-                placeholder="z.B. 1"
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-              />
+              <Input id="semester" placeholder="z.B. 1" value={semester} onChange={(e) => setSemester(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="schuleinheiten">Schuleinheiten</Label>
-              <Input
-                id="schuleinheiten"
-                placeholder="z.B. Schuleinheit A"
-                value={schuleinheiten}
-                onChange={(e) => setSchuleinheiten(e.target.value)}
-              />
+              <Input id="schuleinheiten" placeholder="z.B. Schuleinheit A" value={schuleinheiten} onChange={(e) => setSchuleinheiten(e.target.value)} />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={onBack} className="shadow-sm">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Zurück
         </Button>
-        <Button variant="outline" onClick={onReset}>
+        <Button variant="outline" onClick={onReset} className="shadow-sm">
           <RotateCcw className="mr-2 h-4 w-4" />
           Neuer Import
         </Button>
       </div>
 
       {/* Preview & Export: Groups */}
-      <Card>
+      <Card className="transition-all duration-200">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Gruppen-Importieren.xlsx
-                <Badge variant="secondary">{groups.length} Gruppen</Badge>
-              </CardTitle>
-              <CardDescription>Erstellt die Gruppen in PUPIL</CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  Gruppen-Importieren.xlsx
+                  <Badge variant="secondary">{groups.length} Gruppen</Badge>
+                </CardTitle>
+                <CardDescription>Erstellt die Gruppen in PUPIL</CardDescription>
+              </div>
             </div>
-            <Button onClick={handleExportGroups} disabled={groups.length === 0}>
+            <Button onClick={handleExportGroups} disabled={groups.length === 0} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto max-h-[250px] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[250px] overflow-y-auto border rounded-xl">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Gruppe</TableHead>
-                  <TableHead>Schlüssel</TableHead>
-                  <TableHead>LP 1</TableHead>
-                  <TableHead>Schulfach</TableHead>
-                  <TableHead>Schuleinheiten</TableHead>
+                  <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Gruppe</TableHead>
+                  <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Schlüssel</TableHead>
+                  <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">LP 1</TableHead>
+                  <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Schulfach</TableHead>
+                  <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Schuleinheiten</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groups.map((g, i) => (
                   <TableRow key={i}>
-                    <TableCell>{g.name}</TableCell>
+                    <TableCell className="font-medium">{g.name}</TableCell>
                     <TableCell className="font-mono text-xs">{g.schluessel}</TableCell>
                     <TableCell>{g.lehrpersonen[0]}</TableCell>
                     <TableCell>{g.schulfach}</TableCell>
@@ -232,17 +227,22 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
       </Card>
 
       {/* Preview & Export: Assignments */}
-      <Card>
+      <Card className="transition-all duration-200">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                SuS_Gruppen_Import.xlsx
-                <Badge variant="secondary">{flatAssignments.length} Zuweisungen</Badge>
-              </CardTitle>
-              <CardDescription>Weist die Schüler den Gruppen zu</CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  SuS_Gruppen_Import.xlsx
+                  <Badge variant="secondary">{flatAssignments.length} Zuweisungen</Badge>
+                </CardTitle>
+                <CardDescription>Weist die Schüler den Gruppen zu</CardDescription>
+              </div>
             </div>
-            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0}>
+            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
@@ -250,16 +250,16 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
         </CardHeader>
         <CardContent>
           {flatAssignments.length > 0 ? (
-            <div className="overflow-x-auto max-h-[250px] overflow-y-auto">
+            <div className="overflow-x-auto max-h-[250px] overflow-y-auto border rounded-xl">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Q_Schuljahr</TableHead>
-                    <TableHead>Q_Semester</TableHead>
-                    <TableHead>S_ID</TableHead>
-                    <TableHead>S_Gruppen</TableHead>
-                    <TableHead>(SuS Name)</TableHead>
-                    <TableHead>(Gruppen Name)</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Q_Schuljahr</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">Q_Semester</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">S_ID</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">S_Gruppen</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">(SuS Name)</TableHead>
+                    <TableHead className="sticky top-0 bg-muted/50 backdrop-blur-sm">(Gruppen Name)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -276,7 +276,7 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
                 </TableBody>
               </Table>
               {flatAssignments.length > 50 && (
-                <p className="text-sm text-muted-foreground mt-2 text-center">
+                <p className="text-sm text-muted-foreground mt-2 text-center py-2">
                   ... und {flatAssignments.length - 50} weitere Zuweisungen
                 </p>
               )}
@@ -288,11 +288,11 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
       </Card>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={onBack} className="shadow-sm">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Zurück
         </Button>
-        <Button variant="outline" onClick={onReset}>
+        <Button variant="outline" onClick={onReset} className="shadow-sm">
           <RotateCcw className="mr-2 h-4 w-4" />
           Neuer Import
         </Button>
