@@ -1,7 +1,7 @@
 // Import Types & Field Definitions for PUPIL Import Wizard
 // Spalten werden NICHT umbenannt - nur validiert
 
-export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen';
+export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen' | 'lp-zuweisung';
 export type FoerderplanerSubType = 'diagnostik' | 'foerderplanung' | 'lernberichte';
 
 export interface ColumnDefinition {
@@ -226,6 +226,25 @@ export const lernberichteColumns: ColumnDefinition[] = [
   { name: 'Lernfortschritte', required: false, category: 'Lernbericht' },
 ];
 
+// LP-Klassenzuweisungen Typen
+export interface TeacherAssignment {
+  klasse: string;
+  lpName: string;
+  rolle: string;
+  lpSchluessel: string;
+}
+
+export interface PupilPerson {
+  nachname: string;
+  vorname: string;
+  schluessel: string;
+}
+
+export interface ClassTeacherData {
+  klasse: string;
+  teachers: { name: string; rolle: string }[];
+}
+
 // Gruppen-Import Typen
 export interface GroupData {
   name: string;
@@ -292,6 +311,13 @@ export const importConfigs: ImportConfig[] = [
     name: 'Gruppenzuweisungen',
     description: 'Manuelle Gruppen und Schüler-Zuweisungen für PUPIL importieren',
     icon: 'FolderOpen',
+    columns: [],
+  },
+  {
+    type: 'lp-zuweisung',
+    name: 'LP-Klassenzuweisungen',
+    description: 'Lehrpersonen-Zuweisungen für Fächer der Stundentafel erstellen',
+    icon: 'ClipboardList',
     columns: [],
   },
 ];
