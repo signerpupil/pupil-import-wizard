@@ -21,7 +21,7 @@ export default function Documentation() {
 
   const sections = [
     { id: 'overview', label: 'Übersicht', icon: BookOpen },
-    { id: 'schueler', label: 'Schülerdaten', icon: Users },
+    { id: 'schueler', label: 'Stammdaten', icon: Users },
     { id: 'gruppen', label: 'Gruppenzuweisungen', icon: FolderOpen },
     { id: 'lp', label: 'LP-Zuweisungen', icon: ClipboardList },
     { id: 'korrektur', label: 'Korrektur-Gedächtnis', icon: RefreshCw },
@@ -31,7 +31,7 @@ export default function Documentation() {
   const faqItems = [
     {
       q: 'Welche Dateiformate werden unterstützt?',
-      a: 'Für den Schülerdaten-Import werden CSV- und Excel-Dateien (.xlsx, .xls) unterstützt. Für den Gruppen- und LP-Import werden die Daten per Copy-Paste aus LehrerOffice eingefügt.',
+      a: 'Für den Stammdaten-Import werden CSV- und Excel-Dateien (.xlsx, .xls) unterstützt. Für den Gruppen- und LP-Import werden die Daten per Copy-Paste aus LehrerOffice eingefügt.',
     },
     {
       q: 'Werden meine Daten auf einem Server gespeichert?',
@@ -43,11 +43,11 @@ export default function Documentation() {
     },
     {
       q: 'Kann ich Korrekturen für zukünftige Importe speichern?',
-      a: 'Ja! Im Schritt 4 (Export) können Sie Ihre Korrekturen als "Korrektur-Gedächtnis" speichern – entweder lokal im Browser oder als JSON-Datei zum Teilen mit Kolleg:innen. Beim nächsten Import wählen Sie "Weitere Datenaufbereitung" und die bekannten Fehler werden automatisch korrigiert.',
+      a: 'Ja – aber nur beim Stammdaten-Import! Im Schritt 4 (Export) können Sie Ihre Korrekturen als "Korrektur-Gedächtnis" speichern – entweder lokal im Browser oder als JSON-Datei zum Teilen mit Kolleg:innen. Beim nächsten Stammdaten-Import wählen Sie "Weitere Datenaufbereitung" und die bekannten Fehler werden automatisch korrigiert. Für Gruppenzuweisungen und LP-Zuweisungen steht das Korrektur-Gedächtnis nicht zur Verfügung.',
     },
     {
       q: 'Was ist der Unterschied zwischen "Erste" und "Weitere Datenaufbereitung"?',
-      a: '"Erste Datenaufbereitung" ist für den erstmaligen Import ohne vorherige Korrekturen. "Weitere Datenaufbereitung" nutzt gespeicherte Korrekturregeln, um bekannte Fehler automatisch zu beheben – ideal für wiederkehrende Semester-Importe.',
+      a: '"Erste Datenaufbereitung" ist für den erstmaligen Stammdaten-Import ohne vorherige Korrekturen. "Weitere Datenaufbereitung" nutzt gespeicherte Korrekturregeln, um bekannte Fehler automatisch zu beheben – ideal für wiederkehrende Semester-Importe. Diese Auswahl gibt es nur beim Stammdaten-Import.',
     },
     {
       q: 'Wie funktioniert der Fächer-Abgleich bei Gruppen?',
@@ -150,14 +150,18 @@ export default function Documentation() {
                   Der PUPIL Import Wizard hilft Ihnen, Daten aus <strong>LehrerOffice</strong> für den Import nach <strong>PUPIL</strong> aufzubereiten.
                   Der gesamte Prozess läuft lokal in Ihrem Browser ab – Ihre Daten verlassen niemals Ihren Computer.
                 </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Der Wizard bietet <strong>drei verschiedene Import-Typen</strong>, die jeweils einen eigenständigen Ablauf haben:
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card className="bg-muted/30 border-0">
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-3 mb-2">
                         <Users className="h-5 w-5 text-primary" />
-                        <h4 className="font-semibold text-sm">Schülerdaten</h4>
+                        <h4 className="font-semibold text-sm">Stammdaten</h4>
                       </div>
                       <p className="text-xs text-muted-foreground">Schüler, Klassen, Lehrpersonen und Erziehungsberechtigte validieren und exportieren.</p>
+                      <Badge variant="outline" className="mt-2 text-xs text-primary border-primary/30">Korrektur-Gedächtnis verfügbar</Badge>
                     </CardContent>
                   </Card>
                   <Card className="bg-muted/30 border-0">
@@ -220,7 +224,7 @@ export default function Documentation() {
           </div>
         )}
 
-        {/* Schülerdaten Section */}
+        {/* Stammdaten Section */}
         {activeSection === 'schueler' && (
           <div className="space-y-6">
             <Card>
@@ -230,8 +234,8 @@ export default function Documentation() {
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Schülerdaten importieren</CardTitle>
-                    <CardDescription>Kompletter Leitfaden für den SuS-Import</CardDescription>
+                    <CardTitle className="text-lg">Stammdaten importieren</CardTitle>
+                    <CardDescription>Kompletter Leitfaden für den SuS-Import (CSV/Excel)</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -491,6 +495,18 @@ export default function Documentation() {
                   und bei zukünftigen Importen automatisch anzuwenden. Das ist besonders nützlich bei wiederkehrenden
                   Semester-Importen, bei denen dieselben Fehler auftreten.
                 </p>
+
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <h5 className="font-semibold text-sm text-destructive">Nur für Stammdaten verfügbar</h5>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Das Korrektur-Gedächtnis ist ausschliesslich beim <strong>Stammdaten-Import</strong> verfügbar.
+                      Für Gruppenzuweisungen und LP-Klassenzuweisungen wird kein Korrektur-Gedächtnis benötigt,
+                      da diese per Copy-Paste erfasst werden und keine Validierungsschleife durchlaufen.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="bg-muted/30 border-0">

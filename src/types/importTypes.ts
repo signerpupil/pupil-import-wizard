@@ -287,7 +287,7 @@ export function getColumnsByType(type: ImportType, subType?: FoerderplanerSubTyp
 export const importConfigs: ImportConfig[] = [
   {
     type: 'schueler',
-    name: 'Schülerdaten',
+    name: 'Stammdaten',
     description: 'Schüler, Klassen, Lehrpersonen und Erziehungsberechtigte importieren',
     icon: 'Users',
     columns: schuelerColumns,
