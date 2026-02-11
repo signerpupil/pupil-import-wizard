@@ -266,16 +266,96 @@ export default function Documentation() {
 
                   <h4 className="font-semibold flex items-center gap-2 pt-2">
                     <AlertTriangle className="h-4 w-4 text-primary" />
-                    Validierungen
+                    Alle Validierungsregeln
                   </h4>
-                  <div className="bg-muted/30 rounded-xl p-4">
+
+                  {/* 1. Feldformat-Validierungen */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">1. Feldformat-Validierungen</h5>
+                    <p className="text-xs text-muted-foreground">Jedes Feld wird anhand seines Datentyps geprüft. Ungültige Werte werden als Fehler markiert.</p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li><strong>AHV-Nummer:</strong> Format 756.XXXX.XXXX.XX mit Prüfziffer</li>
-                      <li><strong>Datum:</strong> Akzeptiert DD.MM.YYYY, YYYY-MM-DD und weitere Formate</li>
-                      <li><strong>Geschlecht:</strong> M, W, m, w, männlich, weiblich</li>
-                      <li><strong>PLZ:</strong> 4-stellige Schweizer Postleitzahl</li>
-                      <li><strong>E-Mail:</strong> Gültiges E-Mail-Format</li>
-                      <li><strong>Telefon:</strong> Gängige CH-Telefonformate</li>
+                      <li><strong>AHV-Nummer:</strong> Muss dem Format <code className="bg-muted px-1 rounded text-xs">756.XXXX.XXXX.XX</code> entsprechen (13 Ziffern, beginnend mit 756).</li>
+                      <li><strong>Datum:</strong> Akzeptiert <code className="bg-muted px-1 rounded text-xs">DD.MM.YYYY</code>, <code className="bg-muted px-1 rounded text-xs">YYYY-MM-DD</code>, <code className="bg-muted px-1 rounded text-xs">DD/MM/YYYY</code> sowie Excel-Seriennummern.</li>
+                      <li><strong>Geschlecht:</strong> Gültige Werte: M, W, D (sowie Varianten wie männlich, weiblich, divers, male, female).</li>
+                      <li><strong>PLZ:</strong> 4–5 Ziffern (CH: 4, DE/AT: 5).</li>
+                      <li><strong>E-Mail:</strong> Standard-E-Mail-Format (mindestens <code className="bg-muted px-1 rounded text-xs">x@x.x</code>).</li>
+                      <li><strong>Telefon:</strong> Internationale und nationale Formate: <code className="bg-muted px-1 rounded text-xs">+41...</code>, <code className="bg-muted px-1 rounded text-xs">0041...</code>, <code className="bg-muted px-1 rounded text-xs">07X...</code> (7–15 Ziffern).</li>
+                      <li><strong>Zahl:</strong> Muss ein gültiger numerischer Wert sein.</li>
+                    </ul>
+                  </div>
+
+                  {/* 2. Pflichtfeld-Prüfung */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">2. Pflichtfeld-Prüfung</h5>
+                    <p className="text-xs text-muted-foreground">Felder, die als Pflichtfeld definiert sind, dürfen nicht leer sein. Leere Pflichtfelder werden als Fehler gemeldet.</p>
+                  </div>
+
+                  {/* 3. Duplikat-Prüfung */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">3. Duplikat-Erkennung</h5>
+                    <p className="text-xs text-muted-foreground">Folgende Felder werden auf doppelte Werte geprüft:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['S_AHV', 'S_ID', 'L_KL1_AHV'].map(f => (
+                        <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Duplikate werden als Fehler markiert und zeigen die erste Zeile an, in der der Wert vorkommt.</p>
+                  </div>
+
+                  {/* 4. Eltern-ID Konsistenz */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">4. Eltern-ID Konsolidierung</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Prüft, ob dasselbe Elternteil in verschiedenen Zeilen (ERZ1/ERZ2) dieselbe ID hat. Verwendet drei Erkennungsstrategien mit abnehmender Zuverlässigkeit:
+                    </p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>
+                        <strong>AHV-Nummer</strong> <Badge variant="default" className="ml-1 text-[10px] py-0">Hohe Zuverlässigkeit</Badge>
+                        <br /><span className="text-xs">Gleiche AHV-Nummer → gleiche Person. Fehler, wenn IDs abweichen.</span>
+                      </li>
+                      <li>
+                        <strong>Name + Vorname + Strasse</strong> <Badge variant="secondary" className="ml-1 text-[10px] py-0">Mittlere Zuverlässigkeit</Badge>
+                        <br /><span className="text-xs">Gleicher Name an gleicher Adresse. ⚠ Vater und Sohn mit gleichem Namen möglich.</span>
+                      </li>
+                      <li>
+                        <strong>Name + Vorname (Elternpaar)</strong> <Badge variant="outline" className="ml-1 text-[10px] py-0">Tiefe Zuverlässigkeit</Badge>
+                        <br /><span className="text-xs">Wird nur ausgelöst, wenn <em>beide</em> Elternteile (ERZ1 + ERZ2) namentlich übereinstimmen. Wird als Warnung (nicht Fehler) angezeigt.</span>
+                      </li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground">Bereits durch eine zuverlässigere Strategie erkannte Konflikte werden nicht doppelt gemeldet. Diakritische Unterschiede (z.B. ü vs. ue) werden normalisiert.</p>
+                  </div>
+
+                  {/* 5. Diakritische Korrektur */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">5. Diakritische Namenskorrektur</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Wenn derselbe Name in verschiedenen Schreibweisen vorkommt (z.B. «Müller» vs. «Muller»), wird automatisch die Version mit mehr diakritischen Zeichen gewählt.
+                    </p>
+                    <p className="text-xs text-muted-foreground">Betrifft die Felder:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['S_Name', 'S_Vorname', 'P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ2_Name', 'P_ERZ2_Vorname', 'L_KL1_Name', 'L_KL1_Vorname'].map(f => (
+                        <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Korrekturvorschläge werden als Warnung angezeigt und automatisch angewendet.</p>
+                  </div>
+
+                  {/* 6. Automatische Korrekturen */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">6. Automatische Sammelkorrekturen</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Der Wizard erkennt Fehlermuster und bietet Sammelkorrekturen an. Folgende Korrekturen sind verfügbar:
+                    </p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li><strong>AHV-Format:</strong> Rohe Ziffernfolgen (756...) werden zu <code className="bg-muted px-1 rounded text-xs">756.XXXX.XXXX.XX</code> formatiert.</li>
+                      <li><strong>Telefon-Format:</strong> Verschiedene Eingabeformate werden zu <code className="bg-muted px-1 rounded text-xs">+41 XX XXX XX XX</code> normalisiert.</li>
+                      <li><strong>E-Mail-Bereinigung:</strong> Leerzeichen, Tippfehler (gmial→gmail), doppelte Punkte und Umlaute werden korrigiert.</li>
+                      <li><strong>PLZ-Format:</strong> Nicht-numerische Zeichen werden entfernt.</li>
+                      <li><strong>Geschlecht-Normalisierung:</strong> Varianten wie «männlich», «male», «Herr» werden zu M/W/D vereinheitlicht.</li>
+                      <li><strong>Namen-Kapitalisierung:</strong> GROSSBUCHSTABEN oder kleinbuchstaben werden korrekt kapitalisiert (inkl. Bindestriche).</li>
+                      <li><strong>Strassen-Format:</strong> Grossschreibung korrigiert, Abkürzungen wie «Str.» aufgelöst.</li>
+                      <li><strong>IBAN-Format:</strong> Wird zu <code className="bg-muted px-1 rounded text-xs">CHXX XXXX XXXX XXXX XXXX X</code> formatiert.</li>
+                      <li><strong>Excel-Datum:</strong> Excel-Seriennummern werden zu <code className="bg-muted px-1 rounded text-xs">DD.MM.YYYY</code> konvertiert.</li>
                     </ul>
                   </div>
 
