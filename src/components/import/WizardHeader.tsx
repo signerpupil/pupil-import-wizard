@@ -1,5 +1,3 @@
-import pupilLogo from '@/assets/pupil-logo.png';
-
 interface WizardHeaderProps {
   title?: string;
 }
@@ -7,13 +5,6 @@ interface WizardHeaderProps {
 export function WizardHeader({ title = 'Import Wizard' }: WizardHeaderProps) {
   return (
     <>
-      {/* Top dark bar with PUPIL logo */}
-      <header className="bg-[#3D3F45] h-[41px]">
-        <div className="container mx-auto px-5 h-full flex items-center">
-          <img src={pupilLogo} alt="PUPIL" className="h-[30px]" />
-        </div>
-      </header>
-
       {/* Teal title bar with repeating pattern */}
       <div 
         className="h-[63px] relative"
