@@ -17,9 +17,6 @@ export function Footer() {
               Hilfe & FAQ
             </button>
           </div>
-          <div className="text-xs text-muted-foreground/70 text-center sm:text-right">
-            © {new Date().getFullYear()} PUPIL
-          </div>
         </div>
       </div>
     </footer>
