@@ -313,8 +313,52 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string };
   const parentMapByAhv = new Map<string, ParentEntry>();
   const parentMapByNameStrasse = new Map<string, ParentEntry>();
-  const parentMapByNameOnly = new Map<string, ParentEntry>();
 
+  const addError = (
+    map: Map<string, ParentEntry>,
+    key: string,
+    displayIdentifier: string,
+    strategy: MatchStrategy,
+    id: string,
+    rowIndex: number,
+    idField: string,
+    label: string
+  ) => {
+    const existing = map.get(key);
+    
+    if (existing) {
+      if (existing.id !== id) {
+        const errorKey = `${rowIndex + 1}:${idField}:${displayIdentifier}`;
+        const rowFieldKey = `${rowIndex + 1}:${idField}`;
+        
+        // Skip if already reported by a more reliable strategy
+        if (resolvedByHigherStrategy.has(rowFieldKey)) return;
+        
+        if (!errorSet.has(errorKey)) {
+          errorSet.add(errorKey);
+          
+          if (strategy === 'ahv') {
+            resolvedByHigherStrategy.add(rowFieldKey);
+          }
+          
+          const strategyInfo = STRATEGY_LABELS[strategy];
+          const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
+          
+          errors.push({
+            row: rowIndex + 1,
+            column: idField,
+            value: id,
+            message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+            severity: strategy === 'name_only' ? 'warning' : undefined,
+          });
+        }
+      }
+    } else {
+      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label });
+    }
+  };
+
+  // Pass 1: AHV and Name+Strasse strategies (per ERZ slot)
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex];
 
@@ -328,62 +372,88 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       if (!id) continue;
       if (!ahv && (!name || !vorname)) continue;
 
-      const addError = (
-        map: Map<string, ParentEntry>,
-        key: string,
-        displayIdentifier: string,
-        strategy: MatchStrategy
-      ) => {
-        const existing = map.get(key);
-        
-        if (existing) {
-          if (existing.id !== id) {
-            const errorKey = `${rowIndex + 1}:${check.idField}:${displayIdentifier}`;
-            const rowFieldKey = `${rowIndex + 1}:${check.idField}`;
-            
-            // Skip if already reported by a more reliable strategy
-            if (resolvedByHigherStrategy.has(rowFieldKey)) return;
-            
-            if (!errorSet.has(errorKey)) {
-              errorSet.add(errorKey);
-              
-              if (strategy === 'ahv') {
-                resolvedByHigherStrategy.add(rowFieldKey);
-              }
-              
-              const strategyInfo = STRATEGY_LABELS[strategy];
-              const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
-              
-              errors.push({
-                row: rowIndex + 1,
-                column: check.idField,
-                value: id,
-                message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${check.label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
-                severity: strategy === 'name_only' ? 'warning' : undefined,
-              });
-            }
-          }
-        } else {
-          map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: check.label });
-        }
-      };
-
       // Strategy 1: AHV (most reliable)
       if (ahv) {
-        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv');
+        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv', id, rowIndex, check.idField, check.label);
       }
 
       // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
       if (name && vorname && strasse) {
         const key = `NAME_STRASSE:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}|${normalizeForComparison(strasse)}`;
-        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse');
+        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse', id, rowIndex, check.idField, check.label);
       }
+    }
+  }
 
-      // Strategy 3: Name + Vorname only (with diacritic normalization)
-      if (name && vorname) {
-        const key = `NAME:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}`;
-        addError(parentMapByNameOnly, key, `${vorname} ${name}`, 'name_only');
+  // Pass 2: Name-only strategy – requires BOTH ERZ1 and ERZ2 names to match between rows
+  // This reduces false positives from common names by requiring the full parent pair to match.
+  type NameOnlyEntry = {
+    erz1Id: string; erz2Id: string;
+    firstRow: number;
+    erz1Name: string; erz2Name: string;
+  };
+  const parentPairMap = new Map<string, NameOnlyEntry>();
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    const erz1 = PARENT_CONSISTENCY_CHECKS[0];
+    const erz2 = PARENT_CONSISTENCY_CHECKS[1];
+
+    const erz1Id = String(row[erz1.idField] ?? '').trim();
+    const erz1Name = String(row[erz1.nameField] ?? '').trim();
+    const erz1Vorname = String(row[erz1.vornameField] ?? '').trim();
+    const erz2Id = String(row[erz2.idField] ?? '').trim();
+    const erz2Name = String(row[erz2.nameField] ?? '').trim();
+    const erz2Vorname = String(row[erz2.vornameField] ?? '').trim();
+
+    // Both ERZ slots must have name+vorname and an ID
+    if (!erz1Id || !erz1Name || !erz1Vorname) continue;
+    if (!erz2Id || !erz2Name || !erz2Vorname) continue;
+
+    // Build composite key from both parents' names (sorted to handle ERZ1/ERZ2 swaps)
+    const pairA = `${normalizeForComparison(erz1Name)}|${normalizeForComparison(erz1Vorname)}`;
+    const pairB = `${normalizeForComparison(erz2Name)}|${normalizeForComparison(erz2Vorname)}`;
+    const sortedPairs = [pairA, pairB].sort();
+    const compositeKey = `PAIR:${sortedPairs[0]}||${sortedPairs[1]}`;
+
+    const displayName = `${erz1Vorname} ${erz1Name} & ${erz2Vorname} ${erz2Name}`;
+    const existing = parentPairMap.get(compositeKey);
+
+    if (existing) {
+      // Check ERZ1 ID consistency
+      for (const [currentId, field, label, existingId] of [
+        [erz1Id, erz1.idField, erz1.label, existing.erz1Id],
+        [erz2Id, erz2.idField, erz2.label, existing.erz2Id],
+      ] as [string, string, string, string][]) {
+        // Match IDs considering ERZ1/ERZ2 swap
+        const matchesErz1 = currentId === existing.erz1Id;
+        const matchesErz2 = currentId === existing.erz2Id;
+        if (!matchesErz1 && !matchesErz2 && currentId !== existingId) {
+          const rowFieldKey = `${rowIndex + 1}:${field}`;
+          if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
+
+          const errorKey = `${rowIndex + 1}:${field}:${displayName}`;
+          if (!errorSet.has(errorKey)) {
+            errorSet.add(errorKey);
+            const strategyInfo = STRATEGY_LABELS['name_only'];
+            const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
+            errors.push({
+              row: rowIndex + 1,
+              column: field,
+              value: currentId,
+              message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+              severity: 'warning',
+            });
+          }
+        }
       }
+    } else {
+      parentPairMap.set(compositeKey, {
+        erz1Id, erz2Id,
+        firstRow: rowIndex + 1,
+        erz1Name: `${erz1Vorname} ${erz1Name}`,
+        erz2Name: `${erz2Vorname} ${erz2Name}`,
+      });
     }
   }
 
