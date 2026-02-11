@@ -284,14 +284,36 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
 
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 // Uses a UNIFIED pool across ERZ1 and ERZ2 so cross-slot inconsistencies are detected
+type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only';
+
+const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: string; warning?: string }> = {
+  ahv: {
+    label: 'AHV-Nummer',
+    reliability: 'Hohe Zuverlässigkeit',
+  },
+  name_strasse: {
+    label: 'Name + Vorname + Strasse',
+    reliability: 'Mittlere Zuverlässigkeit',
+    warning: '⚠ Namensgleichheit an derselben Adresse kann auf verschiedene Personen zutreffen (z.B. Vater und Sohn).',
+  },
+  name_only: {
+    label: 'Name + Vorname',
+    reliability: 'Tiefe Zuverlässigkeit',
+    warning: '⚠ Nur Name und Vorname stimmen überein – gleichnamige, aber verschiedene Personen sind möglich. Bitte manuell prüfen!',
+  },
+};
+
 function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
   const errorSet = new Set<string>(); // Avoid duplicate error messages
+  // Track which row+field combos were already matched by a higher-reliability strategy
+  const resolvedByHigherStrategy = new Set<string>();
 
   // Single unified pool across all ERZ slots
-  const parentMapByAhv = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
-  const parentMapByNameStrasse = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
-  const parentMapByNameOnly = new Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>();
+  type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string };
+  const parentMapByAhv = new Map<string, ParentEntry>();
+  const parentMapByNameStrasse = new Map<string, ParentEntry>();
+  const parentMapByNameOnly = new Map<string, ParentEntry>();
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex];
@@ -307,22 +329,37 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       if (!ahv && (!name || !vorname)) continue;
 
       const addError = (
-        map: Map<string, { id: string; firstRow: number; identifier: string; slotLabel: string }>,
+        map: Map<string, ParentEntry>,
         key: string,
-        displayIdentifier: string
+        displayIdentifier: string,
+        strategy: MatchStrategy
       ) => {
         const existing = map.get(key);
         
         if (existing) {
           if (existing.id !== id) {
             const errorKey = `${rowIndex + 1}:${check.idField}:${displayIdentifier}`;
+            const rowFieldKey = `${rowIndex + 1}:${check.idField}`;
+            
+            // Skip if already reported by a more reliable strategy
+            if (resolvedByHigherStrategy.has(rowFieldKey)) return;
+            
             if (!errorSet.has(errorKey)) {
               errorSet.add(errorKey);
+              
+              if (strategy === 'ahv') {
+                resolvedByHigherStrategy.add(rowFieldKey);
+              }
+              
+              const strategyInfo = STRATEGY_LABELS[strategy];
+              const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
+              
               errors.push({
                 row: rowIndex + 1,
                 column: check.idField,
                 value: id,
-                message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${check.label}) die ID '${id}'`,
+                message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${check.label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+                severity: strategy === 'name_only' ? 'warning' : undefined,
               });
             }
           }
@@ -333,19 +370,19 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
       // Strategy 1: AHV (most reliable)
       if (ahv) {
-        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`);
+        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv');
       }
 
       // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
       if (name && vorname && strasse) {
         const key = `NAME_STRASSE:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}|${normalizeForComparison(strasse)}`;
-        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`);
+        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse');
       }
 
       // Strategy 3: Name + Vorname only (with diacritic normalization)
       if (name && vorname) {
         const key = `NAME:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}`;
-        addError(parentMapByNameOnly, key, `${vorname} ${name}`);
+        addError(parentMapByNameOnly, key, `${vorname} ${name}`, 'name_only');
       }
     }
   }
