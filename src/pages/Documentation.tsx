@@ -224,6 +224,28 @@ export default function Documentation() {
           </div>
         )}
 
+        {/*
+         * ============================================================
+         * ⚠️  WICHTIG: VALIDIERUNGSREGELN SYNCHRON HALTEN!
+         * ============================================================
+         * Die unten aufgeführten Regeln müssen manuell aktualisiert
+         * werden, wenn sich die Validierungslogik ändert.
+         *
+         * Relevante Quell-Dateien:
+         *   - src/lib/fileParser.ts
+         *       → Feldformat-Validierungen (validateFieldType)
+         *       → Duplikat-Erkennung (DUPLICATE_CHECK_FIELDS)
+         *       → Eltern-ID Konsolidierung (checkParentIdConsistency)
+         *       → Diakritische Namenskorrektur (checkDiacriticNameInconsistencies)
+         *       → Pflichtfeld-Prüfung (validateData)
+         *   - src/workers/validationWorker.ts
+         *       → Automatische Sammelkorrekturen (analyzeErrors, applyCorrection)
+         *       → Format-Funktionen (formatAHV, formatPhone, formatEmail, etc.)
+         *
+         * Bei jeder Änderung an diesen Dateien bitte prüfen, ob die
+         * Dokumentation unten noch korrekt ist!
+         * ============================================================
+         */}
         {/* Stammdaten Section */}
         {activeSection === 'schueler' && (
           <div className="space-y-6">
