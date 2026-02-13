@@ -190,6 +190,9 @@ const PARENT_CONSISTENCY_CHECKS = [
     nameField: 'P_ERZ1_Name',
     vornameField: 'P_ERZ1_Vorname',
     strasseField: 'P_ERZ1_Strasse',
+    telefonPrivatField: 'P_ERZ1_TelefonPrivat',
+    telefonGeschaeftField: 'P_ERZ1_TelefonGeschaeft',
+    mobilField: 'P_ERZ1_Mobil',
     label: 'Erziehungsberechtigte/r 1'
   },
   {
@@ -198,6 +201,9 @@ const PARENT_CONSISTENCY_CHECKS = [
     nameField: 'P_ERZ2_Name',
     vornameField: 'P_ERZ2_Vorname',
     strasseField: 'P_ERZ2_Strasse',
+    telefonPrivatField: 'P_ERZ2_TelefonPrivat',
+    telefonGeschaeftField: 'P_ERZ2_TelefonGeschaeft',
+    mobilField: 'P_ERZ2_Mobil',
     label: 'Erziehungsberechtigte/r 2'
   }
 ];
@@ -205,6 +211,11 @@ const PARENT_CONSISTENCY_CHECKS = [
 // Normalize string by removing diacritical marks for comparison
 function normalizeForComparison(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// Normalize phone number by removing all non-digit characters
+function normalizePhone(value: string): string {
+  return value.replace(/\D/g, '');
 }
 
 // Count diacritical marks in a string (more = "richer")
@@ -454,6 +465,112 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         erz1Name: `${erz1Vorname} ${erz1Name}`,
         erz2Name: `${erz2Vorname} ${erz2Name}`,
       });
+    }
+  }
+
+  // Pass 3: Single-parent name-only with address disambiguation
+  // For parents where only ONE parent name matches (not the pair), check phone or other EB
+  type SingleParentEntry = {
+    id: string;
+    firstRow: number;
+    strasse: string;
+    phoneNumbers: string[]; // normalized phone numbers
+    otherErzNameKey: string; // normalized name|vorname of the OTHER parent in that row
+    slotLabel: string;
+    slotIndex: number; // 0 for ERZ1, 1 for ERZ2
+  };
+  const singleParentMap = new Map<string, SingleParentEntry[]>();
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+
+    for (let slotIndex = 0; slotIndex < PARENT_CONSISTENCY_CHECKS.length; slotIndex++) {
+      const check = PARENT_CONSISTENCY_CHECKS[slotIndex];
+      const otherCheck = PARENT_CONSISTENCY_CHECKS[1 - slotIndex];
+
+      const id = String(row[check.idField] ?? '').trim();
+      const name = String(row[check.nameField] ?? '').trim();
+      const vorname = String(row[check.vornameField] ?? '').trim();
+      const strasse = String(row[check.strasseField] ?? '').trim();
+
+      if (!id || !name || !vorname) continue;
+
+      // Skip if already resolved by higher strategy
+      const rowFieldKey = `${rowIndex + 1}:${check.idField}`;
+      if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
+
+      // Collect phone numbers for this parent
+      const phones: string[] = [];
+      for (const phoneField of [check.telefonPrivatField, check.telefonGeschaeftField, check.mobilField]) {
+        const raw = normalizePhone(String(row[phoneField] ?? ''));
+        if (raw.length >= 5) phones.push(raw); // only meaningful numbers
+      }
+
+      // Other parent's name key
+      const otherName = String(row[otherCheck.nameField] ?? '').trim();
+      const otherVorname = String(row[otherCheck.vornameField] ?? '').trim();
+      const otherErzNameKey = (otherName && otherVorname)
+        ? `${normalizeForComparison(otherName)}|${normalizeForComparison(otherVorname)}`
+        : '';
+
+      const nameKey = `${normalizeForComparison(name)}|${normalizeForComparison(vorname)}`;
+      const entry: SingleParentEntry = {
+        id, firstRow: rowIndex + 1, strasse,
+        phoneNumbers: phones, otherErzNameKey,
+        slotLabel: check.label, slotIndex,
+      };
+
+      const existing = singleParentMap.get(nameKey);
+      if (existing) {
+        // Compare against all previously seen entries with the same name
+        for (const prev of existing) {
+          if (prev.id === id) continue; // same ID, no inconsistency
+
+          const rowFieldKeyCheck = `${rowIndex + 1}:${check.idField}`;
+          if (resolvedByHigherStrategy.has(rowFieldKeyCheck)) continue;
+
+          // Same address → already handled by Pass 1 (name+strasse strategy)
+          if (strasse && prev.strasse && normalizeForComparison(strasse) === normalizeForComparison(prev.strasse)) continue;
+
+          // Different address → disambiguate
+          let isSamePerson = false;
+
+          // Check 1: Any phone number matches?
+          if (!isSamePerson && phones.length > 0 && prev.phoneNumbers.length > 0) {
+            for (const p of phones) {
+              if (prev.phoneNumbers.includes(p)) {
+                isSamePerson = true;
+                break;
+              }
+            }
+          }
+
+          // Check 2: Other EB matches?
+          if (!isSamePerson && otherErzNameKey && prev.otherErzNameKey && otherErzNameKey === prev.otherErzNameKey) {
+            isSamePerson = true;
+          }
+
+          if (isSamePerson) {
+            const displayName = `${vorname} ${name}`;
+            const errorKey = `${rowIndex + 1}:${check.idField}:${displayName}`;
+            if (!errorSet.has(errorKey)) {
+              errorSet.add(errorKey);
+              const strategyInfo = STRATEGY_LABELS['name_only'];
+              const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
+              errors.push({
+                row: rowIndex + 1,
+                column: check.idField,
+                value: id,
+                message: `Inkonsistente ID: Elternteil (${displayName}) hat in Zeile ${prev.firstRow} (${prev.slotLabel}) die ID '${prev.id}', aber hier (${check.label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+                severity: 'warning',
+              });
+            }
+          }
+        }
+        existing.push(entry);
+      } else {
+        singleParentMap.set(nameKey, [entry]);
+      }
     }
   }
 

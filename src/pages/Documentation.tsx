@@ -342,6 +342,7 @@ export default function Documentation() {
                       <li>
                         <strong>Name + Vorname (Elternpaar)</strong> <Badge variant="outline" className="ml-1 text-[10px] py-0">Tiefe Zuverlässigkeit</Badge>
                         <br /><span className="text-xs">Wird nur ausgelöst, wenn <em>beide</em> Elternteile (ERZ1 + ERZ2) namentlich übereinstimmen. Wird als Warnung (nicht Fehler) angezeigt.</span>
+                        <br /><span className="text-xs">Bei <strong>unterschiedlicher Adresse</strong> wird zusätzlich disambiguiert: Gleiche Telefonnummer (Privat/Geschäft/Mobil) → dieselbe Person. Falls keine Telefon-Übereinstimmung: Gleicher anderer Elternteil → dieselbe Person (umgezogen). Ansonsten → verschiedene Personen, keine Warnung.</span>
                       </li>
                     </ul>
                     <p className="text-xs text-muted-foreground">Bereits durch eine zuverlässigere Strategie erkannte Konflikte werden nicht doppelt gemeldet. Diakritische Unterschiede (z.B. ü vs. ue) werden normalisiert.</p>
