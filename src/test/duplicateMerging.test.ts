@@ -14,11 +14,17 @@ const testColumns: ColumnDefinition[] = [
   { name: "P_ERZ1_Vorname", required: false, category: "Eltern" },
   { name: "P_ERZ1_AHV", required: false, category: "Eltern", validationType: "ahv" },
   { name: "P_ERZ1_Strasse", required: false, category: "Eltern" },
+  { name: "P_ERZ1_TelefonPrivat", required: false, category: "Eltern" },
+  { name: "P_ERZ1_TelefonGeschaeft", required: false, category: "Eltern" },
+  { name: "P_ERZ1_Mobil", required: false, category: "Eltern" },
   { name: "P_ERZ2_ID", required: false, category: "Eltern" },
   { name: "P_ERZ2_Name", required: false, category: "Eltern" },
   { name: "P_ERZ2_Vorname", required: false, category: "Eltern" },
   { name: "P_ERZ2_AHV", required: false, category: "Eltern", validationType: "ahv" },
   { name: "P_ERZ2_Strasse", required: false, category: "Eltern" },
+  { name: "P_ERZ2_TelefonPrivat", required: false, category: "Eltern" },
+  { name: "P_ERZ2_TelefonGeschaeft", required: false, category: "Eltern" },
+  { name: "P_ERZ2_Mobil", required: false, category: "Eltern" },
 ];
 
 describe("Duplicate Detection", () => {
@@ -217,7 +223,72 @@ describe("Parent ID Consistency Check", () => {
     expect(diacriticCorrections.length).toBe(1);
     expect(diacriticCorrections[0].correctedValue).toBe("Môos");
     expect(diacriticCorrections[0].row).toBe(2);
+});
+
+describe("Name-only Address Disambiguation", () => {
+  it("should warn when same name, different address, but same phone number", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Kind", S_Vorname: "Lara", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Hauptstr. 10", P_ERZ1_TelefonPrivat: "044 123 45 67",
+      },
+      {
+        S_ID: "2", S_Name: "Kind", S_Vorname: "Tim", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "PARENT-999", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Bergweg 5", P_ERZ1_TelefonPrivat: "044 123 45 67",
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
   });
+
+  it("should warn when same name, different address, no phone match, but same other EB", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Kind", S_Vorname: "Lara", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Hauptstr. 10",
+        P_ERZ2_ID: "PARENT-050", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Thomas",
+      },
+      {
+        S_ID: "2", S_Name: "Kind", S_Vorname: "Tim", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "PARENT-999", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Bergweg 5",
+        P_ERZ2_ID: "PARENT-050", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Thomas",
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
+  });
+
+  it("should NOT warn when same name, different address, no phone match, different other EB", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Kind", S_Vorname: "Lara", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Hauptstr. 10",
+        P_ERZ2_ID: "PARENT-050", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Thomas",
+      },
+      {
+        S_ID: "2", S_Name: "Kind", S_Vorname: "Tim", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "PARENT-999", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+        P_ERZ1_Strasse: "Bergweg 5",
+        P_ERZ2_ID: "PARENT-060", P_ERZ2_Name: "Huber", P_ERZ2_Vorname: "Markus",
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+    expect(inconsistentIds.length).toBe(0);
+  });
+});
 });
 
 describe("Error Correction Simulation", () => {
