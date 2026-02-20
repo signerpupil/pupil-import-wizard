@@ -1,155 +1,93 @@
 
-## Was wird geändert
+## Analyse des Problems
 
-### 1. Fehler-Tabelle: Gruppierung nach Fehlertyp / Spalte
+Die aktuelle `test-stammdaten.csv` enthält keine realistischen Familienszenarien mit mehreren Kindern. Jede Zeile repräsentiert ein Kind mit einem eigenen Elternpaar – aber dieselben Eltern tauchen nie in mehreren Zeilen für ihre verschiedenen Kinder auf. Das bedeutet:
 
-Aktuell: Eine flache Tabelle mit bis zu 50 Fehlern in beliebiger Reihenfolge.
+- **Eltern-ID-Konsolidierung** wird nie ausgelöst, weil dieselbe AHV-Nummer / derselbe Name nie in >1 Zeile vorkommt
+- **Namenswechsel-Erkennung** wird zwar für die Ianuzi/Brunner/Müller-Szenarien ausgelöst (Zeilen 82–93), aber nur weil zwei Kinder unterschiedlich erfasste Mütter haben – nicht wegen mehrerer Kinder derselben Familie
 
-Neu: Fehler werden nach **Spalte** gruppiert angezeigt. Jede Spalte bekommt einen zusammenklappbaren Abschnitt mit:
-- Header: Spaltenname, Anzahl Fehler (offen/korrigiert), Fehlertyp-Badge
-- Tabelleninhalt nur für diese Spalte
-- Korrigierte Fehler in einer eigenen Untergruppe ("Bereits korrigiert") – ausgeklappt am Ende
+## Was die Testdatei bisher abdeckt
 
-Das macht es viel übersichtlicher bei grossen Datensätzen (z.B. 200+ Fehler über 5 Spalten).
+- Zeilen 2–51: Schüler ohne spezielle Fehler (Grunddaten)
+- Zeilen 52–55: Schüler-Duplikate (S_AHV, S_ID)
+- Zeilen 58–69: Eltern-ID-Inkonsistenzen via AHV / Name+Adresse (jeder Fall hat genau 2 Zeilen, aber verschiedene Kinder)
+- Zeilen 70–75: Elternpaar-Szenarien (ID-Unterschiede für dasselbe Elternpaar)
+- Zeilen 76–81: Adress-/Telefon-Änderungen (Umzug-Szenarien)
+- Zeilen 82–93: Namenswechsel für ERZ1 (Ianuzi, Brunner, Müller, Schmidt, Meier) und ERZ2 (Kummer)
+- Zeilen 94–97: Kein-Match-Szenarien
+- Zeilen 98–103: Diakritik-Normalisierung
+- Zeilen 104–115: Format-Fehler (AHV, Datum, Geschlecht, E-Mail, Telefon, PLZ, Pflichtfelder)
 
-**Technische Umsetzung:**
-- `useMemo` → `errorsByColumn`: `Map<string, ValidationError[]>` – Fehler nach `error.column` gruppiert
-- Sortierung: Spalten mit den meisten Fehlern zuerst; korrigierte Zeilen am Ende jeder Gruppe
-- Jede Gruppe: eigener Collapsible-Block mit dem Spaltennamen als Header und einer "Alle korrigieren"-Schnellaktion (öffnet Step-by-Step für diese Spalte)
-- Korrigierte Fehler: grüner Hintergrund, durchgestrichener Wert → in die gleiche Gruppe, aber visuell abgesetzt
+## Was fehlt: Realistische Geschwister-Szenarien
 
----
+**Szenario 1 – Familie mit 3 Kindern, Vater mit inkonsistenter ID (AHV-basiert):**
+Kind A (Klasse 1A), Kind B (Klasse 3B), Kind C (Klasse 5A) haben denselben Vater mit AHV `756.1111.2222.01`, aber die Schulsoftware hat bei jedem Kind eine andere ID vergeben: `30001`, `30002`, `30003`. → 2 Fehler für ERZ1_ID (AHV-Erkennung, hohe Zuverlässigkeit)
 
-### 2. Konsolidierungs-Detailansicht: Angleichung an Namenswechsel-Stil
+**Szenario 2 – Familie mit 2 Kindern, Mutter nach Heirat in einem Kind anders erfasst:**
+Kind A hat Mutter "Gruber Maria" (alter Name vor Heirat), Kind B hat Mutter "Gruber-Keller Maria" → Namenswechsel-Erkennung (Bindestrichzusatz)
 
-**Problem heute:** Die Detail-Expansion der Eltern-Konsolidierung zeigt ein variables Grid mit 1–3 Karten (eine pro betroffenem Kind). Das ist schwer zu lesen wenn mehrere Kinder denselben Elternteil haben.
+**Szenario 3 – Familie mit 2 Kindern, Elternpaar via Name+Adresse erkannt (mittlere Zuverlässigkeit):**
+Kein AHV vorhanden. ERZ1 = "Brunetti Marco, Seestrasse 7" – Kind A hat ID `40001`, Kind B hat ID `40002` → Name+Strasse-Erkennung
 
-**Neu: Genau wie Namenswechsel – immer 2 Karten:**
+**Szenario 4 – Familie mit 2 Kindern, Elternpaar via Name-only erkannt (tiefe Zuverlässigkeit):**
+Beide Elternteile stimmen überein, aber keine AHV und keine Adresse. → Elternpaar-Matching (niedrige Zuverlässigkeit)
 
-```
-┌──────────────────────┬──────────────────────────────┐
-│  Aktuelle Situation  │  Nach Konsolidierung          │
-│  (alle Einträge mit  │  (alle Einträge erhalten      │
-│   verschiedenen IDs) │   diese eine korrekte ID)     │
-│                      │                               │
-│  Kinder: Max, Lisa   │  Korrekte ID: 20406           │
-│  IDs: 20408 (Max)    │  ✓ Max: 20408 → 20406        │
-│       20406 (Lisa)   │  ✓ Lisa: 20406 (korrekt)      │
-└──────────────────────┴──────────────────────────────┘
-```
+## Technische Umsetzung
 
-**Linke Karte – "Aktuelle Situation":** grau (`bg-muted/50`)
-- Header: "Aktueller Stand" + Zeilenanzahl
-- Liste aller betroffenen Kinder mit ihrer jeweiligen (falschen) ID
-- Rot hervorgehobene IDs die sich von `correctId` unterscheiden
+**Datei:** `public/test-stammdaten.csv`
 
-**Rechte Karte – "Nach Konsolidierung":** blau (`bg-blue-500/5 border-blue-500/30`)
-- Header: "Nach Konsolidierung" 
-- "Einheitliche ID: {correctId}" prominent oben
-- Liste aller Kinder mit Pfeil-Transformation: `20408 → 20406` oder `✓ bereits korrekt`
-- Grüner Hintergrund für bereits korrekte Einträge
+Neue Zeilen werden am Ende der Datei angehängt (nach Zeile 115).
 
-**Was entfällt:** Das "Was wird geändert?"-Panel darunter (wird in die rechte Karte integriert) und die variable Grid-Anzahl (immer genau 2 Spalten).
+### Neue Zeilen
 
----
+**Block A – Geschwister mit ERZ1-ID-Inkonsistenz via AHV (3 Kinder, ID variiert)**
 
-### Dateien
+Kind 1: S_AHV neu, S_ID `10201`, S_Name `Geschwister`, S_Vorname `Kind1`, Klasse `1A`
+- P_ERZ1_ID: `50001`, P_ERZ1_AHV: `756.1111.2222.01`, P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`, P_ERZ1_Strasse: `Geschwisterweg 1`, P_ERZ1_PLZ: `8000`, P_ERZ1_Ort: `Zürich`
+- P_ERZ2_ID: `50100`, P_ERZ2_AHV: `756.1111.2222.02`, P_ERZ2_Name: `Mutter`, P_ERZ2_Vorname: `Heidi`
 
-Nur eine Datei: `src/components/import/Step3Validation.tsx`
+Kind 2 (Bruder): S_AHV neu, S_ID `10202`, S_Name `Geschwister`, S_Vorname `Kind2`, Klasse `3B`
+- **P_ERZ1_ID: `50002`** (andere ID, gleiche AHV!) – löst AHV-Inkonsistenz aus
+- P_ERZ1_AHV: `756.1111.2222.01` (gleich), P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`
 
-**Änderung 1 – Fehler-Gruppierung (Zeilen 2117–2200):**
+Kind 3 (Schwester): S_AHV neu, S_ID `10203`, S_Name `Geschwister`, S_Vorname `Kind3`, Klasse `5A`
+- **P_ERZ1_ID: `50003`** (wieder andere ID, gleiche AHV!) – zweiter AHV-Inkonsistenz-Fehler
+- P_ERZ1_AHV: `756.1111.2222.01` (gleich), P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`
+- P_ERZ2_ID: `50102`, P_ERZ2 wie Kind 2
 
-Ersetze die flache Tabelle durch eine gruppierte Ansicht:
+**Block B – Geschwister mit ERZ1-Namenswechsel (Mutter hat nach Heirat anderen Namen)**
 
-```tsx
-// Neue Logik vor dem return:
-const errorsByColumn = useMemo(() => {
-  const map = new Map<string, ValidationError[]>();
-  for (const e of errors) {
-    if (!map.has(e.column)) map.set(e.column, []);
-    map.get(e.column)!.push(e);
-  }
-  // Sortiere: meiste Fehler zuerst
-  return Array.from(map.entries()).sort((a, b) => {
-    const aUncorrected = a[1].filter(e => !e.correctedValue).length;
-    const bUncorrected = b[1].filter(e => !e.correctedValue).length;
-    return bUncorrected - aUncorrected;
-  });
-}, [errors]);
-```
+Kind 1: S_ID `10204`, S_Name `Heirat`, S_Vorname `Kind1`, Klasse `2A`
+- P_ERZ1_ID: `51001`, kein AHV, P_ERZ1_Name: `Weber`, P_ERZ1_Vorname: `Anna`, P_ERZ1_Strasse: `Heiratsgasse 5`, P_ERZ1_PLZ: `8001`, P_ERZ1_Ort: `Zürich`
 
-Dann in der JSX: Jede Spalte als Collapsible mit Tabelle (Zeile, Wert, Fehler, Aktion), nach Spalte gruppiert. Keine separate State-Variable nötig – alle Gruppen standardmässig eingeklappt ausser der ersten.
+Kind 2 (jüngere Schwester, nach Hochzeit der Mutter erfasst): S_ID `10205`, S_Name `Heirat`, S_Vorname `Kind2`, Klasse `4B`
+- P_ERZ1_ID: `51001`, kein AHV, P_ERZ1_Name: `Weber-Brun`, P_ERZ1_Vorname: `Anna` (Bindestrichzusatz) → Namenswechsel-Erkennung
 
-**Änderung 2 – Konsolidierungs-Detail (Zeilen 1251–1327):**
+**Block C – Geschwister mit ERZ-Erkennung via Name+Strasse (mittlere Zuverlässigkeit, kein AHV)**
 
-Ersetze das variable Grid durch das 2-Karten-Layout:
+Kind 1: S_ID `10206`, Klasse `1C`
+- P_ERZ1_ID: `52001`, kein AHV, P_ERZ1_Name: `Rossi`, P_ERZ1_Vorname: `Marco`, P_ERZ1_Strasse: `Rossiweg 3`, PLZ `8002`
 
-```tsx
-{isExpanded && (
-  <div className="border-t bg-muted/20 p-3 space-y-3">
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-      Einträge im Vergleich
-    </p>
-    <div className="grid grid-cols-2 gap-2">
-      {/* Linke Karte: Aktueller Stand */}
-      <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold">Aktueller Stand</span>
-          <span className="text-muted-foreground text-[10px]">{group.affectedRows.length} Einträge</span>
-        </div>
-        <div className="space-y-1 border-t pt-1.5">
-          {group.affectedRows.map(r => (
-            <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-              <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
-                {r.currentId}
-              </code>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Rechte Karte: Nach Konsolidierung */}
-      <div className="rounded-md border bg-blue-500/5 border-blue-500/30 p-2.5 space-y-2 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-blue-700">Nach Konsolidierung</span>
-        </div>
-        <div className="flex items-center gap-1.5 pb-1.5 border-b">
-          <span className="text-muted-foreground shrink-0">Einheitliche ID:</span>
-          <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
-        </div>
-        <div className="space-y-1 pt-0.5">
-          {group.affectedRows.map(r => (
-            <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-              {r.currentId !== group.correctId ? (
-                <div className="flex items-center gap-1">
-                  <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
-                  <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
-                  <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span className="text-green-700">bereits korrekt</span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-```
+Kind 2: S_ID `10207`, Klasse `4C`
+- **P_ERZ1_ID: `52002`** (andere ID), kein AHV, P_ERZ1_Name: `Rossi`, P_ERZ1_Vorname: `Marco`, P_ERZ1_Strasse: `Rossiweg 3` (identisch) → Name+Strasse-Inkonsistenz
 
-Das "Was wird geändert?"-Panel (Zeilen 1303–1326) wird entfernt, da diese Information nun in die rechte Karte integriert ist.
+**Block D – Geschwister mit Elternpaar-Erkennung via Name-only (tiefe Zuverlässigkeit)**
 
----
+Kind 1: S_ID `10208`, Klasse `2C`
+- P_ERZ1_ID: `53001`, P_ERZ1_Name: `Dario`, P_ERZ1_Vorname: `Luca`, ohne AHV, ohne Strasse
+- P_ERZ2_ID: `53002`, P_ERZ2_Name: `Dario`, P_ERZ2_Vorname: `Sofia`
 
-### Übersicht der Änderungen
+Kind 2: S_ID `10209`, Klasse `5C`
+- **P_ERZ1_ID: `53003`** (andere ID!), P_ERZ1_Name: `Dario`, P_ERZ1_Vorname: `Luca`, ohne AHV
+- **P_ERZ2_ID: `53004`** (andere ID!), P_ERZ2_Name: `Dario`, P_ERZ2_Vorname: `Sofia` → Elternpaar-Inkonsistenz (name_only)
 
-- `src/components/import/Step3Validation.tsx`:
-  - `useMemo` für `errorsByColumn` hinzufügen (ca. Zeile 902, nach `suggestionsWithApplicability`)
-  - State für aufgeklappte Spaltengruppen: `expandedErrorColumns` (Set of string)
-  - Konsolidierungs-Detail: Zeilen 1251–1327 ersetzen (2-Karten-Layout)
-  - Fehler-Tabellen-Block: Zeilen 2117–2200 ersetzen (gruppierte Collapsible-Tabellen)
+## Erwartetes Ergebnis nach Änderung
+
+| Block | Validierungsregel | Anzahl neue Fehler |
+|---|---|---|
+| A | AHV-Inkonsistenz P_ERZ1_ID | 2 Fehler (Kind2, Kind3) |
+| B | Namenswechsel P_ERZ1_Name | 1 Warnung (Kind2) |
+| C | Name+Strasse-Inkonsistenz P_ERZ1_ID | 1 Fehler (Kind2) |
+| D | Elternpaar-Inkonsistenz (name_only) P_ERZ1_ID + P_ERZ2_ID | 2 Warnungen (Kind2) |
+
+Diese Szenarien decken alle drei Erkennungsstrategien der `checkParentIdConsistency`-Funktion ab und liefern realistische Geschwisterfamilien.
