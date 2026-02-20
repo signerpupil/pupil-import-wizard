@@ -577,6 +577,215 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   return errors;
 }
 
+// ============================================================
+// NAMENSWECHSEL-ERKENNUNG (Name Change Detection)
+// ============================================================
+// Detects potential name changes for parents (e.g., marriage, double names)
+// WITHOUT relying on AHV numbers. Groups by student association + first name.
+//
+// Strategy (combined):
+//   1. Group by student name (same Schüler → same household context)
+//   2. Within a household group, find parents with same Vorname but different Nachname
+//   3. Apply detectNameChange() to determine if it's a plausible name change
+//
+// Patterns detected by detectNameChange():
+//   - Substring (Marina Ianuzi → Marina Ianuzi-Tadic)
+//   - Reverse hyphenated (Doris Brunner → Doris Fliege-Brunner)
+//   - Complete name change same first name (Heidi Müller → Heidi Meier) via fuzzy
+//   - Fuzzy matching (Levenshtein distance) for similar names
+
+// Compute Levenshtein distance between two strings
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Determine if two last names represent a plausible name change
+// Returns the type of match or null
+function detectNameChange(
+  nameA: string,
+  nameB: string
+): 'hyphen_addition' | 'reverse_hyphen' | 'complete_change' | 'fuzzy' | null {
+  const normA = normalizeForComparison(nameA);
+  const normB = normalizeForComparison(nameB);
+
+  if (normA === normB) return null; // identical → no change
+
+  const partsA = normA.split('-');
+  const partsB = normB.split('-');
+
+  // Pattern 1: Substring (Marina Ianuzi → Marina Ianuzi-Tadic)
+  if (normB.includes(normA) || normA.includes(normB)) return 'hyphen_addition';
+
+  // Pattern 2: Shared hyphen component (Doris Brunner → Doris Fliege-Brunner)
+  for (const pa of partsA) {
+    for (const pb of partsB) {
+      if (pa.length >= 3 && pa === pb) return 'reverse_hyphen';
+    }
+  }
+
+  // Pattern 3 + 4: Complete name change or fuzzy match (same first name guaranteed by caller)
+  // Use Levenshtein on the longest base part of each name
+  const baseA = partsA[partsA.length - 1]; // last hyphen-segment
+  const baseB = partsB[partsB.length - 1];
+  const maxLen = Math.max(baseA.length, baseB.length);
+  if (maxLen > 0) {
+    const dist = levenshtein(baseA, baseB);
+    const similarity = 1 - dist / maxLen;
+    // Require ≥65% similarity to avoid false positives between common names
+    // (e.g. Müller vs Brunner → ~28% → no match; Meier vs Maier → 80% → match)
+    if (similarity >= 0.65) return 'complete_change';
+    // Borderline fuzzy: only for very short names where 1-char diff is significant
+    if (similarity >= 0.55 && maxLen <= 5) return 'fuzzy';
+  }
+
+  return null;
+}
+
+// Fields describing a student (used to build household context)
+const STUDENT_NAME_FIELDS = { name: 'S_Name', vorname: 'S_Vorname' };
+
+// Fields for each ERZ slot used in name change detection
+const ERZ_NAME_CHANGE_FIELDS = [
+  { nameField: 'P_ERZ1_Name', vornameField: 'P_ERZ1_Vorname', label: 'Erziehungsberechtigte/r 1' },
+  { nameField: 'P_ERZ2_Name', vornameField: 'P_ERZ2_Vorname', label: 'Erziehungsberechtigte/r 2' },
+];
+
+type NameChangeType = 'hyphen_addition' | 'reverse_hyphen' | 'complete_change' | 'fuzzy';
+
+const NAME_CHANGE_LABELS: Record<NameChangeType, string> = {
+  hyphen_addition: 'Bindestrich-Ergänzung',
+  reverse_hyphen: 'Umgekehrter Doppelname',
+  complete_change: 'Möglicher Namenswechsel',
+  fuzzy: 'Ähnlicher Name (unsicher)',
+};
+
+// Check for name changes in parents, grouped by student + first name (no AHV required)
+function checkParentNameChanges(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const errorSet = new Set<string>();
+
+  // Step 1: Group rows by student (S_Name + S_Vorname key)
+  // Each student defines a "household context"
+  const studentGroups = new Map<string, number[]>(); // studentKey → rowIndices
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const sName = String(row[STUDENT_NAME_FIELDS.name] ?? '').trim();
+    const sVorname = String(row[STUDENT_NAME_FIELDS.vorname] ?? '').trim();
+    if (!sName || !sVorname) continue;
+    const studentKey = `${normalizeForComparison(sName)}|${normalizeForComparison(sVorname)}`;
+    const group = studentGroups.get(studentKey);
+    if (group) {
+      group.push(i);
+    } else {
+      studentGroups.set(studentKey, [i]);
+    }
+  }
+
+  // Step 2: For each student group, check ERZ name changes across rows in that group
+  // Then also do a cross-student pass: same Vorname across different students
+  // Build a global map: erzVorname → [{rowIndex, nachname, label, studentKey}]
+  type ErzEntry = { rowIndex: number; nachname: string; label: string; studentKey: string };
+  const erzByVorname = new Map<string, ErzEntry[]>();
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const sName = String(row[STUDENT_NAME_FIELDS.name] ?? '').trim();
+    const sVorname = String(row[STUDENT_NAME_FIELDS.vorname] ?? '').trim();
+    const studentKey = (sName && sVorname)
+      ? `${normalizeForComparison(sName)}|${normalizeForComparison(sVorname)}`
+      : `__noStudent_${i}`;
+
+    for (const slot of ERZ_NAME_CHANGE_FIELDS) {
+      const name = String(row[slot.nameField] ?? '').trim();
+      const vorname = String(row[slot.vornameField] ?? '').trim();
+      if (!name || !vorname) continue;
+
+      const vornameKey = normalizeForComparison(vorname);
+      const existing = erzByVorname.get(vornameKey);
+      const entry: ErzEntry = { rowIndex: i, nachname: name, label: slot.label, studentKey };
+      if (existing) {
+        existing.push(entry);
+      } else {
+        erzByVorname.set(vornameKey, [entry]);
+      }
+    }
+  }
+
+  // Step 3: For each Vorname group, compare all pairs
+  erzByVorname.forEach((entries) => {
+    if (entries.length < 2) return;
+
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i];
+        const b = entries[j];
+
+        // Only compare across same student group OR same Vorname in different groups
+        // Skip comparing two entries from the exact same row (different ERZ slots same row)
+        if (a.rowIndex === b.rowIndex) continue;
+
+        // If both are from different students AND same Vorname → valid cross-student check
+        // If from same student → also check (sibling context)
+        const changeType = detectNameChange(a.nachname, b.nachname);
+        if (!changeType) continue;
+
+        // Emit warning for the LATER row (higher index)
+        const laterEntry = a.rowIndex > b.rowIndex ? a : b;
+        const earlierEntry = a.rowIndex > b.rowIndex ? b : a;
+
+        const errorKey = `namechange:${laterEntry.rowIndex}:${laterEntry.label}:${normalizeForComparison(laterEntry.nachname)}:${normalizeForComparison(earlierEntry.nachname)}`;
+        if (errorSet.has(errorKey)) continue;
+        errorSet.add(errorKey);
+
+        const changeLabel = NAME_CHANGE_LABELS[changeType];
+        const row = rows[laterEntry.rowIndex];
+        const sName = String(row[STUDENT_NAME_FIELDS.name] ?? '').trim();
+        const sVorname = String(row[STUDENT_NAME_FIELDS.vorname] ?? '').trim();
+
+        // Find the Vorname for the display (get the original from row)
+        let displayVorname = '';
+        for (const slot of ERZ_NAME_CHANGE_FIELDS) {
+          if (slot.label === laterEntry.label) {
+            displayVorname = String(row[slot.vornameField] ?? '').trim();
+            break;
+          }
+        }
+
+        // Find the column name for the name field
+        let nameColumn = 'P_ERZ1_Name';
+        for (const slot of ERZ_NAME_CHANGE_FIELDS) {
+          if (slot.label === laterEntry.label) {
+            nameColumn = slot.nameField;
+            break;
+          }
+        }
+
+        errors.push({
+          row: laterEntry.rowIndex + 1,
+          column: nameColumn,
+          value: laterEntry.nachname,
+          message: `Möglicher Namenswechsel (${changeLabel}): "${displayVorname} ${earlierEntry.nachname}" (Zeile ${earlierEntry.rowIndex + 1}) → "${displayVorname} ${laterEntry.nachname}" (${laterEntry.label}${sName ? `, Schüler/in: ${sVorname} ${sName}` : ''})\n⚠ Bitte manuell prüfen – automatische Korrektur nicht möglich (mögliche Heirat, Scheidung oder Doppelname).`,
+          severity: 'warning',
+        });
+      }
+    }
+  });
+
+  return errors;
+}
+
 // Validate data - Optimized for large datasets (4000+ rows)
 export function validateData(
   rows: ParsedRow[],
@@ -669,6 +878,10 @@ export function validateData(
   // Check diacritic name inconsistencies and auto-correct
   const diacriticErrors = checkDiacriticNameInconsistencies(rows);
   errors.push(...diacriticErrors);
+
+  // Check for parent name changes (marriage, double names, etc.) – no AHV required
+  const nameChangeErrors = checkParentNameChanges(rows);
+  errors.push(...nameChangeErrors);
 
   return errors;
 }
