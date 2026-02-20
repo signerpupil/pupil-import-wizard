@@ -189,6 +189,21 @@ function formatExcelDate(value: string): string | null {
   return null;
 }
 
+// Convert date formats: DD-MM-YYYY or YYYY-MM-DD → DD.MM.YYYY
+function formatDateDE(value: string): string | null {
+  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dashMatch) return `${dashMatch[1].padStart(2, '0')}.${dashMatch[2].padStart(2, '0')}.${dashMatch[3]}`;
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+  return null;
+}
+
+// Trim leading/trailing whitespace and normalize multiple spaces
+function trimWhitespace(value: string): string | null {
+  const trimmed = value.trim().replace(/\s{2,}/g, ' ');
+  return trimmed !== value ? trimmed : null;
+}
+
 // Build error index for O(1) lookups
 function buildErrorIndex(errors: ValidationError[]): Map<string, ValidationError[]> {
   const index = new Map<string, ValidationError[]>();
@@ -424,24 +439,66 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       }
     }
     
-    // Check for Excel date serial numbers
+    // Check for Excel date serial numbers AND date format variants (DD-MM-YYYY, ISO)
     if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
-      const dateErrors = groupErrors.filter(e => {
+      const excelDateErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         const strVal = String(value);
         const num = parseInt(strVal);
         return !isNaN(num) && num > 1000 && num < 100000;
       });
       
-      if (dateErrors.length > 0) {
+      if (excelDateErrors.length > 0) {
         patterns.push({
           type: 'date_format',
           column,
-          count: dateErrors.length,
-          description: `${dateErrors.length} Excel-Seriennummern können in Datum konvertiert werden`,
+          count: excelDateErrors.length,
+          description: `${excelDateErrors.length} Excel-Seriennummern können in Datum konvertiert werden`,
           canAutoFix: true,
-          affectedRows: dateErrors.map(e => e.row),
+          affectedRows: excelDateErrors.map(e => e.row),
           suggestedAction: 'Format: DD.MM.YYYY',
+        });
+        continue;
+      }
+
+      // DD-MM-YYYY or YYYY-MM-DD variants
+      const dateFormatErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatDateDE(value) !== null;
+      });
+
+      if (dateFormatErrors.length > 0) {
+        patterns.push({
+          type: 'date_de_format',
+          column,
+          count: dateFormatErrors.length,
+          description: `${dateFormatErrors.length} Datumsangaben im falschen Format (Bindestriche/ISO) → DD.MM.YYYY`,
+          canAutoFix: true,
+          affectedRows: dateFormatErrors.map(e => e.row),
+          suggestedAction: 'Format: DD.MM.YYYY',
+        });
+        continue;
+      }
+    }
+
+    // Check for whitespace issues in text columns
+    if (colLower.includes('name') || colLower.includes('strasse') || colLower.includes('ort') || colLower.includes('vorname')) {
+      const wsErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return trimWhitespace(value) !== null;
+      });
+
+      if (wsErrors.length > 0) {
+        patterns.push({
+          type: 'whitespace_trim',
+          column,
+          count: wsErrors.length,
+          description: `${wsErrors.length} Einträge in "${column}" haben führende/nachfolgende Leerzeichen oder Doppelleerzeichen`,
+          canAutoFix: true,
+          affectedRows: wsErrors.map(e => e.row),
+          suggestedAction: 'Leerzeichen bereinigen',
         });
         continue;
       }
@@ -524,6 +581,12 @@ function applyCorrection(
         break;
       case 'date_format':
         newValue = formatExcelDate(String(value));
+        break;
+      case 'date_de_format':
+        newValue = formatDateDE(String(value));
+        break;
+      case 'whitespace_trim':
+        newValue = trimWhitespace(String(value));
         break;
     }
     

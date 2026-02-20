@@ -78,6 +78,21 @@ export function convertExcelDate(value: string): string | null {
   return null;
 }
 
+// Convert date formats: DD-MM-YYYY or YYYY-MM-DD → DD.MM.YYYY
+export function formatDateDE(value: string): string | null {
+  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dashMatch) return `${dashMatch[1].padStart(2, '0')}.${dashMatch[2].padStart(2, '0')}.${dashMatch[3]}`;
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+  return null;
+}
+
+// Trim leading/trailing whitespace and normalize multiple spaces
+export function trimWhitespace(value: string): string | null {
+  const trimmed = value.trim().replace(/\s{2,}/g, ' ');
+  return trimmed !== value ? trimmed : null;
+}
+
 export function formatEmail(value: string): string | null {
   let cleaned = value.trim().toLowerCase();
   cleaned = cleaned.replace(/\s+/g, '');
@@ -413,6 +428,80 @@ function detectParentIdInconsistencies(index: ErrorIndex): PatternGroup[] {
   return groups;
 }
 
+// Detect DD-MM-YYYY or YYYY-MM-DD date format issues
+function detectDateFormatPattern(index: ErrorIndex): PatternGroup[] {
+  const dateColumns = ['S_Geburtsdatum', 'P_ERZ1_Geburtsdatum', 'P_ERZ2_Geburtsdatum', 'Datum'];
+  const groups: PatternGroup[] = [];
+
+  for (const col of dateColumns) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of columnErrors) {
+      if (formatDateDE(e.value) !== null) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'date_de_format',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'date_de_format',
+        description: `${fixableRows.length} Datumsangaben im falschen Format (Bindestriche/ISO) → DD.MM.YYYY`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
+// Detect whitespace issues (leading/trailing spaces, double spaces) in text columns
+function detectWhitespacePattern(index: ErrorIndex): PatternGroup[] {
+  const textColumns = [
+    'S_Name', 'S_Vorname', 'S_Strasse', 'S_Ort',
+    'P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ1_Strasse', 'P_ERZ1_Ort',
+    'P_ERZ2_Name', 'P_ERZ2_Vorname', 'P_ERZ2_Strasse', 'P_ERZ2_Ort',
+  ];
+  const groups: PatternGroup[] = [];
+
+  for (const col of textColumns) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of columnErrors) {
+      if (trimWhitespace(e.value) !== null) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'whitespace_trim',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'whitespace_trim',
+        description: `${fixableRows.length} Einträge in "${col}" mit führenden/nachfolgenden Leerzeichen`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
 // ============================================
 // Main Analysis Function - Optimized
 // ============================================
@@ -435,6 +524,8 @@ export function analyzeErrorsLocally(
     ...detectPhonePattern(index),
     ...detectAHVPattern(index),
     ...detectDatePattern(index),
+    ...detectDateFormatPattern(index),
+    ...detectWhitespacePattern(index),
     ...detectEmailPattern(index),
     ...detectPLZPattern(index),
     ...detectGenderPattern(index),
@@ -534,6 +625,8 @@ function getFixFunction(name: string): ((value: string) => string | null) | null
     case 'street_format': return formatStreet;
     case 'iban_format': return formatIBAN;
     case 'date_format': return convertExcelDate;
+    case 'date_de_format': return formatDateDE;
+    case 'whitespace_trim': return trimWhitespace;
     default: return null;
   }
 }
