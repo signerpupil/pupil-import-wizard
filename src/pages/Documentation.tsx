@@ -363,9 +363,50 @@ export default function Documentation() {
                     <p className="text-xs text-muted-foreground">Korrekturvorschläge werden als Warnung angezeigt und automatisch angewendet.</p>
                   </div>
 
-                  {/* 6. Automatische Korrekturen */}
+                  {/* 6. Namenswechsel-Erkennung */}
                   <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-                    <h5 className="font-semibold text-sm">6. Automatische Sammelkorrekturen</h5>
+                    <h5 className="font-semibold text-sm">6. Namenswechsel-Erkennung</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Eltern mit gleichem Vornamen, aber unterschiedlichem Nachnamen werden verglichen – ohne AHV-Nummer.
+                      Die Gruppierung erfolgt nach Schüler-Kontext (Name + Vorname des Kindes) und Eltern-Vorname.
+                      Es werden vier Muster erkannt:
+                    </p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>
+                        <strong>Bindestrich-Ergänzung</strong>
+                        <br /><span className="text-xs">Der neue Name enthält den alten Name als Teil eines Doppelnamens.<br />Beispiel: «Ianuzi» → «Ianuzi-Tadic»</span>
+                      </li>
+                      <li>
+                        <strong>Umgekehrter Doppelname</strong>
+                        <br /><span className="text-xs">Der alte Name taucht als zweiter Teil eines neuen Doppelnamens auf.<br />Beispiel: «Brunner» → «Fliege-Brunner»</span>
+                      </li>
+                      <li>
+                        <strong>Vollständiger Namenswechsel (≥65% Ähnlichkeit)</strong>
+                        <br /><span className="text-xs">Der Name hat sich geändert, aber Fuzzy-Matching erkennt eine hohe Übereinstimmung (Levenshtein ≥65%).<br />Beispiel: «Müller» → «Meier»</span>
+                      </li>
+                      <li>
+                        <strong>Unsicherer Fuzzy-Match (≥55%, kurze Namen)</strong>
+                        <br /><span className="text-xs">Bei kurzen Namen (≤5 Zeichen) wird der Schwellenwert auf 55% gesenkt.<br />Beispiel: «Maier» → «Mayer»</span>
+                      </li>
+                    </ul>
+                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                      <p className="text-xs font-medium text-destructive">⚠ Nur Warnungen – keine automatischen Korrekturen</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Namenswechsel werden ausschliesslich als Warnungen angezeigt. Eine manuelle Prüfung ist erforderlich,
+                        da es sich um tatsächliche Namensänderungen (z.B. nach Heirat) oder um verschiedene Personen handeln kann.
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Betrifft die Felder:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ2_Name', 'P_ERZ2_Vorname'].map(f => (
+                        <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 7. Automatische Korrekturen */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">7. Automatische Sammelkorrekturen</h5>
                     <p className="text-xs text-muted-foreground">
                       Der Wizard erkennt Fehlermuster und bietet Sammelkorrekturen an. Folgende Korrekturen sind verfügbar:
                     </p>
