@@ -846,6 +846,16 @@ export function Step3Validation({
     }
   }, [workerError, toast]);
 
+  // Pre-compute which suggestions actually have applicable corrections
+  const suggestionsWithApplicability = useMemo(() => {
+    return localSuggestions.map(suggestion => ({
+      suggestion,
+      hasApplicableCorrections: suggestion.autoFix
+        ? applyLocalCorrection(suggestion, errors).length > 0
+        : false,
+    }));
+  }, [localSuggestions, errors]);
+
   // Apply local bulk correction
   const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
     const corrections = applyLocalCorrection(suggestion, errors);
@@ -1255,16 +1265,16 @@ export function Step3Validation({
             </CardDescription>
           </CardHeader>
           
-          {localSuggestions.length > 0 && (
+          {suggestionsWithApplicability.length > 0 && (
             <CardContent className="space-y-3">
-              {localSuggestions.map((suggestion, idx) => (
+              {suggestionsWithApplicability.map(({ suggestion, hasApplicableCorrections }, idx) => (
                 <div key={idx} className="p-4 bg-background rounded-lg border space-y-2">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline">{suggestion.affectedColumn}</Badge>
                         <Badge className="bg-pupil-warning">{suggestion.affectedRows.length} Zeilen</Badge>
-                        {suggestion.autoFix && (
+                        {hasApplicableCorrections && (
                           <Badge variant="secondary" className="text-xs">Auto-Fix</Badge>
                         )}
                       </div>
@@ -1272,7 +1282,7 @@ export function Step3Validation({
                       <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
                     </div>
                     <div className="flex gap-2">
-                      {suggestion.autoFix && (
+                      {hasApplicableCorrections && (
                         <Button 
                           size="sm" 
                           onClick={() => applyLocalBulkCorrection(suggestion)}
