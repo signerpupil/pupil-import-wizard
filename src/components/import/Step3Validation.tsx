@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -32,6 +32,8 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
 
 // Interface for parent ID inconsistency groups
 interface ParentIdInconsistencyGroup {
@@ -93,6 +95,9 @@ export function Step3Validation({
   const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
   const [expandedNameChanges, setExpandedNameChanges] = useState<Set<string>>(new Set());
   const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
+  
+  // Filter toggle: show only open (uncorrected) errors in table
+  const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -976,7 +981,11 @@ export function Step3Validation({
       case 'street_format':
         return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Strasse', example: { from: 'HAUPTSTRASSE 1', to: 'Hauptstrasse 1' } };
       case 'date_format':
-        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datum', example: { from: '45291', to: '01.01.2024' } };
+        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datum (Excel)', example: { from: '45291', to: '01.01.2024' } };
+      case 'date_de_format':
+        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datumsformat', example: { from: '2014-03-15', to: '15.03.2014' } };
+      case 'whitespace_trim':
+        return { icon: <Scissors className="h-3.5 w-3.5 text-pupil-success" />, label: 'Leerzeichen trimmen', example: { from: ' Meier ', to: 'Meier' } };
       case 'iban_format':
         return { icon: <CreditCard className="h-3.5 w-3.5 text-pupil-success" />, label: 'IBAN', example: { from: 'CH930076201162385295 7', to: 'CH93 0076 2011 6238 5295 7' } };
       case 'duplicate':
@@ -1018,6 +1027,25 @@ export function Step3Validation({
           <p className="text-sm text-muted-foreground">Korrigiert</p>
         </div>
       </div>
+
+      {/* Correction progress bar */}
+      {errors.length > 0 && (() => {
+        const correctionRate = Math.round((correctedErrors.length / errors.length) * 100);
+        return (
+          <div className="flex items-center gap-3">
+            <Progress value={correctionRate} className="flex-1 h-2" />
+            <span className="text-sm text-muted-foreground shrink-0 min-w-[10rem] text-right">
+              {correctionRate === 100 ? (
+                <span className="text-pupil-success font-medium">✓ Alle Fehler behoben</span>
+              ) : correctionRate > 0 ? (
+                <>{correctionRate}% der Fehler behoben</>
+              ) : (
+                <>{errors.length} Fehler ausstehend</>
+              )}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Bulk Parent ID Consolidation Card - Optimized for 800+ entries */}
       {parentIdInconsistencyGroups.length > 0 && (
@@ -1224,17 +1252,32 @@ export function Step3Validation({
                                   <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
                                     {group.correctId}
                                   </code>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
+                                          <Info className="h-3 w-3" />
+                                          Aus Zeile {group.affectedRows[0]?.row} (erster Eintrag)
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-xs text-xs">
+                                        Die «korrekte ID» ist der Wert aus dem <strong>ersten Auftreten</strong> dieses Elternteils in der Datei (Zeile {group.affectedRows[0]?.row}).<br />
+                                        Erkannt via: {group.matchReason}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </div>
                                 <div className="mt-1.5 text-xs text-muted-foreground">
-                                  <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
+                                  <span className="font-medium">{group.affectedRows.length} betroffene {group.affectedRows.length === 1 ? 'Kind' : 'Kinder'}:</span>
                                   <span className="ml-1">
-                                    {group.affectedRows.slice(0, 2).map((r, i) => (
+                                    {group.affectedRows.slice(0, 3).map((r, i) => (
                                       <span key={r.row}>
                                         {i > 0 && ', '}
                                         {r.studentName || `Zeile ${r.row}`}
+                                        {r.currentId !== group.correctId && <span className="text-destructive"> ✕</span>}
                                       </span>
                                     ))}
-                                    {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
+                                    {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
                               </div>
@@ -1248,16 +1291,25 @@ export function Step3Validation({
                                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 Details
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => { e.stopPropagation(); dismissParentGroup(group); }}
-                                className="gap-1.5 text-muted-foreground hover:text-foreground"
-                                title="Kein Fehler – diesen ID-Konflikt ignorieren und ausblenden"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                                Ignorieren
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => { e.stopPropagation(); dismissParentGroup(group); }}
+                                      className="gap-1.5 text-muted-foreground hover:text-foreground"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                      Ignorieren
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs text-xs">
+                                    Markiert diesen ID-Konflikt als geprüft und blendet ihn aus.<br />
+                                    Der aktuelle Wert bleibt unverändert im Änderungsprotokoll sichtbar.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </div>
                           </div>
@@ -1670,13 +1722,39 @@ export function Step3Validation({
                                 <Badge variant="secondary" className="text-xs">{suggestion.affectedRows.length} Einträge</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">{suggestion.pattern}</p>
+                              {/* Generic format example */}
                               {patternMeta.example && (
                                 <div className="flex items-center gap-1.5 mt-1.5 text-xs">
+                                  <span className="text-muted-foreground shrink-0">Beispiel:</span>
                                   <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono">{patternMeta.example.from}</code>
                                   <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
                                   <code className="px-1.5 py-0.5 bg-pupil-success/10 text-pupil-success rounded font-mono">{patternMeta.example.to}</code>
                                 </div>
                               )}
+                              {/* Concrete before/after from actual data */}
+                              {hasApplicableCorrections && (() => {
+                                const corrections = applyLocalCorrection(suggestion, errors);
+                                const previews = corrections.slice(0, 3);
+                                if (previews.length === 0) return null;
+                                return (
+                                  <div className="mt-2 space-y-1">
+                                    <span className="text-xs text-muted-foreground font-medium">Aus Ihren Daten:</span>
+                                    {previews.map((c, i) => {
+                                      const originalError = errors.find(e => e.row === c.row && e.column === c.column);
+                                      return (
+                                        <div key={i} className="flex items-center gap-1.5 text-xs">
+                                          <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono text-[10px] max-w-[120px] truncate">{originalError?.value ?? '?'}</code>
+                                          <ArrowRight className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                          <code className="px-1 py-0.5 bg-pupil-success/10 text-pupil-success rounded font-mono text-[10px] max-w-[120px] truncate">{c.value}</code>
+                                        </div>
+                                      );
+                                    })}
+                                    {corrections.length > 3 && (
+                                      <span className="text-xs text-muted-foreground">+{corrections.length - 3} weitere</span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                           <div className="flex gap-2 shrink-0">
@@ -1739,6 +1817,11 @@ export function Step3Validation({
                 <span className="text-primary ml-2">(gefiltert)</span>
               )}
             </CardDescription>
+            {/* Progress bar for step-by-step mode */}
+            <Progress 
+              value={stepByStepErrors.length > 0 ? ((currentErrorIndex) / stepByStepErrors.length) * 100 : 0} 
+              className="h-1 mt-2" 
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -2115,6 +2198,32 @@ export function Step3Validation({
         </Alert>
       ) : (
         <div className="space-y-2">
+          {/* Filter toggle for corrected errors */}
+          <div className="flex items-center justify-between px-1 pb-1">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-sm bg-destructive/20 border border-destructive/40" />
+                <span className="text-xs text-muted-foreground">Offen</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-sm bg-pupil-success/15 border border-pupil-success/30" />
+                <span className="text-xs text-muted-foreground">Korrigiert</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {showOnlyOpenErrors ? 'Nur offene Fehler' : 'Alle anzeigen'}
+              </span>
+              <Switch
+                checked={!showOnlyOpenErrors}
+                onCheckedChange={(checked) => setShowOnlyOpenErrors(!checked)}
+                id="show-corrected"
+              />
+              <label htmlFor="show-corrected" className="text-xs text-muted-foreground cursor-pointer">
+                Korrigierte einblenden
+              </label>
+            </div>
+          </div>
           {errorsByColumn.map(([column, colErrors], colIdx) => {
             const uncorrected = colErrors.filter(e => !e.correctedValue);
             const corrected = colErrors.filter(e => e.correctedValue !== undefined);
@@ -2181,9 +2290,14 @@ export function Step3Validation({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {colErrors.map((error, idx) => {
+                      {colErrors
+                        .filter(error => showOnlyOpenErrors ? error.correctedValue === undefined : true)
+                        .map((error, idx) => {
                         const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
                         const isCorrected = error.correctedValue !== undefined;
+                        const shortMessage = error.message.length > 45
+                          ? error.message.slice(0, 42) + '…'
+                          : error.message;
                         return (
                           <TableRow
                             key={idx}
@@ -2211,9 +2325,20 @@ export function Step3Validation({
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={isCorrected ? 'secondary' : 'destructive'}>
-                                {error.message}
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant={isCorrected ? 'secondary' : 'destructive'} className="cursor-help max-w-[180px] truncate inline-block">
+                                      {shortMessage}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  {error.message.length > 45 && (
+                                    <TooltipContent side="top" className="max-w-sm text-xs">
+                                      {error.message}
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell>
                               {isEditing ? (
