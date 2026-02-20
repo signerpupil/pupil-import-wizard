@@ -1,68 +1,155 @@
 
-## Analyse: Was wird korrekt gespeichert?
+## Was wird geändert
 
-### Aktueller Stand
+### 1. Fehler-Tabelle: Gruppierung nach Fehlertyp / Spalte
 
-Das Korrektur-Gedächtnis basiert auf `CorrectionRule`-Objekten mit dem Matching-Prinzip: "Wenn Spalte X den Wert Y hat, ersetze ihn durch Z". Diese Regeln werden in Step 4 aus dem `changeLog` gebaut.
+Aktuell: Eine flache Tabelle mit bis zu 50 Fehlern in beliebiger Reihenfolge.
 
-**Gespeichert werden:**
-- Manuelle Einzelkorrekturen (type: `manual`) → Ja
-- Bulk-Korrekturen inkl. Eltern-ID-Konsolidierung (type: `bulk`) → Ja, aber mit Einschränkungen
-- Muster-Auto-Fixes (type: `bulk`) → Ja
+Neu: Fehler werden nach **Spalte** gruppiert angezeigt. Jede Spalte bekommt einen zusammenklappbaren Abschnitt mit:
+- Header: Spaltenname, Anzahl Fehler (offen/korrigiert), Fehlertyp-Badge
+- Tabelleninhalt nur für diese Spalte
+- Korrigierte Fehler in einer eigenen Untergruppe ("Bereits korrigiert") – ausgeklappt am Ende
 
-**Probleme beim aktuellen Speichern:**
+Das macht es viel übersichtlicher bei grossen Datensätzen (z.B. 200+ Fehler über 5 Spalten).
 
-1. **Eltern-ID-Konsolidierung**: Die Regel lautet z. B. `P_ERZ1_ID: "20408" → "20406"`. Das funktioniert beim nächsten Import – aber nur für exakt dieselbe numerische ID. Da Eltern-IDs in der Regel stabil sind (eine Person hat immer dieselbe falsche ID), ist das tatsächlich sinnvoll und korrekt.
+**Technische Umsetzung:**
+- `useMemo` → `errorsByColumn`: `Map<string, ValidationError[]>` – Fehler nach `error.column` gruppiert
+- Sortierung: Spalten mit den meisten Fehlern zuerst; korrigierte Zeilen am Ende jeder Gruppe
+- Jede Gruppe: eigener Collapsible-Block mit dem Spaltennamen als Header und einer "Alle korrigieren"-Schnellaktion (öffnet Step-by-Step für diese Spalte)
+- Korrigierte Fehler: grüner Hintergrund, durchgestrichener Wert → in die gleiche Gruppe, aber visuell abgesetzt
 
-2. **Namenswechsel "Ignorieren"**: `dismissParentGroup` setzt currentId → currentId (gleicher Wert). Das erzeugt eine Regel die nichts tut und ist wertlos als gespeicherte Regel.
+---
 
-3. **changeLog-Einträge ohne "originalValue ≠ newValue"**: Wenn `dismissParentGroup` oder "Ignorieren" beim Namenswechsel gerufen wird, wird `originalValue === newValue` → solche Einträge sollten herausgefiltert werden.
+### 2. Konsolidierungs-Detailansicht: Angleichung an Namenswechsel-Stil
 
-4. **`matchType` immer `exact`**: In Step 4, Zeile 100, werden alle Regeln mit `matchType: 'exact'` gebaut – auch wenn es sinnvoller wäre, Eltern-ID-Korrekturen mit einem Identifier (AHV) zu binden. Das ist aber eine erweiterte Verbesserung.
+**Problem heute:** Die Detail-Expansion der Eltern-Konsolidierung zeigt ein variables Grid mit 1–3 Karten (eine pro betroffenem Kind). Das ist schwer zu lesen wenn mehrere Kinder denselben Elternteil haben.
 
-### Konkrete Fixes
+**Neu: Genau wie Namenswechsel – immer 2 Karten:**
 
-**Fix 1: changeLog-Einträge filtern wo `originalValue === newValue`**
-
-In `Step4Preview.tsx` Zeile 94:
-```ts
-.filter(entry => (entry.type === 'manual' || entry.type === 'bulk') && entry.originalValue !== entry.newValue)
 ```
-→ Verhindert wertlose "keine Änderung"-Regeln im Korrektur-Gedächtnis.
-
-**Fix 2: `dismissParentGroup` und "Ignorieren" beim Namenswechsel nicht in den changeLog schreiben**
-
-In `Step3Validation.tsx`: Die `dismissParentGroup`-Funktion ruft `onBulkCorrect` mit `currentId → currentId` auf. Stattdessen sollen "ignorierte" Einträge (wo keine echte Änderung stattfindet) gar nicht erst in den `changeLog` geschrieben werden.
-
-Lösung: Ein neuer optionaler Parameter `onIgnore` (separater Callback der keine Regel erzeugt), oder einfach prüfen ob `originalValue !== newValue` bevor `changeLog` befüllt wird – was bereits in `Index.tsx` in `handleBulkCorrect` passiert:
-
-```ts
-if (originalValue !== c.value) {
-  setChangeLog(...)
-}
+┌──────────────────────┬──────────────────────────────┐
+│  Aktuelle Situation  │  Nach Konsolidierung          │
+│  (alle Einträge mit  │  (alle Einträge erhalten      │
+│   verschiedenen IDs) │   diese eine korrekte ID)     │
+│                      │                               │
+│  Kinder: Max, Lisa   │  Korrekte ID: 20406           │
+│  IDs: 20408 (Max)    │  ✓ Max: 20408 → 20406        │
+│       20406 (Lisa)   │  ✓ Lisa: 20406 (korrekt)      │
+└──────────────────────┴──────────────────────────────┘
 ```
 
-→ Das ist **bereits korrekt implementiert**! `handleBulkCorrect` in `Index.tsx` prüft bereits `originalValue !== c.value`. Dismiss-Aktionen, die den Wert gleich lassen, erzeugen also keinen `changeLog`-Eintrag.
+**Linke Karte – "Aktuelle Situation":** grau (`bg-muted/50`)
+- Header: "Aktueller Stand" + Zeilenanzahl
+- Liste aller betroffenen Kinder mit ihrer jeweiligen (falschen) ID
+- Rot hervorgehobene IDs die sich von `correctId` unterscheiden
 
-### Fazit: Was wirklich fehlt
+**Rechte Karte – "Nach Konsolidierung":** blau (`bg-blue-500/5 border-blue-500/30`)
+- Header: "Nach Konsolidierung" 
+- "Einheitliche ID: {correctId}" prominent oben
+- Liste aller Kinder mit Pfeil-Transformation: `20408 → 20406` oder `✓ bereits korrekt`
+- Grüner Hintergrund für bereits korrekte Einträge
 
-Nach genauer Prüfung funktioniert die Hauptlogik korrekt. Die einzige echte Lücke:
+**Was entfällt:** Das "Was wird geändert?"-Panel darunter (wird in die rechte Karte integriert) und die variable Grid-Anzahl (immer genau 2 Spalten).
 
-**In `Step4Preview.tsx` Zeile 94 fehlt der Filter `entry.originalValue !== entry.newValue`** als Sicherheitsnetz, falls doch mal ein unveränderter Eintrag in den changeLog gelangt.
+---
 
-**Zusätzlich**: Die `auto`-Korrekturen (Korrektur-Gedächtnis Wiedereinspielen von vorherigen Regeln) werden **nicht** als neue Regeln gespeichert. Das macht Sinn – sie wurden ja aus bestehenden Regeln angewendet. Aber Muster-Auto-Fixes (z. B. Telefonnummer-Format) werden mit `'bulk'` markiert und **werden** gespeichert, was korrekt ist.
+### Dateien
 
-### Technische Änderung
+Nur eine Datei: `src/components/import/Step3Validation.tsx`
 
-**Datei:** `src/components/import/Step4Preview.tsx`
+**Änderung 1 – Fehler-Gruppierung (Zeilen 2117–2200):**
 
-Zeile 94, Filter erweitern:
-```ts
-// Vorher
-.filter(entry => entry.type === 'manual' || entry.type === 'bulk')
+Ersetze die flache Tabelle durch eine gruppierte Ansicht:
 
-// Nachher  
-.filter(entry => (entry.type === 'manual' || entry.type === 'bulk') && entry.originalValue !== entry.newValue)
+```tsx
+// Neue Logik vor dem return:
+const errorsByColumn = useMemo(() => {
+  const map = new Map<string, ValidationError[]>();
+  for (const e of errors) {
+    if (!map.has(e.column)) map.set(e.column, []);
+    map.get(e.column)!.push(e);
+  }
+  // Sortiere: meiste Fehler zuerst
+  return Array.from(map.entries()).sort((a, b) => {
+    const aUncorrected = a[1].filter(e => !e.correctedValue).length;
+    const bUncorrected = b[1].filter(e => !e.correctedValue).length;
+    return bUncorrected - aUncorrected;
+  });
+}, [errors]);
 ```
 
-Das ist der einzige echte Fix. Die restliche Logik (Eltern-IDs speichern, Muster-Fixes speichern, Dedup in `allRules`) funktioniert bereits korrekt.
+Dann in der JSX: Jede Spalte als Collapsible mit Tabelle (Zeile, Wert, Fehler, Aktion), nach Spalte gruppiert. Keine separate State-Variable nötig – alle Gruppen standardmässig eingeklappt ausser der ersten.
+
+**Änderung 2 – Konsolidierungs-Detail (Zeilen 1251–1327):**
+
+Ersetze das variable Grid durch das 2-Karten-Layout:
+
+```tsx
+{isExpanded && (
+  <div className="border-t bg-muted/20 p-3 space-y-3">
+    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+      Einträge im Vergleich
+    </p>
+    <div className="grid grid-cols-2 gap-2">
+      {/* Linke Karte: Aktueller Stand */}
+      <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">Aktueller Stand</span>
+          <span className="text-muted-foreground text-[10px]">{group.affectedRows.length} Einträge</span>
+        </div>
+        <div className="space-y-1 border-t pt-1.5">
+          {group.affectedRows.map(r => (
+            <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+              <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
+                {r.currentId}
+              </code>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Rechte Karte: Nach Konsolidierung */}
+      <div className="rounded-md border bg-blue-500/5 border-blue-500/30 p-2.5 space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-blue-700">Nach Konsolidierung</span>
+        </div>
+        <div className="flex items-center gap-1.5 pb-1.5 border-b">
+          <span className="text-muted-foreground shrink-0">Einheitliche ID:</span>
+          <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
+        </div>
+        <div className="space-y-1 pt-0.5">
+          {group.affectedRows.map(r => (
+            <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+              {r.currentId !== group.correctId ? (
+                <div className="flex items-center gap-1">
+                  <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
+                  <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
+                  <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-green-700">bereits korrekt</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+```
+
+Das "Was wird geändert?"-Panel (Zeilen 1303–1326) wird entfernt, da diese Information nun in die rechte Karte integriert ist.
+
+---
+
+### Übersicht der Änderungen
+
+- `src/components/import/Step3Validation.tsx`:
+  - `useMemo` für `errorsByColumn` hinzufügen (ca. Zeile 902, nach `suggestionsWithApplicability`)
+  - State für aufgeklappte Spaltengruppen: `expandedErrorColumns` (Set of string)
+  - Konsolidierungs-Detail: Zeilen 1251–1327 ersetzen (2-Karten-Layout)
+  - Fehler-Tabellen-Block: Zeilen 2117–2200 ersetzen (gruppierte Collapsible-Tabellen)
