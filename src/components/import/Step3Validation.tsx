@@ -257,8 +257,49 @@ export function Step3Validation({
     });
   }, [onBulkCorrect, toast]);
 
+  // Helper: compare parent fields across all affected rows for a consolidation group
+  function getParentFieldComparison(
+    affectedRows: { row: number; currentId: string; studentName: string | null }[],
+    column: string,
+    allRows: ParsedRow[]
+  ) {
+    const prefix = column.replace(/_ID$/, '_');
+    const FIELDS_TO_COMPARE = [
+      { key: 'Name',             label: 'Name' },
+      { key: 'Vorname',          label: 'Vorname' },
+      { key: 'AHV',              label: 'AHV' },
+      { key: 'Strasse',          label: 'Strasse' },
+      { key: 'PLZ',              label: 'PLZ' },
+      { key: 'Ort',              label: 'Ort' },
+      { key: 'EMail',            label: 'E-Mail' },
+      { key: 'TelefonPrivat',    label: 'Tel. Privat' },
+      { key: 'TelefonGeschaeft', label: 'Tel. Geschäft' },
+      { key: 'Mobil',            label: 'Mobil' },
+      { key: 'Rolle',            label: 'Rolle' },
+      { key: 'Beruf',            label: 'Beruf' },
+    ];
+    return FIELDS_TO_COMPARE.map(field => {
+      const values = affectedRows.map(r => {
+        const row = allRows[r.row - 1];
+        return String(row?.[`${prefix}${field.key}`] ?? '').trim();
+      });
+      const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
+      const allEmpty = values.every(v => v === '');
+      const allSame = uniqueNonEmpty.length <= 1;
+      return {
+        fieldKey: field.key,
+        label: field.label,
+        values,
+        allSame,
+        allEmpty,
+        uniqueValues: uniqueNonEmpty,
+        singleValue: allSame ? (uniqueNonEmpty[0] ?? '') : null,
+      };
+    }).filter(f => !f.allEmpty);
+  }
+
   // Total count for summary
-  const totalParentIdInconsistencies = useMemo(() => 
+  const totalParentIdInconsistencies = useMemo(() =>
     parentIdInconsistencyGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
     [parentIdInconsistencyGroups]
   );
@@ -1286,6 +1327,17 @@ export function Step3Validation({
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
+                                {/* Warning badge if there are field differences */}
+                                {(() => {
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows);
+                                  const diffCount = fc.filter(f => !f.allSame).length;
+                                  return diffCount > 0 ? (
+                                    <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
+                                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                                      <span>{diffCount} {diffCount === 1 ? 'Feld' : 'Felder'} mit Unterschieden – Details prüfen</span>
+                                    </div>
+                                  ) : null;
+                                })()}
                               </div>
                             <div className="flex gap-2 shrink-0">
                               <Button
@@ -1320,8 +1372,10 @@ export function Step3Validation({
                           </div>
                           </div>
 
-          {/* Inline details expansion – 2-Karten-Layout (wie Namenswechsel) */}
-                          {isExpanded && (
+          {/* Inline details expansion – 2-Karten-Layout + Feldvergleich */}
+                          {isExpanded && (() => {
+                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows);
+                            return (
                             <div className="border-t bg-muted/20 p-3 space-y-3">
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                                 Einträge im Vergleich
@@ -1374,8 +1428,53 @@ export function Step3Validation({
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Feldvergleich der Elternperson */}
+                              {fieldComparison.length > 0 && (
+                                <div className="border-t pt-3 space-y-1.5">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Felder der Elternperson
+                                  </p>
+                                  {fieldComparison.map(field => (
+                                    <div
+                                      key={field.fieldKey}
+                                      className={`rounded-md p-2 text-xs ${field.allSame ? 'bg-muted/30' : 'bg-amber-500/10 border border-amber-500/30'}`}
+                                    >
+                                      {field.allSame ? (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-muted-foreground w-28 shrink-0">{field.label}</span>
+                                          <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                                          <span className="text-foreground truncate">{field.singleValue || '–'}</span>
+                                          <span className="text-muted-foreground text-[10px] ml-auto whitespace-nowrap">alle gleich</span>
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          <div className="flex items-center gap-2">
+                                            <AlertTriangle className="h-3 w-3 text-amber-600 shrink-0" />
+                                            <span className="font-medium text-amber-700 dark:text-amber-400">{field.label} – Unterschiede</span>
+                                          </div>
+                                          <div className="grid gap-0.5 pl-4">
+                                            {group.affectedRows.map((r, i) => (
+                                              <div key={r.row} className="flex items-center gap-2">
+                                                <span className="text-muted-foreground w-24 shrink-0 truncate text-[11px]">
+                                                  {r.studentName || `Zeile ${r.row}`}:
+                                                </span>
+                                                <span className={`text-[11px] ${field.values[i] !== field.uniqueValues[0] ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-foreground'}`}>
+                                                  {field.values[i] || '–'}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
+                            );
+                          })()}
+
                          </div>
                           );
                         })
