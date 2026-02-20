@@ -1,93 +1,229 @@
 
-## Analyse des Problems
+## Analyse: Was fehlt – neue Szenarien und Mustererkennung
 
-Die aktuelle `test-stammdaten.csv` enthält keine realistischen Familienszenarien mit mehreren Kindern. Jede Zeile repräsentiert ein Kind mit einem eigenen Elternpaar – aber dieselben Eltern tauchen nie in mehreren Zeilen für ihre verschiedenen Kinder auf. Das bedeutet:
+### Ist-Zustand der Testdatei (124 Zeilen)
 
-- **Eltern-ID-Konsolidierung** wird nie ausgelöst, weil dieselbe AHV-Nummer / derselbe Name nie in >1 Zeile vorkommt
-- **Namenswechsel-Erkennung** wird zwar für die Ianuzi/Brunner/Müller-Szenarien ausgelöst (Zeilen 82–93), aber nur weil zwei Kinder unterschiedlich erfasste Mütter haben – nicht wegen mehrerer Kinder derselben Familie
+Die bestehenden Testblöcke decken ab:
+- Grunddaten (50 Schüler)
+- Schüler-Duplikate (S_AHV, S_ID)
+- Eltern-ID-Inkonsistenz via AHV / Name+Adresse / Elternpaar
+- Adress-/Umzugsszenarien
+- Namenswechsel (ERZ1/ERZ2)
+- Diakritik-Normalisierung (Muller/Müller, Schutz/Schütz, Bjorn/Björn)
+- Formatfehler (AHV, Datum, Geschlecht, E-Mail, Telefon, PLZ, Pflichtfelder)
+- Geschwister-Blöcke A-D (neu hinzugefügt)
 
-## Was die Testdatei bisher abdeckt
+### Was fehlt – neue realistische Szenarien
 
-- Zeilen 2–51: Schüler ohne spezielle Fehler (Grunddaten)
-- Zeilen 52–55: Schüler-Duplikate (S_AHV, S_ID)
-- Zeilen 58–69: Eltern-ID-Inkonsistenzen via AHV / Name+Adresse (jeder Fall hat genau 2 Zeilen, aber verschiedene Kinder)
-- Zeilen 70–75: Elternpaar-Szenarien (ID-Unterschiede für dasselbe Elternpaar)
-- Zeilen 76–81: Adress-/Telefon-Änderungen (Umzug-Szenarien)
-- Zeilen 82–93: Namenswechsel für ERZ1 (Ianuzi, Brunner, Müller, Schmidt, Meier) und ERZ2 (Kummer)
-- Zeilen 94–97: Kein-Match-Szenarien
-- Zeilen 98–103: Diakritik-Normalisierung
-- Zeilen 104–115: Format-Fehler (AHV, Datum, Geschlecht, E-Mail, Telefon, PLZ, Pflichtfelder)
+---
 
-## Was fehlt: Realistische Geschwister-Szenarien
+#### Block E – Telefonnummern in verschiedenen Rohformaten (Auto-Fix via Muster)
 
-**Szenario 1 – Familie mit 3 Kindern, Vater mit inkonsistenter ID (AHV-basiert):**
-Kind A (Klasse 1A), Kind B (Klasse 3B), Kind C (Klasse 5A) haben denselben Vater mit AHV `756.1111.2222.01`, aber die Schulsoftware hat bei jedem Kind eine andere ID vergeben: `30001`, `30002`, `30003`. → 2 Fehler für ERZ1_ID (AHV-Erkennung, hohe Zuverlässigkeit)
+**Szenario:** Schulsoftware exportiert Telefonnummern uneinheitlich. Realistische Formate die in der Praxis vorkommen:
+- `0791234567` (ohne Leerzeichen, ohne +)
+- `+41791234567` (kein Leerzeichen)
+- `004179 123 45 67` (0041-Präfix)
+- `079 123 4567` (falsche Gruppierung)
+- `41791234567` (ohne +, 11 Ziffern)
 
-**Szenario 2 – Familie mit 2 Kindern, Mutter nach Heirat in einem Kind anders erfasst:**
-Kind A hat Mutter "Gruber Maria" (alter Name vor Heirat), Kind B hat Mutter "Gruber-Keller Maria" → Namenswechsel-Erkennung (Bindestrichzusatz)
+Erwartetes Ergebnis: `phone_format` Muster erkannt, Auto-Fix auf `079 123 45 67` oder `+41 79 123 45 67`
 
-**Szenario 3 – Familie mit 2 Kindern, Elternpaar via Name+Adresse erkannt (mittlere Zuverlässigkeit):**
-Kein AHV vorhanden. ERZ1 = "Brunetti Marco, Seestrasse 7" – Kind A hat ID `40001`, Kind B hat ID `40002` → Name+Strasse-Erkennung
+**Neue Zeilen:** 3–4 Kinder mit Eltern die verschiedene Telefon-Rohformate haben
 
-**Szenario 4 – Familie mit 2 Kindern, Elternpaar via Name-only erkannt (tiefe Zuverlässigkeit):**
-Beide Elternteile stimmen überein, aber keine AHV und keine Adresse. → Elternpaar-Matching (niedrige Zuverlässigkeit)
+---
 
-## Technische Umsetzung
+#### Block F – Namen und Adressen in GROSSBUCHSTABEN (Auto-Fix via Muster)
 
-**Datei:** `public/test-stammdaten.csv`
+**Szenario:** Ältere Schulsoftware-Exporte schreiben alle Namen und Adressen in Grossbuchstaben (z.B. aus Datenbank-Exporten aus AS/400-Systemen). Der Name-Format-Fix soll diese in korrekte Schreibweise umwandeln.
 
-Neue Zeilen werden am Ende der Datei angehängt (nach Zeile 115).
+Beispiele:
+- `MÜLLER` → `Müller`
+- `HAUPTSTRASSE 12` → `Hauptstrasse 12`
+- `VON DER MÜHLE` → `Von Der Mühle` (mehrteilige Namen)
+- `MARIA-THERESA` → `Maria-Theresa` (Bindestrich-Namen)
 
-### Neue Zeilen
+Erwartetes Ergebnis: `name_format` und `street_format` Muster erkannt, Auto-Fix verfügbar
 
-**Block A – Geschwister mit ERZ1-ID-Inkonsistenz via AHV (3 Kinder, ID variiert)**
+**Neue Zeilen:** 2–3 Kinder mit Elternnamen und Adressen komplett in Grossbuchstaben
 
-Kind 1: S_AHV neu, S_ID `10201`, S_Name `Geschwister`, S_Vorname `Kind1`, Klasse `1A`
-- P_ERZ1_ID: `50001`, P_ERZ1_AHV: `756.1111.2222.01`, P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`, P_ERZ1_Strasse: `Geschwisterweg 1`, P_ERZ1_PLZ: `8000`, P_ERZ1_Ort: `Zürich`
-- P_ERZ2_ID: `50100`, P_ERZ2_AHV: `756.1111.2222.02`, P_ERZ2_Name: `Mutter`, P_ERZ2_Vorname: `Heidi`
+---
 
-Kind 2 (Bruder): S_AHV neu, S_ID `10202`, S_Name `Geschwister`, S_Vorname `Kind2`, Klasse `3B`
-- **P_ERZ1_ID: `50002`** (andere ID, gleiche AHV!) – löst AHV-Inkonsistenz aus
-- P_ERZ1_AHV: `756.1111.2222.01` (gleich), P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`
+#### Block G – E-Mail-Adressen mit typischen Tippfehlern (Auto-Fix via Muster)
 
-Kind 3 (Schwester): S_AHV neu, S_ID `10203`, S_Name `Geschwister`, S_Vorname `Kind3`, Klasse `5A`
-- **P_ERZ1_ID: `50003`** (wieder andere ID, gleiche AHV!) – zweiter AHV-Inkonsistenz-Fehler
-- P_ERZ1_AHV: `756.1111.2222.01` (gleich), P_ERZ1_Name: `Vater`, P_ERZ1_Vorname: `Hans`
-- P_ERZ2_ID: `50102`, P_ERZ2 wie Kind 2
+**Szenario:** Eltern geben E-Mail-Adressen mit häufigen Fehlern an:
+- `mueller@gmial.com` → `@gmail.com` (gmial-Tippfehler)
+- `anna,weber@bluewin.ch` → Komma statt Punkt
+- `info @schulhaus.ch` → Leerzeichen im E-Mail
+- `HANS.MUSTER@GMAIL.COM` → Grossbuchstaben
 
-**Block B – Geschwister mit ERZ1-Namenswechsel (Mutter hat nach Heirat anderen Namen)**
+Erwartetes Ergebnis: `email_format` Muster erkannt, Auto-Fix verfügbar
 
-Kind 1: S_ID `10204`, S_Name `Heirat`, S_Vorname `Kind1`, Klasse `2A`
-- P_ERZ1_ID: `51001`, kein AHV, P_ERZ1_Name: `Weber`, P_ERZ1_Vorname: `Anna`, P_ERZ1_Strasse: `Heiratsgasse 5`, P_ERZ1_PLZ: `8001`, P_ERZ1_Ort: `Zürich`
+---
 
-Kind 2 (jüngere Schwester, nach Hochzeit der Mutter erfasst): S_ID `10205`, S_Name `Heirat`, S_Vorname `Kind2`, Klasse `4B`
-- P_ERZ1_ID: `51001`, kein AHV, P_ERZ1_Name: `Weber-Brun`, P_ERZ1_Vorname: `Anna` (Bindestrichzusatz) → Namenswechsel-Erkennung
+#### Block H – Excel-Seriennummern als Datum (Auto-Fix via Muster)
 
-**Block C – Geschwister mit ERZ-Erkennung via Name+Strasse (mittlere Zuverlässigkeit, kein AHV)**
+**Szenario:** Excel exportiert Datumsfelder als Seriennummern wenn die Zelle als Zahl formatiert ist. Dies passiert regelmässig bei Copy-Paste aus Excel-Tabellen.
 
-Kind 1: S_ID `10206`, Klasse `1C`
-- P_ERZ1_ID: `52001`, kein AHV, P_ERZ1_Name: `Rossi`, P_ERZ1_Vorname: `Marco`, P_ERZ1_Strasse: `Rossiweg 3`, PLZ `8002`
+Beispiele (Excel-Seriennummer für das jeweilige Datum):
+- `45291` → `06.01.2024` (Januar 2024)
+- `44927` → `08.01.2023` 
+- `42005` → `15.01.2015`
 
-Kind 2: S_ID `10207`, Klasse `4C`
-- **P_ERZ1_ID: `52002`** (andere ID), kein AHV, P_ERZ1_Name: `Rossi`, P_ERZ1_Vorname: `Marco`, P_ERZ1_Strasse: `Rossiweg 3` (identisch) → Name+Strasse-Inkonsistenz
+Erwartetes Ergebnis: `date_format` / `excel_date` Muster erkannt, Auto-Fix verfügbar
 
-**Block D – Geschwister mit Elternpaar-Erkennung via Name-only (tiefe Zuverlässigkeit)**
+---
 
-Kind 1: S_ID `10208`, Klasse `2C`
-- P_ERZ1_ID: `53001`, P_ERZ1_Name: `Dario`, P_ERZ1_Vorname: `Luca`, ohne AHV, ohne Strasse
-- P_ERZ2_ID: `53002`, P_ERZ2_Name: `Dario`, P_ERZ2_Vorname: `Sofia`
+#### Block I – Getrennt lebende Eltern: Kind bei ERZ1, dasselbe Elternteil auch ERZ2 eines anderen Kindes
 
-Kind 2: S_ID `10209`, Klasse `5C`
-- **P_ERZ1_ID: `53003`** (andere ID!), P_ERZ1_Name: `Dario`, P_ERZ1_Vorname: `Luca`, ohne AHV
-- **P_ERZ2_ID: `53004`** (andere ID!), P_ERZ2_Name: `Dario`, P_ERZ2_Vorname: `Sofia` → Elternpaar-Inkonsistenz (name_only)
+**Szenario:** Scheidung/Trennung – Vater ist bei Kind A der ERZ1, bei Kind B (anderem Kind aus neuer Partnerschaft) ebenfalls der ERZ1, aber mit einer anderen ID. Gleichzeitig hat er keine AHV hinterlegt, aber Name+Strasse stimmt überein. Realistisches Problem: nach Scheidung zieht der Vater aus → Adresse unterscheidet sich.
 
-## Erwartetes Ergebnis nach Änderung
+Dieses Szenario testet: **Name-only-Matching** + **ID-Diskrepanz ohne Adressübereinstimmung** = mittlere/tiefe Zuverlässigkeit
 
-| Block | Validierungsregel | Anzahl neue Fehler |
+---
+
+#### Block J – Klassenwechsel: Gleicher Schüler wird in zwei Halbjahren importiert (neue Klasse)
+
+**Szenario:** Am Schuljahresende wechseln Schüler die Klasse. Eine Schule importiert die Stammdaten zweimal: einmal mit `K_Name = 4A` und einmal mit `K_Name = 5A`. Der Schüler hat dieselbe `S_AHV` und `S_ID`. Das ist kein Fehler (kein Duplikat), aber er testet ob die Duplikat-Erkennung zwischen Klassen-Zeilen korrekt differenziert (echte Duplikate vs. Klassenwechsel-Duplikate).
+
+---
+
+#### Block K – Schüler ohne Erziehungsberechtigte (alleinerziehend, externe Betreuung)
+
+**Szenario:** Kein ERZ2, ERZ1 ist Beistand/Behörde. Fehlende Pflichtfelder bei ERZ1 die optional sind aber in der Praxis oft fehlen:
+- `P_ERZ1_Strasse` leer
+- `P_ERZ1_PLZ` leer  
+- `P_ERZ1_TelefonPrivat` leer
+
+Testet: Keine falschen Pflichtfeld-Fehler bei optionalen Feldern die leer sind
+
+---
+
+### Neue Mustererkennung
+
+Folgende Erkennungen existieren noch **nicht** und sollten ergänzt werden:
+
+#### Neue Muster im `validationWorker.ts` / `localBulkCorrections.ts`
+
+| Muster | Beschreibung | Erkennung |
 |---|---|---|
-| A | AHV-Inkonsistenz P_ERZ1_ID | 2 Fehler (Kind2, Kind3) |
-| B | Namenswechsel P_ERZ1_Name | 1 Warnung (Kind2) |
-| C | Name+Strasse-Inkonsistenz P_ERZ1_ID | 1 Fehler (Kind2) |
-| D | Elternpaar-Inkonsistenz (name_only) P_ERZ1_ID + P_ERZ2_ID | 2 Warnungen (Kind2) |
+| **Leerzeichen-Trimming** | Werte mit führenden/nachfolgenden Leerzeichen (` Meier` statt `Meier`) | Auto-Fix: `trim()` |
+| **Doppelte Leerzeichen** | `Hans  Muster` statt `Hans Muster` | Auto-Fix: normalisieren |
+| **Datumsformat DD-MM-YYYY** | Bindestriche statt Punkte (`15-03-2014` → `15.03.2014`) | Auto-Fix: Ersetzen |
+| **Datumsformat YYYY-MM-DD** | ISO-Format (`2014-03-15` → `15.03.2014`) | Auto-Fix: Umkehren |
+| **Telefon mit 0041-Prefix** | `0041791234567` → `+41 79 123 45 67` | Auto-Fix |
+| **Name in Kleinbuchstaben** | `müller` → `Müller` (isAllLower) | Auto-Fix (bereits partial) |
 
-Diese Szenarien decken alle drei Erkennungsstrategien der `checkParentIdConsistency`-Funktion ab und liefern realistische Geschwisterfamilien.
+Die fehlenden Muster sind vor allem **Datum-Format-Varianten** (Bindestriche, ISO-Format) und **Leerzeichen-Bereinigung** – beides sehr häufig in realen Importen.
+
+---
+
+### Technische Umsetzung
+
+#### 1. Testdatei `public/test-stammdaten.csv`
+
+Neue Zeilen werden nach Zeile 124 angehängt. Insgesamt ca. 20–25 neue Zeilen für die Blöcke E–K:
+
+**Block E (Telefon-Rohdaten, 4 Zeilen):**
+- S_ID 10210–10213
+- Verschiedene Telefon-Rohformate für P_ERZ1_TelefonPrivat: `0791234567`, `+41791234567`, `0041791234567`, `41791234567`
+
+**Block F (GROSSBUCHSTABEN, 3 Zeilen):**
+- S_ID 10220–10222
+- P_ERZ1_Name: `GROSSMANN`, P_ERZ1_Vorname: `HANS`, P_ERZ1_Strasse: `HAUPTSTRASSE 15`
+
+**Block G (E-Mail-Tippfehler, 3 Zeilen):**
+- S_ID 10230–10232
+- P_ERZ1_Mobil: `musteratgmial.com` (gmial), `info @test.ch` (Leerzeichen), `ANNA@GMAIL.COM` (Grossbuchstaben)
+
+**Block H (Excel-Datum, 3 Zeilen):**
+- S_ID 10240–10242
+- S_Geburtsdatum: `45291`, `44927`, `42005` (Excel-Seriennummern)
+
+**Block I (Getrennt lebend, 2 Zeilen):**
+- S_ID 10250–10251
+- Zwei Kinder mit demselben Vater (Name+Strasse gleich, ID verschieden, keine AHV)
+- Vater hat bei Kind 2 neue Adresse → name-only matching testen
+
+**Block J (Klassenwechsel-Duplikat, 2 Zeilen):**
+- S_ID 10260, gleiche S_AHV, S_ID
+- Kind mit Klasse `3A` und nochmal mit Klasse `4A` → echtes Duplikat wegen S_ID-Gleichheit
+- Prüft ob S_ID-Duplikat korrekt erkannt wird (anders als Klassenwechsel)
+
+**Block K (Fehlende Erziehungsberechtigte, 2 Zeilen):**
+- S_ID 10270–10271
+- ERZ1 = Beistand mit minimalen Daten, kein ERZ2
+- Teste keine falschen Pflichtfeld-Warnungen
+
+#### 2. Neue Mustererkennung in `src/workers/validationWorker.ts`
+
+Neue Funktion `formatDateDE` für Datum-Format-Varianten:
+```ts
+function formatDateDE(value: string): string | null {
+  // DD-MM-YYYY → DD.MM.YYYY
+  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dashMatch) return `${dashMatch[1]}.${dashMatch[2]}.${dashMatch[3]}`;
+  
+  // YYYY-MM-DD → DD.MM.YYYY (ISO)
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+  
+  return null;
+}
+```
+
+Neuer Pattern-Zweig in `analyzeErrors` für Datum-Varianten:
+- Erkennt DD-MM-YYYY und ISO-Format
+- `canAutoFix: true`
+- `suggestedAction: 'Format: DD.MM.YYYY'`
+
+Neuer Pattern-Zweig für Leerzeichen-Trimming:
+- Erkennt Werte mit `value !== value.trim()`
+- Betrifft alle Textspalten (Name, Strasse, Ort)
+- `canAutoFix: true`
+
+#### 3. Neue Mustererkennung in `src/lib/localBulkCorrections.ts`
+
+Neue Funktion `formatDateDE` (parallel zu Worker):
+```ts
+export function formatDateDE(value: string): string | null {
+  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dashMatch) return `${dashMatch[1]}.${dashMatch[2]}.${dashMatch[3]}`;
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+  return null;
+}
+
+export function trimWhitespace(value: string): string | null {
+  const trimmed = value.trim().replace(/\s{2,}/g, ' ');
+  return trimmed !== value ? trimmed : null;
+}
+```
+
+Neue `detectDateFormatPattern`-Funktion für DD-MM-YYYY und ISO-Daten.
+Neue `detectWhitespacePattern`-Funktion für alle Text-Spalten.
+
+Beide werden in `analyzeErrorsLocally` eingehängt.
+
+#### 4. Apply-Correction im Worker ergänzen
+
+In `applyCorrection` zwei neue `case`-Zweige:
+```ts
+case 'date_de_format':
+  newValue = formatDateDE(String(value));
+  break;
+case 'whitespace_trim':
+  newValue = trimWhitespace(String(value));
+  break;
+```
+
+---
+
+### Zusammenfassung der Änderungen
+
+| Datei | Änderung |
+|---|---|
+| `public/test-stammdaten.csv` | +~25 neue Zeilen für Blöcke E–K |
+| `src/workers/validationWorker.ts` | +`formatDateDE`, +`trimWhitespace`, +2 neue Pattern-Zweige in `analyzeErrors`, +2 neue `case` in `applyCorrection` |
+| `src/lib/localBulkCorrections.ts` | +`formatDateDE`, +`trimWhitespace`, +`detectDateFormatPattern`, +`detectWhitespacePattern`, beide in `analyzeErrorsLocally` eingehängt |
+
+Keine Änderungen an UI-Komponenten nötig – die neuen Muster werden automatisch über die bestehende Pattern-Display-Logik in Step 3 angezeigt.
