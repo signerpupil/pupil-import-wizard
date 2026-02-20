@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -80,6 +80,12 @@ export function Step3Validation({
   const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
   const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
   const PARENTS_PER_PAGE = 4;
+
+  // Name change UI state
+  const [nameChangeExpanded, setNameChangeExpanded] = useState(true);
+  const [nameChangePage, setNameChangePage] = useState(0);
+  const NAME_CHANGES_PER_PAGE = 5;
+
   const { toast } = useToast();
   
   // Web Worker for background processing
@@ -220,6 +226,64 @@ export function Step3Validation({
   useEffect(() => {
     setParentConsolidationPage(0);
   }, [parentConsolidationSearch]);
+
+  // Detect name change warnings from uncorrected errors
+  interface NameChangeEntry {
+    error: ValidationError;
+    changeType: string;
+    fromName: string;
+    fromRow: number;
+    toName: string;
+    studentName: string;
+    column: string;
+  }
+
+  const nameChangeEntries = useMemo((): NameChangeEntry[] => {
+    const entries: NameChangeEntry[] = [];
+    for (const error of uncorrectedErrors) {
+      if (!error.message.includes('Möglicher Namenswechsel')) continue;
+      const typeMatch = error.message.match(/Möglicher Namenswechsel \(([^)]+)\)/);
+      const fromMatch = error.message.match(/"([^"]+)" \(Zeile (\d+)\)/);
+      const toMatch = error.message.match(/→ "([^"]+)"/);
+      const studentMatch = error.message.match(/Schüler\/in: ([^)]+)/);
+      entries.push({
+        error,
+        changeType: typeMatch?.[1] ?? 'Unbekannt',
+        fromName: fromMatch?.[1] ?? error.value,
+        fromRow: fromMatch ? parseInt(fromMatch[2]) : error.row,
+        toName: toMatch?.[1] ?? error.value,
+        studentName: studentMatch?.[1] ?? (getStudentNameForRow(error.row) ?? `Zeile ${error.row}`),
+        column: error.column,
+      });
+    }
+    return entries;
+  }, [uncorrectedErrors, getStudentNameForRow]);
+
+  const paginatedNameChanges = useMemo(() => {
+    const start = nameChangePage * NAME_CHANGES_PER_PAGE;
+    return nameChangeEntries.slice(start, start + NAME_CHANGES_PER_PAGE);
+  }, [nameChangeEntries, nameChangePage, NAME_CHANGES_PER_PAGE]);
+
+  const totalNameChangePages = Math.ceil(nameChangeEntries.length / NAME_CHANGES_PER_PAGE);
+
+  const dismissNameChange = useCallback((entry: NameChangeEntry) => {
+    onErrorCorrect(entry.error.row, entry.error.column, entry.error.value, 'manual');
+  }, [onErrorCorrect]);
+
+  const dismissAllNameChanges = useCallback(() => {
+    const corrections = nameChangeEntries.map(e => ({
+      row: e.error.row,
+      column: e.error.column,
+      value: e.error.value,
+    }));
+    onBulkCorrect(corrections, 'bulk');
+    toast({
+      title: 'Namenswechsel bestätigt',
+      description: `${corrections.length} Fälle als geprüft markiert.`,
+    });
+  }, [nameChangeEntries, onBulkCorrect, toast]);
+
+
 
   // Filtered errors for step-by-step mode (only specific rows and column if set)
   const stepByStepErrors = useMemo(() => {
@@ -800,7 +864,7 @@ export function Step3Validation({
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
         <div className="p-4 bg-muted rounded-lg text-center">
           <p className="text-3xl font-bold">{rows.length}</p>
           <p className="text-sm text-muted-foreground">Datensätze gesamt</p>
@@ -809,6 +873,12 @@ export function Step3Validation({
           <p className="text-3xl font-bold text-destructive">{uncorrectedErrors.length}</p>
           <p className="text-sm text-muted-foreground">Offene Fehler</p>
         </div>
+        {nameChangeEntries.length > 0 && (
+          <div className="p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
+            <p className="text-3xl font-bold text-pupil-warning">{nameChangeEntries.length}</p>
+            <p className="text-sm text-muted-foreground">Namenswechsel</p>
+          </div>
+        )}
         <div className="p-4 bg-pupil-success/10 rounded-lg text-center">
           <p className="text-3xl font-bold text-pupil-success">{correctedErrors.length}</p>
           <p className="text-sm text-muted-foreground">Korrigiert</p>
@@ -996,6 +1066,113 @@ export function Step3Validation({
                       size="sm"
                       onClick={() => setParentConsolidationPage(p => Math.min(totalParentPages - 1, p + 1))}
                       disabled={parentConsolidationPage >= totalParentPages - 1}
+                    >
+                      Weiter
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Name Change Detection Card */}
+      {nameChangeEntries.length > 0 && (
+        <Card className="border-pupil-warning/30 bg-pupil-warning/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <UserCog className="h-5 w-5 text-pupil-warning" />
+                <CardTitle className="text-lg">Namenswechsel prüfen</CardTitle>
+                <Badge variant="outline" className="text-pupil-warning border-pupil-warning/30">
+                  {nameChangeEntries.length} {nameChangeEntries.length === 1 ? 'Fall' : 'Fälle'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={dismissAllNameChanges}
+                  className="gap-1.5"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Alle als geprüft markieren
+                </Button>
+              </div>
+            </div>
+            <CardDescription>
+              Eltern mit gleichem Vornamen, aber unterschiedlichem Nachnamen wurden gefunden. Bitte manuell prüfen – keine automatischen Korrekturen.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-3">
+            <Collapsible open={nameChangeExpanded} onOpenChange={setNameChangeExpanded}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full gap-2">
+                  {nameChangeExpanded ? (
+                    <><ChevronUp className="h-4 w-4" />Details ausblenden</>
+                  ) : (
+                    <><ChevronDown className="h-4 w-4" />Details anzeigen ({nameChangeEntries.length} Fälle)</>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent className="mt-3 space-y-2">
+                {paginatedNameChanges.map((entry, idx) => (
+                  <div
+                    key={`namechange-${entry.error.row}-${entry.error.column}-${idx}`}
+                    className="p-3 bg-background rounded-lg border border-pupil-warning/20 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="font-mono text-xs shrink-0">{entry.column}</Badge>
+                          <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
+                          <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm flex-wrap">
+                          <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
+                          <span className="text-muted-foreground">→</span>
+                          <code className="px-1.5 py-0.5 bg-pupil-warning/10 rounded text-xs font-mono text-pupil-warning">{entry.toName}</code>
+                          <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Zeilen {entry.fromRow} → {entry.error.row}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => dismissNameChange(entry)}
+                        className="shrink-0 gap-1 text-muted-foreground hover:text-foreground"
+                        title="Als geprüft markieren"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Pagination */}
+                {totalNameChangePages > 1 && (
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNameChangePage(p => Math.max(0, p - 1))}
+                      disabled={nameChangePage === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Zurück
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Seite {nameChangePage + 1} von {totalNameChangePages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNameChangePage(p => Math.min(totalNameChangePages - 1, p + 1))}
+                      disabled={nameChangePage >= totalNameChangePages - 1}
                     >
                       Weiter
                       <ChevronRight className="h-4 w-4" />
