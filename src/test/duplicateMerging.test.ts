@@ -418,6 +418,42 @@ describe("Parent Name Change Detection", () => {
     const nameChanges = errors.filter(e => e.message.includes("Namenswechsel"));
     expect(nameChanges.length).toBe(0);
   });
+
+  it("should detect complete_change for Müller → Möller (Levenshtein=1, similarity=83%)", () => {
+    // Müller vs Möller: 1 char diff in 6 chars = 83% similarity → should flag as complete_change
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Müller-N", S_Vorname: "Theo",
+        P_ERZ1_Name: "Müller", P_ERZ1_Vorname: "Heidi",
+      },
+      {
+        S_ID: "2", S_Name: "Müller-N", S_Vorname: "Vera",
+        P_ERZ1_Name: "Möller", P_ERZ1_Vorname: "Heidi",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Möglicher"));
+    expect(nameChanges.length).toBeGreaterThan(0);
+    expect(nameChanges[0].severity).toBe("warning");
+  });
+
+  it("should detect Meier → Maier (fuzzy match in testdaten Gruppe G, Fam 46)", () => {
+    // Meier vs Maier: levenshtein=1, max=5, similarity=80% → complete_change
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Meier-N", S_Vorname: "Paul",
+        P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Peter",
+      },
+      {
+        S_ID: "2", S_Name: "Meier-N", S_Vorname: "Lea",
+        P_ERZ1_Name: "Maier", P_ERZ1_Vorname: "Peter",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Möglicher"));
+    expect(nameChanges.length).toBeGreaterThan(0);
+    expect(nameChanges[0].column).toBe("P_ERZ1_Name");
+  });
 });
 
 describe("Error Correction Simulation", () => {
