@@ -1235,46 +1235,83 @@ export function Step3Validation({
                           </div>
                           </div>
 
-                          {/* Inline details expansion */}
+                          {/* Inline details expansion – Person Card Comparison */}
                           {isExpanded && (
-                            <div className="border-t bg-muted/30 p-3 space-y-3">
-                              {/* Identical fields */}
+                            <div className="border-t bg-muted/20 p-3 space-y-4">
+                              {/* Person Cards Grid */}
                               <div>
-                                <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
-                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                                  Identische Felder (bleiben unverändert)
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                  {PERSON_FIELDS.map(field => {
-                                    const val = rows[group.affectedRows[0].row - 1]?.[`${prefix}${field}`];
-                                    if (!val) return null;
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Betroffene Einträge im Datensatz</p>
+                                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(group.affectedRows.length, 3)}, minmax(0, 1fr))` }}>
+                                  {group.affectedRows.map(r => {
+                                    const rowData = rows[r.row - 1] ?? {};
+                                    const isCorrect = r.currentId === group.correctId;
                                     return (
-                                      <div key={field} className="flex items-baseline gap-1 text-xs">
-                                        <span className="text-muted-foreground shrink-0 w-14">{field}:</span>
-                                        <span className="font-medium truncate">{String(val)}</span>
+                                      <div
+                                        key={r.row}
+                                        className={`rounded-md border p-2.5 space-y-2 bg-background text-xs ${isCorrect ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-destructive/60'}`}
+                                      >
+                                        {/* Card header */}
+                                        <div className="flex items-center justify-between gap-1 flex-wrap">
+                                          <span className="font-semibold text-foreground">
+                                            {r.studentName ? `Kind: ${r.studentName}` : `Zeile ${r.row}`}
+                                          </span>
+                                          <span className="text-muted-foreground text-[10px]">Zeile {r.row}</span>
+                                        </div>
+                                        {/* ID status */}
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-muted-foreground shrink-0">ID:</span>
+                                          {isCorrect ? (
+                                            <span className="flex items-center gap-1">
+                                              <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{r.currentId}</code>
+                                              <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                                            </span>
+                                          ) : (
+                                            <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono">{r.currentId}</code>
+                                          )}
+                                        </div>
+                                        {/* Person fields */}
+                                        <div className="space-y-0.5 border-t pt-1.5">
+                                          {PERSON_FIELDS.map(field => {
+                                            const val = rowData[`${prefix}${field}`];
+                                            if (!val) return null;
+                                            return (
+                                              <div key={field} className="flex items-baseline gap-1">
+                                                <span className="text-muted-foreground shrink-0 w-12">{field}:</span>
+                                                <span className="font-medium truncate">{String(val)}</span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               </div>
 
-                              {/* ID changes */}
-                              <div>
-                                <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
-                                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-                                  ID wird vereinheitlicht (eine Änderung pro Kind)
-                                </div>
-                                <div className="space-y-1">
-                                  {group.affectedRows.map(r => (
-                                    <div key={r.row} className="flex items-center gap-2 text-xs flex-wrap">
-                                      <span className="text-muted-foreground shrink-0 w-28 truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                      <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through">{r.currentId}</code>
-                                      <span className="text-muted-foreground">→</span>
-                                      <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{group.correctId}</code>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                              {/* Was wird geändert? */}
+                              {(() => {
+                                const rowsToChange = group.affectedRows.filter(r => r.currentId !== group.correctId);
+                                if (rowsToChange.length === 0) return null;
+                                return (
+                                  <div className="rounded-md border border-dashed border-muted-foreground/30 p-2.5 space-y-1.5">
+                                    <p className="text-xs font-semibold text-foreground mb-1.5">Was wird geändert?</p>
+                                    {rowsToChange.map(r => (
+                                      <div key={r.row} className="flex items-center gap-2 text-xs flex-wrap">
+                                        <span className="text-muted-foreground shrink-0 min-w-0 max-w-[120px] truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+                                        <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through">{r.currentId}</code>
+                                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                        <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{group.correctId}</code>
+                                      </div>
+                                    ))}
+                                    {group.affectedRows.filter(r => r.currentId === group.correctId).map(r => (
+                                      <div key={r.row} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                                        <span>{r.studentName || `Zeile ${r.row}`}: Bereits korrekt</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                          </div>
@@ -1415,58 +1452,77 @@ export function Step3Validation({
                     </div>
                     </div>
 
-                    {/* Inline comparison */}
-                    {isExpanded && (
-                      <div className="border-t bg-muted/30 p-3 space-y-3">
-                        {/* Identical fields */}
-                        <div>
-                          <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
-                            <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                            Identisch (unverändert)
-                          </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1">
-                            {sharedVorname && (
-                              <div className="flex items-baseline gap-1 text-xs">
-                                <span className="text-muted-foreground">Vorname:</span>
-                                <span className="font-medium">{String(sharedVorname)}</span>
-                              </div>
-                            )}
-                            {studentCols.map(col => {
-                              const val = fromRow[col] ?? toRow[col];
-                              if (!val) return null;
-                              const label = col.replace('S_', '').replace('K_', 'Klasse ');
-                              return (
-                                <div key={col} className="flex items-baseline gap-1 text-xs">
-                                  <span className="text-muted-foreground">{label}:</span>
-                                  <span className="font-medium">{String(val)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Side-by-side name comparison */}
-                        <div>
-                          <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
-                            <AlertCircle className="h-3.5 w-3.5 text-pupil-warning" />
-                            Unterschied – bitte prüfen
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Zeile {entry.fromRow} (bisheriger Wert)</p>
-                              <code className="block px-2 py-1.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Zeile {entry.error.row} (neuer Wert)</p>
-                              <code className="block px-2 py-1.5 bg-pupil-warning/10 text-pupil-warning rounded text-xs font-mono">{entry.toName}</code>
-                            </div>
-                          </div>
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            ℹ Bei «Ignorieren» bleiben beide Werte unverändert im Export.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    {/* Inline comparison – Person Card Layout */}
+                     {isExpanded && (
+                       <div className="border-t bg-muted/20 p-3 space-y-3">
+                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Einträge im Vergleich</p>
+                         <div className="grid grid-cols-2 gap-2">
+                           {/* Left card: bisheriger Eintrag */}
+                           <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
+                             <div className="flex items-center justify-between">
+                               <span className="font-semibold text-foreground">Bisheriger Eintrag</span>
+                               <span className="text-muted-foreground text-[10px]">Zeile {entry.fromRow}</span>
+                             </div>
+                             <div className="space-y-1 border-t pt-1.5">
+                               <div className="flex items-baseline gap-1">
+                                 <span className="text-muted-foreground w-14 shrink-0">Name:</span>
+                                 <span className="font-medium">{entry.fromName}</span>
+                               </div>
+                               {sharedVorname && (
+                                 <div className="flex items-baseline gap-1">
+                                   <span className="text-muted-foreground w-14 shrink-0">Vorname:</span>
+                                   <span className="font-medium">{String(sharedVorname)}</span>
+                                 </div>
+                               )}
+                               {studentCols.map(col => {
+                                 const val = fromRow[col];
+                                 if (!val) return null;
+                                 const label = col === 'S_ID' ? 'S_ID' : col === 'S_AHV' ? 'AHV' : col === 'K_Name' ? 'Klasse' : col;
+                                 return (
+                                   <div key={col} className="flex items-baseline gap-1">
+                                     <span className="text-muted-foreground w-14 shrink-0">{label}:</span>
+                                     <span className="font-medium">{String(val)}</span>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                           </div>
+                           {/* Right card: neuer Eintrag */}
+                           <div className="rounded-md border border-pupil-warning/30 bg-pupil-warning/5 p-2.5 space-y-2 text-xs">
+                             <div className="flex items-center justify-between">
+                               <span className="font-semibold text-foreground">Neuer Eintrag</span>
+                               <span className="text-muted-foreground text-[10px]">Zeile {entry.error.row}</span>
+                             </div>
+                             <div className="space-y-1 border-t pt-1.5">
+                               <div className="flex items-baseline gap-1">
+                                 <span className="text-muted-foreground w-14 shrink-0">Name:</span>
+                                 <span className="font-bold text-pupil-warning">{entry.toName}</span>
+                               </div>
+                               {sharedVorname && (
+                                 <div className="flex items-baseline gap-1">
+                                   <span className="text-muted-foreground w-14 shrink-0">Vorname:</span>
+                                   <span className="font-medium">{String(sharedVorname)}</span>
+                                 </div>
+                               )}
+                               {studentCols.map(col => {
+                                 const val = toRow[col] ?? fromRow[col];
+                                 if (!val) return null;
+                                 const label = col === 'S_ID' ? 'S_ID' : col === 'S_AHV' ? 'AHV' : col === 'K_Name' ? 'Klasse' : col;
+                                 return (
+                                   <div key={col} className="flex items-baseline gap-1">
+                                     <span className="text-muted-foreground w-14 shrink-0">{label}:</span>
+                                     <span className="font-medium">{String(val)}</span>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                           </div>
+                         </div>
+                         <p className="text-xs text-muted-foreground">
+                           ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
+                         </p>
+                       </div>
+                     )}
                   </div>
                   );
                 })}
