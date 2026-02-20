@@ -40,6 +40,8 @@ interface ParentIdInconsistencyGroup {
   correctId: string; // The ID from the first occurrence
   matchReason: string; // e.g., "AHV-Nummer – Hohe Zuverlässigkeit"
   severity?: 'error' | 'warning'; // warning = name_only strategy
+  parentName?: string;   // Vorname + Name of the parent
+  parentAddress?: string; // Strasse + PLZ + Ort
   affectedRows: {
     row: number;
     currentId: string;
@@ -162,6 +164,21 @@ export function Step3Validation({
         currentId: e.value,
         studentName: getStudentNameForRow(e.row),
       }));
+
+      // Extract parent name & address from first row that has data for this column
+      // column is e.g. "P_ERZ1_ID" → prefix is "P_ERZ1_"
+      const prefix = column.replace(/_ID$/, '_');
+      const firstRowIndex = groupErrors[0].row - 1; // rows is 0-indexed
+      const sampleRow = rows[firstRowIndex] ?? {};
+      const vorname = sampleRow[`${prefix}Vorname`] ?? '';
+      const name = sampleRow[`${prefix}Name`] ?? '';
+      const strasse = sampleRow[`${prefix}Strasse`] ?? '';
+      const plz = sampleRow[`${prefix}PLZ`] ?? '';
+      const ort = sampleRow[`${prefix}Ort`] ?? '';
+
+      const parentName = [vorname, name].filter(Boolean).join(' ') || undefined;
+      const addressParts = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean);
+      const parentAddress = addressParts.join(', ') || undefined;
       
       groups.push({
         identifier,
@@ -169,12 +186,14 @@ export function Step3Validation({
         correctId,
         matchReason,
         severity: groupErrors.some(e => e.severity === 'warning') ? 'warning' : 'error',
+        parentName,
+        parentAddress,
         affectedRows,
       });
     });
     
     return groups;
-  }, [uncorrectedErrors, getStudentNameForRow]);
+  }, [uncorrectedErrors, getStudentNameForRow, rows]);
 
 
   // Apply bulk correction for all parent ID inconsistencies at once
@@ -1036,13 +1055,6 @@ export function Step3Validation({
                              <div className="flex-1 min-w-0">
                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                  <Badge variant="outline" className="shrink-0">{group.column}</Badge>
-                                 <span className="text-sm font-medium text-muted-foreground truncate">{group.identifier}</span>
-                               </div>
-                               <div className="flex items-center gap-2 text-sm flex-wrap">
-                                 <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
-                                 <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
-                                   {group.correctId}
-                                 </code>
                                  {group.matchReason && (
                                    <Badge
                                      variant="secondary"
@@ -1052,7 +1064,26 @@ export function Step3Validation({
                                    </Badge>
                                  )}
                                </div>
-                               <div className="mt-2 text-xs text-muted-foreground">
+
+                               {/* Person info */}
+                               {(group.parentName || group.parentAddress) && (
+                                 <div className="mb-2 space-y-0.5">
+                                   {group.parentName && (
+                                     <p className="text-sm font-semibold">{group.parentName}</p>
+                                   )}
+                                   {group.parentAddress && (
+                                     <p className="text-xs text-muted-foreground">{group.parentAddress}</p>
+                                   )}
+                                 </div>
+                               )}
+
+                               <div className="flex items-center gap-2 text-sm flex-wrap">
+                                 <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
+                                 <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
+                                   {group.correctId}
+                                 </code>
+                               </div>
+                               <div className="mt-1.5 text-xs text-muted-foreground">
                                  <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
                                  <span className="ml-1">
                                    {group.affectedRows.slice(0, 2).map((r, i) => (
