@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -931,6 +931,36 @@ export function Step3Validation({
     }
   }, [errors, onBulkCorrect, toast]);
 
+  // Helper: map pattern type to display metadata (icon, label, before/after example)
+  function getPatternMeta(type: string): { icon: React.ReactNode; label: string; example?: { from: string; to: string } } {
+    switch (type) {
+      case 'phone_format':
+        return { icon: <Phone className="h-3.5 w-3.5 text-pupil-success" />, label: 'Telefonnummer', example: { from: '0791234567', to: '+41 79 123 45 67' } };
+      case 'ahv_format':
+        return { icon: <Hash className="h-3.5 w-3.5 text-pupil-success" />, label: 'AHV-Nummer', example: { from: '7561234567890', to: '756.1234.5678.90' } };
+      case 'email_format':
+        return { icon: <Mail className="h-3.5 w-3.5 text-pupil-success" />, label: 'E-Mail', example: { from: 'name @gmial.com', to: 'name@gmail.com' } };
+      case 'plz_format':
+        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Postleitzahl', example: { from: '8001 Zürich', to: '8001' } };
+      case 'gender_format':
+        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Geschlecht', example: { from: 'männlich', to: 'M' } };
+      case 'name_format':
+        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Namen', example: { from: 'MÜLLER', to: 'Müller' } };
+      case 'street_format':
+        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Strasse', example: { from: 'HAUPTSTRASSE 1', to: 'Hauptstrasse 1' } };
+      case 'date_format':
+        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datum', example: { from: '45291', to: '01.01.2024' } };
+      case 'iban_format':
+        return { icon: <CreditCard className="h-3.5 w-3.5 text-pupil-success" />, label: 'IBAN', example: { from: 'CH930076201162385295 7', to: 'CH93 0076 2011 6238 5295 7' } };
+      case 'duplicate':
+        return { icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Duplikate' };
+      case 'parent_id_inconsistent':
+        return { icon: <UserCog className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Eltern-ID Inkonsistenz' };
+      default:
+        return { icon: <Zap className="h-3.5 w-3.5 text-pupil-success" />, label: type };
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -1477,88 +1507,147 @@ export function Step3Validation({
       {uncorrectedErrors.length > 0 && (
         <Card className="border-pupil-success/30 bg-pupil-success/5">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Cpu className="h-5 w-5 text-pupil-success" />
-                <CardTitle className="text-lg">Hintergrund-Analyse</CardTitle>
-                <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
-                  Web Worker
+                <CardTitle className="text-lg">Muster-Analyse</CardTitle>
+                <Badge variant="outline" className="text-pupil-success border-pupil-success/30 text-xs">
+                  Web Worker · 100% Lokal
                 </Badge>
-                <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
-                  100% Lokal
-                </Badge>
-              </div>
-              <Button 
-                onClick={() => analyzeWithWorker(false)} 
-                disabled={isAnalyzing}
-                className="gap-2"
-                variant="outline"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Analysiere im Hintergrund...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4" />
-                    Muster erkennen
-                  </>
+                {analysisTime !== null && (
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(analysisTime)}ms
+                  </Badge>
                 )}
-              </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Apply all auto-fixable at once */}
+                {suggestionsWithApplicability.filter(s => s.hasApplicableCorrections).length > 1 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      suggestionsWithApplicability
+                        .filter(s => s.hasApplicableCorrections)
+                        .forEach(({ suggestion }) => applyLocalBulkCorrection(suggestion));
+                    }}
+                    className="gap-2 bg-pupil-success hover:bg-pupil-success/90"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Alle {suggestionsWithApplicability.filter(s => s.hasApplicableCorrections).length} Auto-Fixes anwenden
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => analyzeWithWorker(false)} 
+                  disabled={isAnalyzing}
+                  className="gap-2"
+                  variant="outline"
+                  size="sm"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analysiere...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4" />
+                      Neu analysieren
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <CardDescription className="flex items-center gap-2">
-              <span>Erkennt Formatierungsfehler in einem separaten Thread – UI bleibt reaktiv</span>
-              {analysisTime !== null && (
-                <Badge variant="secondary" className="text-xs">
-                  {Math.round(analysisTime)}ms
-                </Badge>
-              )}
+            <CardDescription>
+              Erkennt Formatierungsmuster und schlägt automatische Korrekturen vor – ohne Datenweitergabe
             </CardDescription>
           </CardHeader>
-          
-          {suggestionsWithApplicability.length > 0 && (
-            <CardContent className="space-y-3">
-              {suggestionsWithApplicability.map(({ suggestion, hasApplicableCorrections }, idx) => (
-                <div key={idx} className="p-4 bg-background rounded-lg border space-y-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline">{suggestion.affectedColumn}</Badge>
-                        <Badge className="bg-pupil-warning">{suggestion.affectedRows.length} Zeilen</Badge>
-                        {hasApplicableCorrections && (
-                          <Badge variant="secondary" className="text-xs">Auto-Fix</Badge>
+
+          <CardContent className="space-y-4">
+            {isAnalyzing && (
+              <div className="flex items-center gap-3 p-4 bg-background rounded-lg border">
+                <Loader2 className="h-5 w-5 animate-spin text-pupil-success" />
+                <div>
+                  <p className="text-sm font-medium">Analysiere Daten im Hintergrund…</p>
+                  <p className="text-xs text-muted-foreground">UI bleibt reaktiv – Web Worker verarbeitet {uncorrectedErrors.length} Fehler</p>
+                </div>
+              </div>
+            )}
+
+            {!isAnalyzing && hasRunAnalysis && suggestionsWithApplicability.length === 0 && (
+              <div className="flex items-center gap-3 p-4 bg-background rounded-lg border border-dashed">
+                <CheckCircle className="h-5 w-5 text-pupil-success shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Keine automatischen Korrekturen gefunden</p>
+                  <p className="text-xs text-muted-foreground">Nutzen Sie die manuelle Schritt-für-Schritt Korrektur für die verbleibenden Fehler</p>
+                </div>
+              </div>
+            )}
+
+            {suggestionsWithApplicability.length > 0 && (
+              <div className="space-y-2">
+                {suggestionsWithApplicability.map(({ suggestion, hasApplicableCorrections }, idx) => {
+                  // Derive icon and example from pattern type
+                  const patternMeta = getPatternMeta(suggestion.type);
+                  return (
+                    <div key={idx} className={`rounded-lg border overflow-hidden ${hasApplicableCorrections ? 'border-pupil-success/30' : 'border-muted'}`}>
+                      <div className={`px-3 py-2 flex items-center gap-2 text-xs font-medium ${hasApplicableCorrections ? 'bg-pupil-success/10 text-pupil-success' : 'bg-muted/50 text-muted-foreground'}`}>
+                        {hasApplicableCorrections ? (
+                          <><Zap className="h-3 w-3" /> Auto-Fix verfügbar</>
+                        ) : (
+                          <><Edit2 className="h-3 w-3" /> Manuelle Prüfung</>
                         )}
                       </div>
-                      <p className="text-sm font-medium">{suggestion.pattern}</p>
-                      <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
+                      <div className="p-3 bg-background space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className={`mt-0.5 p-1.5 rounded-md shrink-0 ${hasApplicableCorrections ? 'bg-pupil-success/10' : 'bg-muted'}`}>
+                              {patternMeta.icon}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="text-sm font-semibold">{patternMeta.label}</span>
+                                <Badge variant="outline" className="text-xs font-mono">{suggestion.affectedColumn}</Badge>
+                                <Badge variant="secondary" className="text-xs">{suggestion.affectedRows.length} Einträge</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{suggestion.pattern}</p>
+                              {patternMeta.example && (
+                                <div className="flex items-center gap-1.5 mt-1.5 text-xs">
+                                  <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono">{patternMeta.example.from}</code>
+                                  <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <code className="px-1.5 py-0.5 bg-pupil-success/10 text-pupil-success rounded font-mono">{patternMeta.example.to}</code>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            {hasApplicableCorrections && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => applyLocalBulkCorrection(suggestion)}
+                                className="gap-1.5 bg-pupil-success hover:bg-pupil-success/90"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Anwenden
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => startStepByStep(suggestion.affectedRows, suggestion.affectedColumn)}
+                              className="gap-1.5"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Manuell
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      {hasApplicableCorrections && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => applyLocalBulkCorrection(suggestion)}
-                          className="gap-1"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Anwenden
-                        </Button>
-                      )}
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => startStepByStep(suggestion.affectedRows, suggestion.affectedColumn)}
-                        className="gap-1"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Manuell
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
         </Card>
       )}
 
