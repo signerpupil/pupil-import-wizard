@@ -1142,12 +1142,13 @@ export function Step3Validation({
                       </div>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => dismissNameChange(entry)}
-                        className="shrink-0 gap-1 text-muted-foreground hover:text-foreground"
-                        title="Als geprüft markieren"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
+                        className="shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
+                        title="Diesen Fall als geprüft markieren und ausblenden"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
+                        Ignorieren
                       </Button>
                     </div>
                   </div>
