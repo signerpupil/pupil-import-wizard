@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
+import { VALID_BISTA_LANGUAGES } from '@/lib/fileParser';
 import { useValidationWorker, type AnalysisPattern } from '@/hooks/useValidationWorker';
 import { 
   applyLocalCorrection, 
@@ -98,6 +99,11 @@ export function Step3Validation({
   
   // Filter toggle: show only open (uncorrected) errors in table
   const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
+
+  // Language dropdown state: tracks which cell has the dropdown open
+  const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
+  const LANGUAGE_COLUMNS = new Set(['S_Muttersprache', 'S_Umgangssprache']);
+  const BISTA_LANGUAGES_SORTED = useMemo(() => [...VALID_BISTA_LANGUAGES].sort((a, b) => a.localeCompare(b, 'de')), []);
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -2295,6 +2301,8 @@ export function Step3Validation({
                         .map((error, idx) => {
                         const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
                         const isCorrected = error.correctedValue !== undefined;
+                        const isLanguageCol = LANGUAGE_COLUMNS.has(error.column);
+                        const isLanguageDropdownOpen = languageDropdownCell?.row === error.row && languageDropdownCell?.column === error.column;
                         const shortMessage = error.message.length > 45
                           ? error.message.slice(0, 42) + '…'
                           : error.message;
@@ -2341,7 +2349,41 @@ export function Step3Validation({
                               </TooltipProvider>
                             </TableCell>
                             <TableCell>
-                              {isEditing ? (
+                              {isLanguageCol && !isCorrected ? (
+                                /* Language dropdown for BISTA language columns */
+                                <div className="relative">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 w-full"
+                                    onClick={() => setLanguageDropdownCell(isLanguageDropdownOpen ? null : { row: error.row, column: error.column })}
+                                  >
+                                    <Languages className="h-3.5 w-3.5" />
+                                    Sprache wählen
+                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
+                                  </Button>
+                                  {isLanguageDropdownOpen && (
+                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-56">
+                                      <ScrollArea className="h-64">
+                                        <div className="p-1">
+                                          {BISTA_LANGUAGES_SORTED.map(lang => (
+                                            <button
+                                              key={lang}
+                                              className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                              onClick={() => {
+                                                onErrorCorrect(error.row, error.column, lang, 'manual');
+                                                setLanguageDropdownCell(null);
+                                              }}
+                                            >
+                                              {lang}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </ScrollArea>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : isEditing ? (
                                 <Button size="sm" onClick={handleSaveEdit}>
                                   <Save className="h-4 w-4 mr-1" />
                                   Speichern
@@ -2350,9 +2392,12 @@ export function Step3Validation({
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)}
+                                  onClick={() => isLanguageCol
+                                    ? setLanguageDropdownCell({ row: error.row, column: error.column })
+                                    : handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)
+                                  }
                                 >
-                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  {isLanguageCol ? <Languages className="h-4 w-4 mr-1" /> : <Edit2 className="h-4 w-4 mr-1" />}
                                   {isCorrected ? 'Ändern' : 'Korrigieren'}
                                 </Button>
                               )}
