@@ -179,6 +179,46 @@ export function checkColumnStatus(
   return statuses;
 }
 
+// BISTA-Sprachliste (49 gültige Werte gemäss BISTA-Codierung)
+export const VALID_BISTA_LANGUAGES = new Set([
+  'Afrikanische Sprachen', 'Albanisch', 'Andere nordeuropäische Sprachen',
+  'Andere westeuropäische Sprachen', 'Arabisch', 'Armenisch', 'Bosnisch',
+  'Bulgarisch', 'Chinesisch', 'Dänisch', 'Deutsch', 'Englisch', 'Finnisch',
+  'Französisch', 'Griechisch', 'Indoarische und drawidische Sprachen',
+  'Italienisch', 'Japanisch', 'Koreanisch', 'Kroatisch', 'Kurdisch',
+  'Mazedonisch', 'Mongolisch', 'Montenegrinisch', 'nicht definiert',
+  'Niederländisch', 'Norwegisch', 'Ostasiatische Sprachen', 'Polnisch',
+  'Portugiesisch', 'Rätoromanisch', 'Rumänisch', 'Russisch', 'Schwedisch',
+  'Serbisch', 'Serbo-Kroatisch', 'Slowakisch', 'Slowenisch', 'Spanisch',
+  'Tamil', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch',
+  'Übrige osteuropäische Sprachen', 'Übrige slawische Sprachen',
+  'Ukrainisch', 'Ungarisch', 'Vietnamesisch', 'Westasiatische Sprachen',
+]);
+
+// Normalisierte Lookup-Map für Ähnlichkeitssuche (Tippfehler-Erkennung)
+const BISTA_NORMALIZED = new Map<string, string>(
+  [...VALID_BISTA_LANGUAGES].map(lang => [lang.toLowerCase().trim(), lang])
+);
+
+function isValidLanguage(value: string): boolean {
+  return VALID_BISTA_LANGUAGES.has(value.trim());
+}
+
+function findSimilarLanguage(value: string): string | null {
+  const normalized = value.toLowerCase().trim();
+  // Exact match via normalized (case-insensitive)
+  if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
+  // Partial prefix match (first 5 chars) for typo detection
+  if (normalized.length >= 5) {
+    for (const [key, lang] of BISTA_NORMALIZED) {
+      if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
+        return lang;
+      }
+    }
+  }
+  return null;
+}
+
 // Fields that should be checked for duplicates
 const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'L_KL1_AHV'];
 
@@ -928,6 +968,22 @@ function validateFieldType(
     case 'phone':
       if (!isValidPhone(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültiges Telefonformat' };
+      }
+      break;
+    case 'language':
+      if (!isValidLanguage(value)) {
+        const similar = findSimilarLanguage(value);
+        return {
+          row: rowNum,
+          column: columnName,
+          value,
+          message: similar
+            ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${similar}"?`
+            : `"${value}" ist keine gültige BISTA-Sprache (kein BISTA-Code vorhanden)`,
+          type: 'format',
+          severity: similar ? 'warning' : 'error',
+          correctedValue: similar ?? undefined,
+        };
       }
       break;
   }

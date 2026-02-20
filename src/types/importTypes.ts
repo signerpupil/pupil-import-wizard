@@ -9,7 +9,7 @@ export interface ColumnDefinition {
   required: boolean;
   category: string;
   description?: string;
-  validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text' | 'plz' | 'gender' | 'phone';
+  validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text' | 'plz' | 'gender' | 'phone' | 'language';
 }
 
 export interface ImportConfig {
@@ -98,8 +98,8 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'S_Geburtsdatum', required: true, category: 'Schüler', validationType: 'date' },
   { name: 'S_Heimatort', required: false, category: 'Schüler' },
   { name: 'S_Konfession', required: false, category: 'Schüler' },
-  { name: 'S_Muttersprache', required: false, category: 'Schüler' },
-  { name: 'S_Umgangssprache', required: false, category: 'Schüler' },
+  { name: 'S_Muttersprache', required: false, category: 'Schüler', validationType: 'language' },
+  { name: 'S_Umgangssprache', required: false, category: 'Schüler', validationType: 'language' },
   { name: 'S_Nationalitaet', required: false, category: 'Schüler' },
   { name: 'S_Strasse', required: false, category: 'Schüler' },
   { name: 'S_PLZ', required: false, category: 'Schüler', validationType: 'plz' },

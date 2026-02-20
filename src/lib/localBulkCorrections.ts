@@ -502,6 +502,45 @@ function detectWhitespacePattern(index: ErrorIndex): PatternGroup[] {
   return groups;
 }
 
+// Detect BISTA language typos – errors that already have a correctedValue (typo-match)
+function detectLanguagePattern(index: ErrorIndex): PatternGroup[] {
+  const languageColumns = ['S_Muttersprache', 'S_Umgangssprache'];
+  const groups: PatternGroup[] = [];
+
+  for (const col of languageColumns) {
+    // We need ALL errors for this column (including those with correctedValue already set)
+    // because language typo-warnings come pre-loaded with correctedValue from fileParser
+    const allColErrors: ValidationError[] = [];
+    for (const error of [...(index.byColumn.get(col) ?? []), ...index.uncorrected.filter(e => e.column === col && e.correctedValue !== undefined)]) {
+      if (!allColErrors.includes(error)) allColErrors.push(error);
+    }
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of allColErrors) {
+      if (e.correctedValue !== undefined && e.message.includes('BISTA-Sprache')) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'language_bista',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'language_bista',
+        description: `${fixableRows.length} Sprachangabe(n) in "${col}" mit BISTA-Ähnlichkeits-Korrektur`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
 // ============================================
 // Main Analysis Function - Optimized
 // ============================================
@@ -529,6 +568,7 @@ export function analyzeErrorsLocally(
     ...detectEmailPattern(index),
     ...detectPLZPattern(index),
     ...detectGenderPattern(index),
+    ...detectLanguagePattern(index),
     ...detectDuplicateGroups(index),
     ...detectParentIdInconsistencies(index),
   ];
@@ -589,6 +629,9 @@ export function applyLocalCorrection(
       if (idMatch) {
         correctedValue = idMatch[1];
       }
+    } else if (suggestion.fixFunction === 'language_bista') {
+      // Language typo corrections already have correctedValue set by fileParser
+      correctedValue = error.correctedValue ?? null;
     }
     
     if (correctedValue) {
@@ -627,6 +670,7 @@ function getFixFunction(name: string): ((value: string) => string | null) | null
     case 'date_format': return convertExcelDate;
     case 'date_de_format': return formatDateDE;
     case 'whitespace_trim': return trimWhitespace;
+    case 'language_bista': return null; // handled via error.correctedValue directly
     default: return null;
   }
 }
