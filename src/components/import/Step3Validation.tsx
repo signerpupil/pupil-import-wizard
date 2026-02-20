@@ -900,13 +900,25 @@ export function Step3Validation({
   }, [workerError, toast]);
 
   // Pre-compute which suggestions actually have applicable corrections
+  // Only include suggestions that still have uncorrected errors for their column
   const suggestionsWithApplicability = useMemo(() => {
-    return localSuggestions.map(suggestion => ({
-      suggestion,
-      hasApplicableCorrections: suggestion.autoFix
-        ? applyLocalCorrection(suggestion, errors).length > 0
-        : false,
-    }));
+    const uncorrectedRowsByColumn = new Map<string, Set<number>>();
+    for (const err of errors) {
+      if (!uncorrectedRowsByColumn.has(err.column)) uncorrectedRowsByColumn.set(err.column, new Set());
+      uncorrectedRowsByColumn.get(err.column)!.add(err.row);
+    }
+    return localSuggestions
+      .map(suggestion => ({
+        suggestion,
+        hasApplicableCorrections: suggestion.autoFix
+          ? applyLocalCorrection(suggestion, errors).length > 0
+          : false,
+      }))
+      .filter(({ suggestion }) => {
+        // Hide if all affected rows for this column are already corrected
+        const uncorrected = uncorrectedRowsByColumn.get(suggestion.affectedColumn);
+        return suggestion.affectedRows.some(row => uncorrected?.has(row));
+      });
   }, [localSuggestions, errors]);
 
   // Apply local bulk correction
