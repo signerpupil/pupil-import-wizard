@@ -90,6 +90,13 @@ export function Step3Validation({
   const [nameChangeExpanded, setNameChangeExpanded] = useState(true);
   const [nameChangePage, setNameChangePage] = useState(0);
   const NAME_CHANGES_PER_PAGE = 5;
+  const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
+  const [expandedNameChanges, setExpandedNameChanges] = useState<Set<string>>(new Set());
+
+  const toggleParentGroupExpanded = (key: string) =>
+    setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
+  const toggleNameChangeExpanded = (key: string) =>
+    setExpandedNameChanges(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
   const { toast } = useToast();
   
@@ -1120,65 +1127,68 @@ export function Step3Validation({
                         Keine Ergebnisse{parentConsolidationSearch ? ` für "${parentConsolidationSearch}"` : ''}{parentReliabilityFilter !== 'all' ? ' in dieser Kategorie' : ''}
                       </p>
                     ) : (
-                      paginatedParentGroups.map((group, idx) => (
-                        <div key={`${group.column}-${group.identifier}-${idx}`} className="p-3 bg-background rounded-lg border space-y-2">
-                          <div className="flex items-center justify-between gap-4">
-                             <div className="flex-1 min-w-0">
-                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                 <Badge variant="outline" className="shrink-0">{group.column}</Badge>
-                                 {group.matchReason && (
-                                   <Badge
-                                     variant="secondary"
-                                     className={`text-xs shrink-0 ${group.severity === 'warning' ? 'border border-pupil-warning/40 text-pupil-warning bg-pupil-warning/10' : ''}`}
-                                   >
-                                     {group.matchReason}
-                                   </Badge>
-                                 )}
-                               </div>
+                       paginatedParentGroups.map((group, idx) => {
+                          const groupKey = `${group.column}:${group.identifier}`;
+                          const isExpanded = expandedParentGroups.has(groupKey);
+                          const prefix = group.column.replace(/_ID$/, '_');
+                          const PERSON_FIELDS = ['Vorname', 'Name', 'Strasse', 'PLZ', 'Ort', 'AHV'];
+                          return (
+                         <div key={`${group.column}-${group.identifier}-${idx}`} className="bg-background rounded-lg border overflow-hidden">
+                           {/* Card header */}
+                           <div className="p-3 space-y-2">
+                           <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Badge variant="outline" className="shrink-0">{group.column}</Badge>
+                                  {group.matchReason && (
+                                    <Badge
+                                      variant="secondary"
+                                      className={`text-xs shrink-0 ${group.severity === 'warning' ? 'border border-pupil-warning/40 text-pupil-warning bg-pupil-warning/10' : ''}`}
+                                    >
+                                      {group.matchReason}
+                                    </Badge>
+                                  )}
+                                </div>
 
-                               {/* Person info */}
-                               {(group.parentName || group.parentAddress) && (
-                                 <div className="mb-2 space-y-0.5">
-                                   {group.parentName && (
-                                     <p className="text-sm font-semibold">{group.parentName}</p>
-                                   )}
-                                   {group.parentAddress && (
-                                     <p className="text-xs text-muted-foreground">{group.parentAddress}</p>
-                                   )}
-                                 </div>
-                               )}
+                                {/* Person info */}
+                                {(group.parentName || group.parentAddress) && (
+                                  <div className="mb-2 space-y-0.5">
+                                    {group.parentName && (
+                                      <p className="text-sm font-semibold">{group.parentName}</p>
+                                    )}
+                                    {group.parentAddress && (
+                                      <p className="text-xs text-muted-foreground">{group.parentAddress}</p>
+                                    )}
+                                  </div>
+                                )}
 
-                               <div className="flex items-center gap-2 text-sm flex-wrap">
-                                 <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
-                                 <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
-                                   {group.correctId}
-                                 </code>
-                               </div>
-                               <div className="mt-1.5 text-xs text-muted-foreground">
-                                 <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
-                                 <span className="ml-1">
-                                   {group.affectedRows.slice(0, 2).map((r, i) => (
-                                     <span key={r.row}>
-                                       {i > 0 && ', '}
-                                       {r.studentName || `Zeile ${r.row}`}
-                                     </span>
-                                   ))}
-                                   {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
-                                 </span>
-                               </div>
-                             </div>
+                                <div className="flex items-center gap-2 text-sm flex-wrap">
+                                  <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
+                                  <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
+                                    {group.correctId}
+                                  </code>
+                                </div>
+                                <div className="mt-1.5 text-xs text-muted-foreground">
+                                  <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
+                                  <span className="ml-1">
+                                    {group.affectedRows.slice(0, 2).map((r, i) => (
+                                      <span key={r.row}>
+                                        {i > 0 && ', '}
+                                        {r.studentName || `Zeile ${r.row}`}
+                                      </span>
+                                    ))}
+                                    {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
+                                  </span>
+                                </div>
+                              </div>
                             <div className="flex gap-2 shrink-0">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rowNumbers = group.affectedRows.map(r => r.row);
-                                  startStepByStep(rowNumbers, group.column);
-                                }}
+                              <Button
+                                size="sm"
+                                variant={isExpanded ? 'default' : 'outline'}
+                                onClick={(e) => { e.stopPropagation(); toggleParentGroupExpanded(groupKey); }}
                                 className="gap-1"
                               >
-                                <Edit2 className="h-4 w-4" />
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 Details
                               </Button>
                               <Button
@@ -1193,8 +1203,53 @@ export function Step3Validation({
                               </Button>
                             </div>
                           </div>
-                        </div>
-                      ))
+                          </div>
+
+                          {/* Inline details expansion */}
+                          {isExpanded && (
+                            <div className="border-t bg-muted/30 p-3 space-y-3">
+                              {/* Identical fields */}
+                              <div>
+                                <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                  Identische Felder (bleiben unverändert)
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                  {PERSON_FIELDS.map(field => {
+                                    const val = rows[group.affectedRows[0].row - 1]?.[`${prefix}${field}`];
+                                    if (!val) return null;
+                                    return (
+                                      <div key={field} className="flex items-baseline gap-1 text-xs">
+                                        <span className="text-muted-foreground shrink-0 w-14">{field}:</span>
+                                        <span className="font-medium truncate">{String(val)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* ID changes */}
+                              <div>
+                                <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
+                                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                  ID wird vereinheitlicht (eine Änderung pro Kind)
+                                </div>
+                                <div className="space-y-1">
+                                  {group.affectedRows.map(r => (
+                                    <div key={r.row} className="flex items-center gap-2 text-xs flex-wrap">
+                                      <span className="text-muted-foreground shrink-0 w-28 truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+                                      <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through">{r.currentId}</code>
+                                      <span className="text-muted-foreground">→</span>
+                                      <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{group.correctId}</code>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                         </div>
+                          );
+                        })
                     )}
                   </div>
                 </div>
@@ -1273,15 +1328,30 @@ export function Step3Validation({
               </CollapsibleTrigger>
 
               <CollapsibleContent className="mt-3 space-y-2">
-                {paginatedNameChanges.map((entry, idx) => (
+                {paginatedNameChanges.map((entry, idx) => {
+                  const entryKey = `${entry.error.row}:${entry.error.column}`;
+                  const isExpanded = expandedNameChanges.has(entryKey);
+                  // Get row data for both rows to show identical fields
+                  const fromRow = rows[entry.fromRow - 1] ?? {};
+                  const toRow = rows[entry.error.row - 1] ?? {};
+                  // Determine which column prefix to check for other name fields
+                  const colPrefix = entry.column.replace(/Name$/, '');
+                  const vornameCol = `${colPrefix}Vorname`;
+                  const sharedVorname = fromRow[vornameCol] ?? toRow[vornameCol];
+                  // Other stable identifiers from the student row
+                  const studentCols = ['S_ID', 'S_AHV', 'K_Name'];
+                  return (
                   <div
                     key={`namechange-${entry.error.row}-${entry.error.column}-${idx}`}
-                    className="p-3 bg-background rounded-lg border border-pupil-warning/20 space-y-2"
+                    className="bg-background rounded-lg border border-pupil-warning/20 overflow-hidden"
                   >
+                    {/* Card header */}
+                    <div className="p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="font-mono text-xs shrink-0">{entry.column}</Badge>
+                          <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
                           <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
                           <span className="text-xs font-medium truncate">{entry.studentName}</span>
                         </div>
@@ -1289,22 +1359,16 @@ export function Step3Validation({
                           <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
                           <span className="text-muted-foreground">→</span>
                           <code className="px-1.5 py-0.5 bg-pupil-warning/10 rounded text-xs font-mono text-pupil-warning">{entry.toName}</code>
-                          <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">Zeilen {entry.fromRow} → {entry.error.row}</p>
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startStepByStep([entry.fromRow, entry.error.row], entry.column);
-                          }}
+                          variant={isExpanded ? 'default' : 'outline'}
+                          onClick={(e) => { e.stopPropagation(); toggleNameChangeExpanded(entryKey); }}
                           className="gap-1.5"
-                          title="Beide Zeilen im Schritt-für-Schritt Modus anzeigen"
                         >
-                          <Edit2 className="h-3.5 w-3.5" />
+                          {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           Details
                         </Button>
                         <Button
@@ -1319,8 +1383,63 @@ export function Step3Validation({
                         </Button>
                       </div>
                     </div>
+                    </div>
+
+                    {/* Inline comparison */}
+                    {isExpanded && (
+                      <div className="border-t bg-muted/30 p-3 space-y-3">
+                        {/* Identical fields */}
+                        <div>
+                          <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                            <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                            Identisch (unverändert)
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            {sharedVorname && (
+                              <div className="flex items-baseline gap-1 text-xs">
+                                <span className="text-muted-foreground">Vorname:</span>
+                                <span className="font-medium">{String(sharedVorname)}</span>
+                              </div>
+                            )}
+                            {studentCols.map(col => {
+                              const val = fromRow[col] ?? toRow[col];
+                              if (!val) return null;
+                              const label = col.replace('S_', '').replace('K_', 'Klasse ');
+                              return (
+                                <div key={col} className="flex items-baseline gap-1 text-xs">
+                                  <span className="text-muted-foreground">{label}:</span>
+                                  <span className="font-medium">{String(val)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Side-by-side name comparison */}
+                        <div>
+                          <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-pupil-warning" />
+                            Unterschied – bitte prüfen
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Zeile {entry.fromRow} (bisheriger Wert)</p>
+                              <code className="block px-2 py-1.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Zeile {entry.error.row} (neuer Wert)</p>
+                              <code className="block px-2 py-1.5 bg-pupil-warning/10 text-pupil-warning rounded text-xs font-mono">{entry.toName}</code>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            ℹ Bei «Ignorieren» bleiben beide Werte unverändert im Export.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
 
                 {/* Pagination */}
                 {totalNameChangePages > 1 && (
