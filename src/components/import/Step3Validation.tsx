@@ -1145,7 +1145,7 @@ export function Step3Validation({
                         variant="outline"
                         onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
                         className="shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
-                        title="Diesen Fall als geprüft markieren und ausblenden"
+                        title="Kein Namenswechsel – diesen Fall ignorieren und ausblenden"
                       >
                         <X className="h-3.5 w-3.5" />
                         Ignorieren
