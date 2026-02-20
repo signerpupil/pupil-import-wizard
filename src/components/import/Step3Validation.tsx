@@ -196,6 +196,20 @@ export function Step3Validation({
     }
   }, [parentIdInconsistencyGroups, onBulkCorrect, toast]);
 
+  // Dismiss a single parent ID inconsistency group (mark all affected rows as "ignored")
+  const dismissParentGroup = useCallback((group: ParentIdInconsistencyGroup) => {
+    const corrections = group.affectedRows.map(r => ({
+      row: r.row,
+      column: group.column,
+      value: r.currentId, // keep current value → marks as correctedValue = same → disappears from uncorrected
+    }));
+    onBulkCorrect(corrections, 'bulk');
+    toast({
+      title: 'Inkonsistenz ignoriert',
+      description: `ID-Konflikt für "${group.identifier}" wurde als geprüft markiert.`,
+    });
+  }, [onBulkCorrect, toast]);
+
   // Total count for summary
   const totalParentIdInconsistencies = useMemo(() => 
     parentIdInconsistencyGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
@@ -1029,7 +1043,8 @@ export function Step3Validation({
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   const rowNumbers = group.affectedRows.map(r => r.row);
                                   startStepByStep(rowNumbers, group.column);
                                 }}
@@ -1037,6 +1052,16 @@ export function Step3Validation({
                               >
                                 <Edit2 className="h-4 w-4" />
                                 Details
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); dismissParentGroup(group); }}
+                                className="gap-1.5 text-muted-foreground hover:text-foreground"
+                                title="Kein Fehler – diesen ID-Konflikt ignorieren und ausblenden"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                Ignorieren
                               </Button>
                             </div>
                           </div>
