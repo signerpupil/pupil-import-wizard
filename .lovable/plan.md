@@ -1,176 +1,188 @@
 
-## Neue Prüfung: BISTA-Sprachcodes für S_Muttersprache und S_Umgangssprache
+## Verbesserung der Konsolidierungs-Detailansicht: Feldweiser Vergleich aller Zeilen
 
-### Problem & Lösung
+### Problem
 
-Die Felder `S_Muttersprache` und `S_Umgangssprache` werden derzeit nur auf Pflichtfeld geprüft, aber nicht auf gültige BISTA-Sprachbezeichnungen. Jede beliebige Zeichenkette wird akzeptiert – z.B. "Englisch und Spanisch", "Englsh" (Tippfehler) oder "English" (falsche Sprache).
-
-Die Lösung integriert sich nahtlos in das bestehende Validierungssystem: ein neuer `validationType: 'language'` in den Spaltendefinitionen, eine `checkLanguageValidity`-Funktion in `fileParser.ts`, und eine optionale Ähnlichkeitssuche für häufige Tippfehler (z.B. "Englsh" → "Englisch").
-
----
-
-### BISTA-Sprachliste (49 gültige Werte)
-
-Die vollständige Liste wird als Konstante `VALID_BISTA_LANGUAGES` in `fileParser.ts` hinterlegt:
+Die aktuelle "Einträge im Vergleich"-Ansicht zeigt bei einer Familie mit 4 Kindern nur die ID-Spalte pro Kind:
 
 ```
-Afrikanische Sprachen, Albanisch, Andere nordeuropäische Sprachen,
-Andere westeuropäische Sprachen, Arabisch, Armenisch, Bosnisch,
-Bulgarisch, Chinesisch, Dänisch, Deutsch, Englisch, Finnisch,
-Französisch, Griechisch, Indoarische und drawidische Sprachen,
-Italienisch, Japanisch, Koreanisch, Kroatisch, Kurdisch,
-Mazedonisch, Mongolisch, Montenegrinisch, nicht definiert,
-Niederländisch, Norwegisch, Ostasiatische Sprachen, Polnisch,
-Portugiesisch, Rätoromanisch, Rumänisch, Russisch, Schwedisch,
-Serbisch, Serbo-Kroatisch, Slowakisch, Slowenisch, Spanisch,
-Tamil, Thai, Tibetisch, Tschechisch, Türkisch,
-Übrige osteuropäische Sprachen, Übrige slawische Sprachen,
-Ukrainisch, Ungarisch, Vietnamesisch, Westasiatische Sprachen
+Aktueller Stand          | Nach Konsolidierung
+Kind 1: 70001            | Kind 1: ✓ bereits korrekt
+Kind 2: 70002            | Kind 2: 70002 → 70001
+Kind 3: 70002            | Kind 3: 70002 → 70001
+Kind 4: 70003            | Kind 4: 70003 → 70001
 ```
 
----
+Der Benutzer sieht aber **nicht**, welche anderen Felder (Name, Adresse, Telefon, E-Mail, AHV) bei den verschiedenen Kindern eingetragen sind. Bei 4 Kindern können Adresswechsel oder Datenfehler auftreten – der Benutzer kann nicht beurteilen, ob es sich wirklich um dieselbe Person handelt oder ob Daten abweichen.
 
-### Benutzerführung & Fehlermeldungen
+### Lösung: Feldweiser Vergleich
 
-Die Validierung unterscheidet drei Fälle:
+Im expandierten Bereich der Konsolidierungskarte wird die bisherige 2-Karten-Darstellung (Aktueller Stand / Nach Konsolidierung) ergänzt um eine **Feldvergleichs-Tabelle**, die alle verfügbaren Felder des Elternteils über alle betroffenen Zeilen hinweg vergleicht:
 
-**Fall 1 – Exakter Treffer:** Kein Fehler.
+- **Gleiche Werte** (in allen Zeilen identisch) → grün mit Häkchen, kompakt
+- **Unterschiedliche Werte** (mind. eine Zeile weicht ab) → gelb hervorgehoben, jede Zeile einzeln angezeigt
+- **Leere Werte** → grau
 
-**Fall 2 – Ähnlicher Treffer (Tippfehler / falscher Case):**
-- Erkennung per Normalisierung (lowercase, Leerzeichen-Trim)
-- Fehlermeldung: `"Englsh" ist keine gültige BISTA-Sprache. Meinten Sie "Englisch"?`
-- Severity: `warning` (gelb)
-- `correctedValue` wird automatisch gesetzt → Auto-Fix-Button erscheint im UI
+### Aufbau der neuen Detailansicht
 
-**Fall 3 – Kein Treffer:**
-- Fehlermeldung: `"English" ist keine gültige BISTA-Sprache. Gültige Werte: Englisch, Französisch, Deutsch, ...`
-- Severity: `error` (rot)
-- Keine Auto-Korrektur möglich, manuelle Auswahl nötig
+```
+EINTRÄGE IM VERGLEICH
 
----
+[Aktueller Stand] 4 Einträge    [Nach Konsolidierung]
+Kind 1: 70001                    Einheitliche ID: 70001
+Kind 2: 70002 → 70001           Kind 2: 70002 → 70001
+Kind 3: 70002 → 70001           Kind 3: 70002 → 70001
+Kind 4: 70003 → 70001           Kind 4: 70003 → 70001
+
+── FELDER DER ELTERNPERSON ──────────────────────────────
+
+Feld          | Kind 1 (Z.5) | Kind 2 (Z.9) | Kind 3 (Z.13) | Kind 4 (Z.17)
+─────────────────────────────────────────────────────────────────────
+Name          | ✓ Müller (alle gleich)
+Vorname       | ✓ Klaus (alle gleich)
+Strasse       | ✓ Nelkenweg 5 (alle gleich)
+PLZ           | ✓ 8000 (alle gleich)
+Ort           | ✓ Zürich (alle gleich)
+AHV           | ✓ 756.1234.5678.90 (alle gleich)
+EMail         | ⚠ k.mueller@gmail.com | k.mueller@gmail.com | km@web.de | k.mueller@gmail.com
+TelefonPrivat | ⚠ 044 111 11 01 | 044 111 11 01 | 044 222 22 02 | 044 111 11 01
+Mobil         | ✓ (leer in allen)
+```
+
+Felder die in **allen Zeilen gleich** sind, werden einzeilig kompakt dargestellt (kein Platz verschwendet). Nur Felder mit **Abweichungen** werden aufgeklappt mit Werten je Kind.
 
 ### Technische Umsetzung
 
-#### Datei 1: `src/types/importTypes.ts`
+**Nur `src/components/import/Step3Validation.tsx` wird geändert.**
 
-**Änderung 1 – neuer validationType:**
+#### Schritt 1: Hilfsfunktion `getParentFieldComparison`
+
+Eine neue Funktion (als `useMemo` innerhalb des Map-Callbacks oder als eigenständige Utility):
+
 ```ts
-validationType?: 'date' | 'ahv' | 'email' | 'number' | 'text' | 'plz' | 'gender' | 'phone' | 'language';
-```
+function getParentFieldComparison(
+  affectedRows: { row: number; currentId: string; studentName: string | null }[],
+  column: string,  // e.g. "P_ERZ1_ID"
+  rows: ParsedRow[]
+) {
+  const prefix = column.replace(/_ID$/, '_');
+  
+  const FIELDS_TO_COMPARE = [
+    { key: 'Name',             label: 'Name' },
+    { key: 'Vorname',          label: 'Vorname' },
+    { key: 'AHV',              label: 'AHV' },
+    { key: 'Strasse',          label: 'Strasse' },
+    { key: 'PLZ',              label: 'PLZ' },
+    { key: 'Ort',              label: 'Ort' },
+    { key: 'EMail',            label: 'E-Mail' },
+    { key: 'TelefonPrivat',    label: 'Tel. Privat' },
+    { key: 'TelefonGeschaeft', label: 'Tel. Geschäft' },
+    { key: 'Mobil',            label: 'Mobil' },
+    { key: 'Rolle',            label: 'Rolle' },
+    { key: 'Beruf',            label: 'Beruf' },
+  ];
 
-**Änderung 2 – Spalten-Definitionen für S_Muttersprache und S_Umgangssprache:**
-```ts
-{ name: 'S_Muttersprache', required: false, category: 'Schüler', validationType: 'language' },
-{ name: 'S_Umgangssprache', required: false, category: 'Schüler', validationType: 'language' },
-```
-
-#### Datei 2: `src/lib/fileParser.ts`
-
-**Änderung 1 – BISTA-Konstante** (nach den bestehenden Konstanten, ca. Zeile 183):
-```ts
-export const VALID_BISTA_LANGUAGES = new Set([
-  'Afrikanische Sprachen', 'Albanisch', 'Andere nordeuropäische Sprachen',
-  'Andere westeuropäische Sprachen', 'Arabisch', 'Armenisch', 'Bosnisch',
-  'Bulgarisch', 'Chinesisch', 'Dänisch', 'Deutsch', 'Englisch', 'Finnisch',
-  'Französisch', 'Griechisch', 'Indoarische und drawidische Sprachen',
-  'Italienisch', 'Japanisch', 'Koreanisch', 'Kroatisch', 'Kurdisch',
-  'Mazedonisch', 'Mongolisch', 'Montenegrinisch', 'nicht definiert',
-  'Niederländisch', 'Norwegisch', 'Ostasiatische Sprachen', 'Polnisch',
-  'Portugiesisch', 'Rätoromanisch', 'Rumänisch', 'Russisch', 'Schwedisch',
-  'Serbisch', 'Serbo-Kroatisch', 'Slowakisch', 'Slowenisch', 'Spanisch',
-  'Tamil', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch',
-  'Übrige osteuropäische Sprachen', 'Übrige slawische Sprachen',
-  'Ukrainisch', 'Ungarisch', 'Vietnamesisch', 'Westasiatische Sprachen',
-]);
-
-// Normalisierte Lookup-Map für Ähnlichkeitssuche
-const BISTA_NORMALIZED = new Map(
-  [...VALID_BISTA_LANGUAGES].map(lang => [lang.toLowerCase().trim(), lang])
-);
-```
-
-**Änderung 2 – isValidLanguage + findSimilarLanguage:**
-```ts
-function isValidLanguage(value: string): boolean {
-  return VALID_BISTA_LANGUAGES.has(value.trim());
-}
-
-function findSimilarLanguage(value: string): string | null {
-  const normalized = value.toLowerCase().trim();
-  // Exact match via normalized
-  if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // Partial prefix match (first 5 chars)
-  if (normalized.length >= 5) {
-    for (const [key, lang] of BISTA_NORMALIZED) {
-      if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
-        return lang;
-      }
-    }
-  }
-  return null;
-}
-```
-
-**Änderung 3 – validateFieldType switch, neuer 'language' case:**
-```ts
-case 'language':
-  if (!isValidLanguage(value)) {
-    const similar = findSimilarLanguage(value);
+  return FIELDS_TO_COMPARE.map(field => {
+    const values = affectedRows.map(r => {
+      const row = rows[r.row - 1];
+      return String(row?.[`${prefix}${field.key}`] ?? '').trim();
+    });
+    
+    const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
+    const allEmpty = values.every(v => v === '');
+    const allSame = uniqueNonEmpty.length <= 1;
+    
     return {
-      row: rowNum,
-      column: columnName,
-      value,
-      message: similar
-        ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${similar}"?`
-        : `"${value}" ist keine gültige BISTA-Sprache (kein BISTA-Code vorhanden)`,
-      type: 'format',
-      severity: similar ? 'warning' : 'error',
-      correctedValue: similar ?? undefined,
+      fieldKey: field.key,
+      label: field.label,
+      values,                    // one per affectedRow
+      allSame,
+      allEmpty,
+      uniqueValues: uniqueNonEmpty,
+      singleValue: allSame ? (uniqueNonEmpty[0] ?? '') : null,
     };
-  }
-  break;
-```
-
-#### Datei 3: `src/workers/validationWorker.ts`
-
-Die Sprach-Validierung läuft bereits im `validateData`-Flow des Workers via `formatRules`. Da die Haupt-Prüfung aber in `fileParser.ts`/`validateFieldType` liegt (nicht im Worker), ist hier **keine Änderung nötig** – der Worker kennt keine `validationType: 'language'` und muss das auch nicht, da die fileParser-Logik die primäre Validierung übernimmt.
-
-#### Datei 4: `src/lib/localBulkCorrections.ts`
-
-Für Auto-Fix via Mustererkennung: eine neue `detectLanguagePattern`-Funktion die `correctedValue`-Fehler erkennt (d.h. Fehler die bereits eine Korrektur haben – also Tippfehler-Matches) und als Gruppe zusammenfasst:
-
-```ts
-function detectLanguagePattern(index: ErrorIndex): PatternGroup[] {
-  const languageColumns = ['S_Muttersprache', 'S_Umgangssprache'];
-  // ... wie detectGenderPattern, aber für language
+  }).filter(f => !f.allEmpty);   // Hide fields that are empty everywhere
 }
 ```
 
-Diese erscheint dann in Step 3 unter "Muster erkannt" mit dem Label "BISTA-Sprache" und einem Wort-Icon.
+#### Schritt 2: UI-Änderung in der expandierten Karte
 
----
+Nach der bisherigen 2-Spalten-Vergleichsansicht (Aktueller Stand / Nach Konsolidierung) wird ein **zweiter Block** hinzugefügt: "Felder der Elternperson".
 
-### Testdaten für test-stammdaten.csv
+**Aufbau:**
 
-Es werden 4–5 neue Zeilen am Ende der Testdatei angehängt:
+```tsx
+{/* Feldvergleich */}
+<div className="border-t pt-3 space-y-1.5">
+  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+    Felder der Elternperson
+  </p>
+  
+  {fieldComparison.map(field => (
+    <div key={field.fieldKey} className={`rounded-md p-2 text-xs ${
+      field.allSame ? 'bg-muted/30' : 'bg-yellow-500/10 border border-yellow-500/30'
+    }`}>
+      {field.allSame ? (
+        // Compact single-line for matching fields
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground w-28 shrink-0">{field.label}</span>
+          <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+          <span className="text-foreground truncate">{field.singleValue || '–'}</span>
+          <span className="text-muted-foreground text-[10px] ml-auto">alle gleich</span>
+        </div>
+      ) : (
+        // Expanded per-row comparison for differing fields
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3 w-3 text-yellow-600 shrink-0" />
+            <span className="font-medium text-yellow-700">{field.label} – Unterschiede</span>
+          </div>
+          <div className="grid gap-0.5 pl-4">
+            {affectedRows.map((r, i) => (
+              <div key={r.row} className="flex items-center gap-2">
+                <span className="text-muted-foreground w-24 shrink-0 truncate">
+                  {r.studentName || `Zeile ${r.row}`}:
+                </span>
+                <span className={`${
+                  field.values[i] !== field.uniqueValues[0]
+                    ? 'text-yellow-700 font-medium'
+                    : 'text-foreground'
+                }`}>
+                  {field.values[i] || '–'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  ))}
+</div>
+```
 
-| S_ID | S_Muttersprache | S_Umgangssprache | Erwartet |
-|------|-----------------|------------------|----------|
-| 10300 | Englisch | Deutsch | Kein Fehler |
-| 10301 | Englsh | Deutsch | Warning + Auto-Fix → "Englisch" |
-| 10302 | English | Englisch | Error (kein BISTA-Code, kein Ähnlichkeits-Treffer) |
-| 10303 | Spanisch | Türkisch | Kein Fehler |
-| 10304 | Arabisch | Berberdialekt | Error (kein BISTA-Code für "Berberdialekt") |
+#### Schritt 3: Zusammenfassung in der Karten-Überschrift
 
----
+In der **kompakten Zusammenfassung** (wenn Details nicht aufgeklappt sind) wird ein kleiner Hinweis ergänzt, falls Felder mit Unterschieden gefunden wurden:
 
-### Zusammenfassung der Änderungen
+```
+1 betroffenes Kind: Ryan Umzug2 ✕
+⚠ Adressunterschiede in 2 Feldern
+```
 
-| Datei | Änderung | Priorität |
+Dies gibt dem Benutzer sofort den Hinweis, dass er die Details prüfen sollte, auch wenn er die Karte zunächst nicht aufklappt.
+
+### Was sich ändert
+
+| Bereich | Vorher | Nachher |
 |---|---|---|
-| `src/types/importTypes.ts` | `validationType: 'language'` hinzufügen + Spalten-Definitionen aktualisieren | Kritisch |
-| `src/lib/fileParser.ts` | `VALID_BISTA_LANGUAGES`, `isValidLanguage`, `findSimilarLanguage`, neuer `case 'language'` in `validateFieldType` | Kritisch |
-| `src/lib/localBulkCorrections.ts` | `detectLanguagePattern` für Auto-Fix-Anzeige in Step 3 | Mittel |
-| `public/test-stammdaten.csv` | 5 neue Testzeilen für Sprach-Validierung | Niedrig |
+| Detailansicht (expandiert) | Nur ID-Vergleich pro Kind | ID-Vergleich + Feldvergleich aller Elternfelder |
+| Felder gleich | Nicht angezeigt | Kompakt einzeilig mit grünem Häkchen |
+| Felder unterschiedlich | Nicht angezeigt | Gelb hervorgehoben mit Wert je Kind |
+| Karten-Summary | Anzahl Kinder | Anzahl Kinder + Hinweis bei Feldunterschieden |
 
-Keine Änderungen an UI-Komponenten nötig – die neuen Fehler erscheinen automatisch in der bestehenden Fehlertabelle in Step 3, und Auto-Fixes (Tippfehler-Korrekturen) werden automatisch in der Muster-Erkennung angezeigt.
+### Nur eine Datei betroffen
+
+Alle Änderungen befinden sich ausschließlich in:
+- `src/components/import/Step3Validation.tsx`
+
+Keine Änderungen an `fileParser.ts`, `importTypes.ts` oder anderen Dateien nötig, da alle Rohdaten über das `rows`-Prop bereits verfügbar sind.
