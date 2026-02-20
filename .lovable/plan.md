@@ -1,115 +1,166 @@
 
-## Problem-Analyse
+## Vollständige Analyse: Validierung, UI-Klarheit & Benutzerführung
 
-Das UI zeigt "1 betroffene Kinder" obwohl Block A 3 Kinder hat. Das Problem liegt darin, dass die CSV-Zeilen für die Geschwister-Blöcke A-D zwar hinzugefügt wurden, aber:
+### Was funktioniert gut (keine Änderung nötig)
 
-1. **Spalten-Alignment**: Die Geschwister-Zeilen könnten falsch ausgerichtet sein (falsche Spaltenanzahl), sodass P_ERZ1_AHV nicht korrekt erkannt wird
-2. **Fehlende "All-children"-Darstellung**: Die `affectedRows` enthält in der Konsolidierungs-Logik alle Zeilen der Gruppe – aber nur wenn alle Zeilen denselben `groupKey` ergeben (AHV, Name+Strasse, oder Elternpaar)
-
-Die Lösung: Die CSV grundlegend neu strukturieren mit **realistischen Grossfamilien** (2–6 Kinder) mit konsequent konsistenten Spaltenwerten, damit die Gruppierung sicher funktioniert.
-
-## Was wird geändert
-
-### Datei: `public/test-stammdaten.csv`
-
-Die bestehenden Geschwister-Blöcke A-D (Zeilen 116–124) werden durch deutlich realistischere und vollständigere Familien ersetzt. Gleichzeitig werden die Blöcke E-K (Zeilen 125–144) beibehalten.
+- Korrekturen werden korrekt via `onErrorCorrect`/`onBulkCorrect` in den Elternenkomponenten gespeichert und die `correctedValue`-Property des Fehlers gesetzt
+- Der Änderungsprotokoll (ChangeLog) erfasst alle Korrekturen lückenlos mit Typ, Zeitstempel und Schülername
+- Export berücksichtigt alle `correctedValue`-Werte korrekt
+- Web Worker für Musteranalyse funktioniert korrekt im Hintergrund
+- Pattern-Matching (AHV, Telefon, E-Mail, Datum, PLZ, Geschlecht, Name, Strasse) ist vollständig implementiert
+- Eltern-Konsolidierung (AHV, Name+Strasse, Name-only) und Namenswechsel-Erkennung sind korrekt implementiert
 
 ---
 
-### Neue Familien-Szenarien
+### Gefundene Probleme & Lücken
 
-#### Familie Bauer – 5 Kinder, Vater AHV-Inkonsistenz (hohe Zuverlässigkeit)
+#### Problem 1: Korrigierte Fehler werden in der Fehlertabelle NICHT ausgeblendet – sie bleiben sichtbar
+**Ist-Zustand:** In der Fehlertabelle (`errorsByColumn`) werden korrigierte Fehler weiterhin angezeigt (durchgestrichen, mit `→ neuerWert`). Das ist zwar informativ, aber bei vielen Korrekturen wird die Tabelle unübersichtlich. Es gibt keine Möglichkeit, die Liste zu filtern.
 
-Vater Hans Bauer, AHV `756.2222.3333.01`, wird bei 5 Kindern mit 3 verschiedenen IDs erfasst:
-- Kind 1 (Klasse 1A): P_ERZ1_ID = `70001` → korrekte ID (Referenz)
-- Kind 2 (Klasse 2B): P_ERZ1_ID = `70002` → Fehler
-- Kind 3 (Klasse 3A): P_ERZ1_ID = `70001` → korrekt (bereits gleiche ID)
-- Kind 4 (Klasse 4C): P_ERZ1_ID = `70003` → Fehler
-- Kind 5 (Klasse 5B): P_ERZ1_ID = `70002` → Fehler
+**Problem:** Ein Benutzer, der 20 Telefonnummern auto-korrigiert hat, sieht immer noch 20 Zeilen – unklar ob noch Handlungsbedarf besteht.
 
-Ergebnis: 4 Kinder in `affectedRows`, 3 davon mit Transformation → zeigt gemischtes Bild (korrekt + inkorrekt)
+**Fix:** Filter-Toggle „Nur offene Fehler anzeigen / Alle anzeigen" im Spaltenkopf der Fehlertabelle. Default: Korrigierte werden ausgeblendet.
 
-#### Familie Ritter – 4 Kinder, BEIDE Eltern mit ID-Inkonsistenz (AHV)
+#### Problem 2: Muster-Analyse zeigt keine konkreten Vorher/Nachher-Werte für die spezifischen betroffenen Daten
+**Ist-Zustand:** Die Musterkarte zeigt ein generisches Beispiel (`0791234567 → +41 79 123 45 67`). Der Benutzer sieht nicht welche konkreten Werte aus seiner Datei transformiert werden.
 
-Vater Thomas Ritter, AHV `756.3333.4444.01`, Mutter Sandra Ritter, AHV `756.3333.4444.02`:
-- Kind 1 (2A): ERZ1_ID = `71001`, ERZ2_ID = `72001` (Referenz)
-- Kind 2 (3B): ERZ1_ID = `71002`, ERZ2_ID = `72001` → ERZ1 falsch
-- Kind 3 (5A): ERZ1_ID = `71001`, ERZ2_ID = `72002` → ERZ2 falsch
-- Kind 4 (6B): ERZ1_ID = `71003`, ERZ2_ID = `72003` → beide falsch
+**Fix:** In der Musterkarte die tatsächlich betroffenen Werte (erste 3 als `vorher → nachher`-Vorschau) direkt anzeigen.
 
-Ergebnis: 2 separate Konsolidierungen (eine für ERZ1, eine für ERZ2), je mit 4 Kindern in affectedRows
+#### Problem 3: „Alle auto-fixes anwenden"-Schaltfläche fehlt
+**Ist-Zustand:** Jedes Muster muss einzeln angewendet werden. Es gibt keinen Button um alle verfügbaren Auto-Fixes auf einmal anzuwenden.
 
-#### Familie Kunz – 3 Kinder, Name+Strasse-Matching (mittlere Zuverlässigkeit)
+**Fix:** „Alle Auto-Fixes anwenden (N Korrekturen)"-Button oberhalb der Musterliste.
 
-Kein AHV. Vater Peter Kunz, Seestrasse 12, 8002 Zürich:
-- Kind 1 (1B): ERZ1_ID = `73001` (Referenz)
-- Kind 2 (3C): ERZ1_ID = `73002` → Fehler
-- Kind 3 (6A): ERZ1_ID = `73003` → Fehler
+#### Problem 4: Schritt-für-Schritt-Modus: Fortschrittsbalken fehlt
+**Ist-Zustand:** Der Text zeigt „Fehler 3 von 12", aber kein visueller Fortschrittsbalken. Bei vielen Fehlern ist unklar wie weit man ist.
 
-Ergebnis: 3 Kinder in affectedRows (Name+Strasse-Matching)
+**Fix:** `<Progress>` Komponente unter dem Header des Step-by-Step-Modals.
 
-#### Familie Egli – 6 Kinder, Name-only-Matching (tiefe Zuverlässigkeit, Grossfamilie)
+#### Problem 5: Eltern-Konsolidierung – „Korrekte ID" ist nicht erklärt
+**Ist-Zustand:** Die „korrekte ID" wird aus dem ersten Vorkommen in der Datei übernommen. Das ist nicht für den Benutzer kommuniziert. Er fragt sich: „Woher kommt diese ID? Warum ist die korrekt?"
 
-Kein AHV, keine Strasse. Eltern: Franz und Monika Egli:
-- Kind 1 (1C): ERZ1_ID = `74001`, ERZ2_ID = `75001` (Referenz)
-- Kind 2 (2A): ERZ1_ID = `74001`, ERZ2_ID = `75002` → ERZ2 falsch
-- Kind 3 (3B): ERZ1_ID = `74002`, ERZ2_ID = `75001` → ERZ1 falsch
-- Kind 4 (4A): ERZ1_ID = `74002`, ERZ2_ID = `75002` → beide falsch
-- Kind 5 (5B): ERZ1_ID = `74001`, ERZ2_ID = `75001` → korrekt
-- Kind 6 (6A): ERZ1_ID = `74003`, ERZ2_ID = `75003` → beide falsch
+**Fix:** Tooltip oder Hinweistext: „ID aus Zeile X (erster Eintrag für diesen Elternteil)" + welche Felder zur Übereinstimmung geführt haben.
 
-Ergebnis: 6 Kinder in affectedRows → maximale Sichtbarkeit im UI
+#### Problem 6: Whitespace-Trimming und Date-Format-Muster fehlen im `getPatternMeta`-Switch
+**Ist-Zustand:** Die neuen Pattern-Typen `date_de_format` und `whitespace_trim` sind im Worker und in `localBulkCorrections.ts` implementiert, aber der `getPatternMeta()`-Switch in Step3Validation hat **keinen** `case` dafür. Sie fallen in den `default`-Fall mit einem generischen Zap-Icon und keinem `label`.
 
-#### Familie Weber-Brun – 2 Kinder, Namenswechsel der Mutter nach Heirat
+**Fix:** Beide Cases in `getPatternMeta` ergänzen mit korrektem Icon, Label und Beispiel.
 
-- Kind 1 (2C): ERZ1 = "Weber Anna", ID `76001`, Strasse "Heiratsgasse 5"
-- Kind 2 (4B): ERZ1 = "Weber-Brun Anna", ID `76001` (gleiche ID!), Strasse "Heiratsgasse 5" → Namenswechsel-Warnung (nicht ID-Fehler)
+#### Problem 7: „Ignorieren"-Button bei Eltern-Konsolidierung setzt correctedValue = aktueller Wert → kein visuelles Feedback
+**Ist-Zustand:** Wenn ein Benutzer auf „Ignorieren" klickt, verschwindet der Eintrag aus der Liste ohne Toast-Rückmeldung warum, und ohne dass er weiß, dass der Eintrag im Änderungsprotokoll erscheint.
 
-#### Familie Trenner – 3 Kinder, Eltern getrennt, Vater bei allen 3 unterschiedlich erfasst
+**Fix:** Toast-Meldung ist schon da (korrekt). Aber es fehlt ein Hinweis, dass „Ignorieren" die ID beibehält und der Eintrag im Protokoll erscheint. → Tooltip am Ignorieren-Button und der Toast-Text sollte klarer sein.
 
-Vater Karl Trenner, kein AHV – Adresse hat sich nach Scheidung geändert:
-- Kind 1 (3A): ERZ1 = "Trenner Karl", Strasse "Familienweg 1" → ID `77001`
-- Kind 2 (5C): ERZ1 = "Trenner Karl", Strasse "Einzimmer 99" → ID `77002` (neue Adresse, nur name-only)
-- Kind 3 (6C): ERZ1 = "Trenner Karl", Strasse "Einzimmer 99" → ID `77002` (korrekt)
+#### Problem 8: Fehlermeldungen in der Tabelle sind zu lang / technisch
+**Ist-Zustand:** Die Fehlermeldung-Badge zeigt z.B. `Inkonsistente ID: Elternteil (AHV: 756.2222.3333.01) hat in Zeile 116 (Erziehungsberechtigte/r 1) die ID '70001', aber hier...` – viel zu lang für eine Badge.
+
+**Fix:** Kurze Fehlermeldung als Badge (`Inkonsistente Eltern-ID`), volle Meldung als Tooltip.
+
+#### Problem 9: Navigations-Buttons sind doppelt vorhanden (oben + unten), aber der obere hat keinen Hinweis
+**Ist-Zustand:** Es gibt NavigationButtons oberhalb UND unterhalb der Fehlertabelle. Der obere ist nützlich für lange Fehlerlisten, aber der Benutzer weiß nicht dass er die Fehler zuerst bearbeiten sollte.
+
+**Fix:** Beim oberen „Weiter"-Button: kleiner Badge oder Hinweistext wenn noch offene Fehler vorhanden sind: „X offene Fehler – trotzdem fortfahren?"
+
+#### Problem 10: Zusammenfassungs-Karten zeigen nicht den Fortschritt als Prozentzahl
+**Ist-Zustand:** Die vier Karten zeigen Zahlen (Datensätze, offene Fehler, Korrekturen), aber kein prozentualer Fortschritt der Korrekturen.
+
+**Fix:** Unter den Korrekturen-Karten eine Progress-Bar: „67% der Fehler behoben" als schnelle visuelle Orientierung.
 
 ---
 
-### Warum bisherige Blöcke A-D nicht funktionierten
+### Neue Ideen für Intuitivität und Transparenz
 
-Die Blöcke A-D hatten ein CSV-Alignment-Problem: Die ERZ2-Felder für Kind 2 und Kind 3 hatten nicht dieselbe Spaltenanzahl wie die übrigen Zeilen, was dazu führte, dass der CSV-Parser die Felder falsch zuordnete und die `groupKey`-Berechnung für mehrere Kinder nicht funktionierte.
+#### Idee A: „Was ändert sich?" – Vorschau-Modal vor dem Export
+Wenn der Benutzer auf „Weiter zur Vorschau" klickt, eine kurze Zusammenfassung anzeigen:
+- X Werte wurden automatisch korrigiert (Format)
+- X Eltern-IDs konsolidiert
+- X Namenswechsel bestätigt
+- X Zeilen verbleiben mit offenen Fehlern
 
-Die neuen Zeilen werden mit vollständig ausgefüllten Spalten (alle 35 Felder) geschrieben, inkl. expliziter leerer Felder für optionale Spalten.
+Das gibt dem Benutzer eine Überprüfungsmöglichkeit bevor er exportiert.
+
+#### Idee B: Farb-Legende für die Fehlertabelle
+Die Fehlertabelle hat farbige Zeilen (grün = korrigiert, rot = offen), aber keine Legende. Ein kleiner „Legende"-Hinweis oben würde das erklären.
+
+#### Idee C: Klickbare Fehler-Badge → direkt in Step-by-Step-Modus springen
+In der Fehlertabelle kann der Benutzer derzeit auf „Korrigieren" klicken, was in den Inline-Edit-Modus geht. Ein direktes Springen in den Step-by-Step-Modus wäre konsistenter.
 
 ---
 
 ### Technische Umsetzung
 
-**Datei: `public/test-stammdaten.csv`**
+#### Datei 1: `src/components/import/Step3Validation.tsx`
 
-- Zeilen 116–124 (Blöcke A-D): Vollständig ersetzen durch die 6 neuen Familien
-- Zeilen 125–144 (Blöcke E-K): Beibehalten
-- Sicherstellen: Jede Zeile hat **exakt dieselbe Spaltenanzahl** wie der Header (via Semikolon-Zählung)
-
-**Vorgehensweise:**
-
-Für jede Familienzeile werden **alle Pflichtfelder** explizit gesetzt:
+**Änderung 1 – `getPatternMeta()` ergänzen** (Zeile 962–989):
+```ts
+case 'date_de_format':
+  return { icon: <CalendarDays .../>, label: 'Datumsformat', example: { from: '2014-03-15', to: '15.03.2014' } };
+case 'whitespace_trim':
+  return { icon: <Edit2 .../>, label: 'Leerzeichen', example: { from: ' Meier ', to: 'Meier' } };
 ```
-Quelle;Schuljahr;S_AHV;S_ID;S_Name;S_Vorname;S_Geschlecht;S_Geburtsdatum;S_Strasse;S_PLZ;S_Ort;
-P_ERZ1_ID;P_ERZ1_AHV;P_ERZ1_Name;P_ERZ1_Vorname;P_ERZ1_Strasse;P_ERZ1_PLZ;P_ERZ1_Ort;P_ERZ1_TelefonPrivat;P_ERZ1_Mobil;
-P_ERZ2_ID;P_ERZ2_AHV;P_ERZ2_Name;P_ERZ2_Vorname;P_ERZ2_Strasse;P_ERZ2_PLZ;P_ERZ2_Ort;P_ERZ2_TelefonPrivat;P_ERZ2_Mobil;
-K_Name;LP_AHV;LP_ID;LP_Name;LP_Vorname
+
+**Änderung 2 – Filter-Toggle in Fehlertabellen-Header:**
+Neues State `showOnlyOpenErrors` (default: `true`). Im Spaltenkopf-Header ein kleiner Toggle: „Korrigierte einblenden". Die `colErrors`-Liste wird gefiltert wenn Toggle aktiv.
+
+**Änderung 3 – Vorher/Nachher-Werte in Musterkarte:**
+In der Musterkarte (Zeile 1646–1708) unter dem generischen Beispiel: eine kompakte Liste der ersten 3 tatsächlich betroffenen Werte mit dem fix-angewandten Ergebnis:
 ```
-Leere optionale Felder werden als `;;` explizit leer gelassen, nicht weggelassen.
+Betroffen: "0791234567" → "+41 79 123 45 67", "044111 11 01" → "+41 44 111 11 01", ...
+```
 
-**Erwartetes Ergebnis im UI:**
+**Änderung 4 – „Alle Auto-Fixes anwenden"-Button:**
+Oberhalb der Musterliste (wenn `suggestionsWithApplicability.filter(s => s.hasApplicableCorrections).length > 1`): 
+```
+<Button onClick={applyAllAutoFixes}>Alle X Auto-Fixes anwenden (Y Korrekturen gesamt)</Button>
+```
 
-| Familie | Spalte | Kinder in affectedRows | Zuverlässigkeit |
+**Änderung 5 – Progress-Bar im Step-by-Step-Modal:**
+Nach dem Header, vor dem Inhalt:
+```tsx
+<Progress value={(currentErrorIndex / stepByStepErrors.length) * 100} className="h-1" />
+```
+
+**Änderung 6 – Fehlermeldung-Badge kürzen + Tooltip:**
+In der Fehlertabelle (Zeile 2213–2218): Badge zeigt nur den ersten Teil der Fehlermeldung (max. 40 Zeichen), Rest als Tooltip:
+```tsx
+<Tooltip><TooltipTrigger><Badge>...</Badge></TooltipTrigger><TooltipContent>{error.message}</TooltipContent></Tooltip>
+```
+
+**Änderung 7 – Fortschritts-Progress unter Zusammenfassungskarten:**
+Unter den 4 Summary-Cards (Zeile 1000–1020): Eine kleine Progress-Bar:
+```tsx
+<div className="flex items-center gap-3">
+  <Progress value={correctionRate} className="flex-1 h-2" />
+  <span>{correctionRate}% der Fehler behoben</span>
+</div>
+```
+
+**Änderung 8 – „Korrekte ID"-Herkunft in Konsolidierungs-Karte:**
+In der Eltern-Konsolidierungs-Karte (Zeile 1223–1227): Unter `Korrekte ID: [70001]` einen Hinweis: `📍 Aus Zeile X (erster Eintrag via [AHV/Name+Strasse/Name])`.
+
+Da die `groupedByIdentifier`-Logik in `parentIdInconsistencyGroups` die erste Fehler-Zeile kennt, kann man die `firstRow` aus dem Error-Message-Text extrahieren oder separat im Interface ablegen.
+
+#### Datei 2: `src/lib/localBulkCorrections.ts`
+
+Keine Änderungen nötig – alle Pattern-Typen sind korrekt implementiert.
+
+#### Datei 3: `src/workers/validationWorker.ts`
+
+Keine Änderungen nötig – alle Pattern-Typen und `applyCorrection`-Cases sind korrekt implementiert.
+
+---
+
+### Zusammenfassung der Änderungen
+
+| # | Datei | Änderung | Priorität |
 |---|---|---|---|
-| Bauer | P_ERZ1_ID | 5 | Hoch (AHV) |
-| Ritter ERZ1 | P_ERZ1_ID | 4 | Hoch (AHV) |
-| Ritter ERZ2 | P_ERZ2_ID | 4 | Hoch (AHV) |
-| Kunz | P_ERZ1_ID | 3 | Mittel (Name+Str.) |
-| Egli ERZ1 | P_ERZ1_ID | 6 | Tief (name-only) |
-| Egli ERZ2 | P_ERZ2_ID | 6 | Tief (name-only) |
-| Weber-Brun | P_ERZ1_Name | 2 | Namenswechsel |
-| Trenner | P_ERZ1_ID | 3 | Tief (name-only) |
+| 1 | Step3Validation.tsx | `getPatternMeta()` für `date_de_format` + `whitespace_trim` | Kritisch (Bug) |
+| 2 | Step3Validation.tsx | Filter-Toggle „Nur offene Fehler" in Fehlertabelle | Hoch |
+| 3 | Step3Validation.tsx | Konkrete Vorher/Nachher-Werte in Musterkarte | Mittel |
+| 4 | Step3Validation.tsx | „Alle Auto-Fixes anwenden"-Button | Mittel |
+| 5 | Step3Validation.tsx | Progress-Bar im Step-by-Step-Modal | Mittel |
+| 6 | Step3Validation.tsx | Fehlermeldung-Badge kürzen + Tooltip | Mittel |
+| 7 | Step3Validation.tsx | Fortschritts-Progress unter Summary-Cards | Niedrig |
+| 8 | Step3Validation.tsx | Herkunft der „korrekten ID" in Konsolidierungskarte | Mittel |
+
+Alle Änderungen befinden sich in einer einzigen Datei: `src/components/import/Step3Validation.tsx`.
