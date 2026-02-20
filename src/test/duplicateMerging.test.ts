@@ -156,17 +156,19 @@ describe("Parent ID Consistency Check", () => {
     const rows: ParsedRow[] = [
       { 
         S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1111.1111.11",
-        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Juhász", P_ERZ1_Vorname: "Krisztián"
+        P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Juhász", P_ERZ1_Vorname: "Krisztián",
+        P_ERZ1_Strasse: "Testgasse 1"
       },
       { 
         S_ID: "2", S_Name: "Müller", S_Vorname: "Anna", S_AHV: "756.2222.2222.22",
-        P_ERZ1_ID: "PARENT-002", P_ERZ1_Name: "Juhasz", P_ERZ1_Vorname: "Krisztian"
+        P_ERZ1_ID: "PARENT-002", P_ERZ1_Name: "Juhasz", P_ERZ1_Vorname: "Krisztian",
+        P_ERZ1_Strasse: "Testgasse 1"
       },
     ];
 
     const errors = validateData(rows, testColumns);
     
-    // "Juhász Krisztián" and "Juhasz Krisztian" should be recognized as the same person
+    // "Juhász Krisztián" and "Juhasz Krisztian" should be recognized as the same person via Name+Strasse
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
     expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
@@ -289,6 +291,133 @@ describe("Name-only Address Disambiguation", () => {
     expect(inconsistentIds.length).toBe(0);
   });
 });
+});
+
+describe("Parent Name Change Detection", () => {
+  it("should detect hyphen addition (Marina Ianuzi → Marina Ianuzi-Tadic)", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Ianuzi", S_Vorname: "Luca", S_AHV: "756.1111.1111.11",
+        P_ERZ1_Name: "Ianuzi", P_ERZ1_Vorname: "Marina",
+      },
+      {
+        S_ID: "2", S_Name: "Tadic", S_Vorname: "Mia", S_AHV: "756.2222.2222.22",
+        P_ERZ1_Name: "Ianuzi-Tadic", P_ERZ1_Vorname: "Marina",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Bindestrich"));
+    expect(nameChanges.length).toBeGreaterThan(0);
+    expect(nameChanges[0].severity).toBe("warning");
+  });
+
+  it("should detect reverse hyphen addition (Doris Brunner → Doris Fliege-Brunner)", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Brunner", S_Vorname: "Tim", S_AHV: "756.1111.1111.11",
+        P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Doris",
+      },
+      {
+        S_ID: "2", S_Name: "Fliege", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
+        P_ERZ1_Name: "Fliege-Brunner", P_ERZ1_Vorname: "Doris",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Doppelname"));
+    expect(nameChanges.length).toBeGreaterThan(0);
+    expect(nameChanges[0].severity).toBe("warning");
+  });
+
+  it("should detect complete name change with similar names (Heidi Maier → Heidi Meier)", () => {
+    // Maier vs Meier: levenshtein=1, max=5, similarity=80% → should flag
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Tim", S_AHV: "756.1111.1111.11",
+        P_ERZ1_Name: "Maier", P_ERZ1_Vorname: "Heidi",
+      },
+      {
+        S_ID: "2", S_Name: "Meier", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
+        P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Heidi",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    // Maier vs Meier: high similarity → should flag
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Möglicher"));
+    expect(nameChanges.length).toBeGreaterThan(0);
+  });
+
+  it("should NOT flag completely unrelated names (Heidi Müller vs Heidi Meier)", () => {
+    // Müller vs Meier: levenshtein=4, max=6, similarity~33% → should NOT flag
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Tim", S_AHV: "756.1111.1111.11",
+        P_ERZ1_Name: "Müller", P_ERZ1_Vorname: "Heidi",
+      },
+      {
+        S_ID: "2", S_Name: "Meier", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
+        P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Heidi",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel"));
+    expect(nameChanges.length).toBe(0);
+  });
+
+  it("should NOT flag parents with same first name but completely unrelated last names", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Müller", S_Vorname: "Tim",
+        P_ERZ1_Name: "Müller", P_ERZ1_Vorname: "Anna",
+      },
+      {
+        S_ID: "2", S_Name: "Brunner", S_Vorname: "Jana",
+        P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Anna",
+      },
+      {
+        S_ID: "3", S_Name: "Zimmermann", S_Vorname: "Leo",
+        P_ERZ1_Name: "Zimmermann", P_ERZ1_Vorname: "Anna",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    // Müller vs Brunner vs Zimmermann: low similarity → NO name change warning
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel"));
+    expect(nameChanges.length).toBe(0);
+  });
+
+  it("should flag name change in ERZ2 slot as well", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Kind", S_Vorname: "Tim",
+        P_ERZ2_Name: "Schneider", P_ERZ2_Vorname: "Hans",
+      },
+      {
+        S_ID: "2", S_Name: "Kind", S_Vorname: "Lena",
+        P_ERZ2_Name: "Schneider-Huber", P_ERZ2_Vorname: "Hans",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e =>
+      (e.message.includes("Namenswechsel") || e.message.includes("Bindestrich")) &&
+      e.column === "P_ERZ2_Name"
+    );
+    expect(nameChanges.length).toBeGreaterThan(0);
+  });
+
+  it("should not produce name change warning if names are identical", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Kind", S_Vorname: "Tim",
+        P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+      },
+      {
+        S_ID: "2", S_Name: "Kind", S_Vorname: "Lena",
+        P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Sandra",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const nameChanges = errors.filter(e => e.message.includes("Namenswechsel"));
+    expect(nameChanges.length).toBe(0);
+  });
 });
 
 describe("Error Correction Simulation", () => {
