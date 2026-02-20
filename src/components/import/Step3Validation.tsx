@@ -38,6 +38,8 @@ interface ParentIdInconsistencyGroup {
   identifier: string; // e.g., "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
   column: string; // e.g., "P_ERZ1_ID"
   correctId: string; // The ID from the first occurrence
+  matchReason: string; // e.g., "AHV-Nummer – Hohe Zuverlässigkeit"
+  severity?: 'error' | 'warning'; // warning = name_only strategy
   affectedRows: {
     row: number;
     currentId: string;
@@ -151,6 +153,10 @@ export function Step3Validation({
       
       if (!correctId) return;
       
+      // Extract match reason: "[Erkannt via: AHV-Nummer – Hohe Zuverlässigkeit]"
+      const matchReasonMatch = firstError.message.match(/\[Erkannt via: ([^\]]+)\]/);
+      const matchReason = matchReasonMatch ? matchReasonMatch[1] : '';
+      
       const affectedRows = groupErrors.map(e => ({
         row: e.row,
         currentId: e.value,
@@ -161,6 +167,8 @@ export function Step3Validation({
         identifier,
         column,
         correctId,
+        matchReason,
+        severity: groupErrors.some(e => e.severity === 'warning') ? 'warning' : 'error',
         affectedRows,
       });
     });
@@ -1025,30 +1033,38 @@ export function Step3Validation({
                       paginatedParentGroups.map((group, idx) => (
                         <div key={`${group.column}-${group.identifier}-${idx}`} className="p-3 bg-background rounded-lg border space-y-2">
                           <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <Badge variant="outline" className="shrink-0">{group.column}</Badge>
-                                <span className="text-sm font-medium text-muted-foreground truncate">{group.identifier}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
-                                <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
-                                  {group.correctId}
-                                </code>
-                              </div>
-                              <div className="mt-2 text-xs text-muted-foreground">
-                                <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
-                                <span className="ml-1">
-                                  {group.affectedRows.slice(0, 2).map((r, i) => (
-                                    <span key={r.row}>
-                                      {i > 0 && ', '}
-                                      {r.studentName || `Zeile ${r.row}`}
-                                    </span>
-                                  ))}
-                                  {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
-                                </span>
-                              </div>
-                            </div>
+                             <div className="flex-1 min-w-0">
+                               <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                 <Badge variant="outline" className="shrink-0">{group.column}</Badge>
+                                 <span className="text-sm font-medium text-muted-foreground truncate">{group.identifier}</span>
+                               </div>
+                               <div className="flex items-center gap-2 text-sm flex-wrap">
+                                 <span className="text-muted-foreground shrink-0">Korrekte ID:</span>
+                                 <code className="px-1.5 py-0.5 bg-blue-500/10 rounded text-blue-600 font-mono text-xs truncate">
+                                   {group.correctId}
+                                 </code>
+                                 {group.matchReason && (
+                                   <Badge
+                                     variant="secondary"
+                                     className={`text-xs shrink-0 ${group.severity === 'warning' ? 'border border-pupil-warning/40 text-pupil-warning bg-pupil-warning/10' : ''}`}
+                                   >
+                                     {group.matchReason}
+                                   </Badge>
+                                 )}
+                               </div>
+                               <div className="mt-2 text-xs text-muted-foreground">
+                                 <span className="font-medium">{group.affectedRows.length} betroffene Kinder:</span>
+                                 <span className="ml-1">
+                                   {group.affectedRows.slice(0, 2).map((r, i) => (
+                                     <span key={r.row}>
+                                       {i > 0 && ', '}
+                                       {r.studentName || `Zeile ${r.row}`}
+                                     </span>
+                                   ))}
+                                   {group.affectedRows.length > 2 && ` +${group.affectedRows.length - 2} weitere`}
+                                 </span>
+                               </div>
+                             </div>
                             <div className="flex gap-2 shrink-0">
                               <Button 
                                 size="sm" 
