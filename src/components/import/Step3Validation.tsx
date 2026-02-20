@@ -1293,16 +1293,31 @@ export function Step3Validation({
                         </div>
                         <p className="text-xs text-muted-foreground">Zeilen {entry.fromRow} → {entry.error.row}</p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
-                        className="shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
-                        title="Kein Namenswechsel – diesen Fall ignorieren und ausblenden"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Ignorieren
-                      </Button>
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startStepByStep([entry.fromRow, entry.error.row], entry.column);
+                          }}
+                          className="gap-1.5"
+                          title="Beide Zeilen im Schritt-für-Schritt Modus anzeigen"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
+                          className="gap-1.5 text-muted-foreground hover:text-foreground"
+                          title="Kein Namenswechsel – diesen Fall ignorieren und ausblenden"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Ignorieren
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
