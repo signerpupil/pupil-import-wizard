@@ -348,7 +348,8 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         if (!errorSet.has(errorKey)) {
           errorSet.add(errorKey);
           
-          if (strategy === 'ahv') {
+          // AHV and Name+Strasse both block lower-priority strategies (name-only)
+          if (strategy === 'ahv' || strategy === 'name_strasse') {
             resolvedByHigherStrategy.add(rowFieldKey);
           }
           
