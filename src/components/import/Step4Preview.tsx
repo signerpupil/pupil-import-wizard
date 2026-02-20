@@ -91,7 +91,7 @@ export function Step4Preview({
 
   // Build correction rules from change log
   const newCorrectionRules: CorrectionRule[] = changeLog
-    .filter(entry => entry.type === 'manual' || entry.type === 'bulk')
+    .filter(entry => (entry.type === 'manual' || entry.type === 'bulk') && entry.originalValue !== entry.newValue)
     .map((entry, index) => ({
       id: `${Date.now()}-${index}`,
       column: entry.column,
