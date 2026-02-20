@@ -92,6 +92,7 @@ export function Step3Validation({
   const NAME_CHANGES_PER_PAGE = 5;
   const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
   const [expandedNameChanges, setExpandedNameChanges] = useState<Set<string>>(new Set());
+  const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -921,6 +922,20 @@ export function Step3Validation({
       });
   }, [localSuggestions, errors]);
 
+  // Group errors by column for grouped display
+  const errorsByColumn = useMemo(() => {
+    const map = new Map<string, ValidationError[]>();
+    for (const e of errors) {
+      if (!map.has(e.column)) map.set(e.column, []);
+      map.get(e.column)!.push(e);
+    }
+    return Array.from(map.entries()).sort((a, b) => {
+      const aUncorrected = a[1].filter(e => !e.correctedValue).length;
+      const bUncorrected = b[1].filter(e => !e.correctedValue).length;
+      return bUncorrected - aUncorrected;
+    });
+  }, [errors]);
+
   // Apply local bulk correction
   const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
     const corrections = applyLocalCorrection(suggestion, errors);
@@ -1247,83 +1262,60 @@ export function Step3Validation({
                           </div>
                           </div>
 
-                          {/* Inline details expansion – Person Card Comparison */}
+          {/* Inline details expansion – 2-Karten-Layout (wie Namenswechsel) */}
                           {isExpanded && (
-                            <div className="border-t bg-muted/20 p-3 space-y-4">
-                              {/* Person Cards Grid */}
-                              <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Betroffene Einträge im Datensatz</p>
-                                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(group.affectedRows.length, 3)}, minmax(0, 1fr))` }}>
-                                  {group.affectedRows.map(r => {
-                                    const rowData = rows[r.row - 1] ?? {};
-                                    const isCorrect = r.currentId === group.correctId;
-                                    return (
-                                      <div
-                                        key={r.row}
-                                        className={`rounded-md border p-2.5 space-y-2 bg-background text-xs ${isCorrect ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-destructive/60'}`}
-                                      >
-                                        {/* Card header */}
-                                        <div className="flex items-center justify-between gap-1 flex-wrap">
-                                          <span className="font-semibold text-foreground">
-                                            {r.studentName ? `Kind: ${r.studentName}` : `Zeile ${r.row}`}
-                                          </span>
-                                          <span className="text-muted-foreground text-[10px]">Zeile {r.row}</span>
-                                        </div>
-                                        {/* ID status */}
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-muted-foreground shrink-0">ID:</span>
-                                          {isCorrect ? (
-                                            <span className="flex items-center gap-1">
-                                              <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{r.currentId}</code>
-                                              <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
-                                            </span>
-                                          ) : (
-                                            <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono">{r.currentId}</code>
-                                          )}
-                                        </div>
-                                        {/* Person fields */}
-                                        <div className="space-y-0.5 border-t pt-1.5">
-                                          {PERSON_FIELDS.map(field => {
-                                            const val = rowData[`${prefix}${field}`];
-                                            if (!val) return null;
-                                            return (
-                                              <div key={field} className="flex items-baseline gap-1">
-                                                <span className="text-muted-foreground shrink-0 w-12">{field}:</span>
-                                                <span className="font-medium truncate">{String(val)}</span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {/* Was wird geändert? */}
-                              {(() => {
-                                const rowsToChange = group.affectedRows.filter(r => r.currentId !== group.correctId);
-                                if (rowsToChange.length === 0) return null;
-                                return (
-                                  <div className="rounded-md border border-dashed border-muted-foreground/30 p-2.5 space-y-1.5">
-                                    <p className="text-xs font-semibold text-foreground mb-1.5">Was wird geändert?</p>
-                                    {rowsToChange.map(r => (
-                                      <div key={r.row} className="flex items-center gap-2 text-xs flex-wrap">
-                                        <span className="text-muted-foreground shrink-0 min-w-0 max-w-[120px] truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                        <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through">{r.currentId}</code>
-                                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                                        <code className="px-1.5 py-0.5 bg-green-500/10 text-green-700 rounded font-mono">{group.correctId}</code>
-                                      </div>
-                                    ))}
-                                    {group.affectedRows.filter(r => r.currentId === group.correctId).map(r => (
-                                      <div key={r.row} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
-                                        <span>{r.studentName || `Zeile ${r.row}`}: Bereits korrekt</span>
+                            <div className="border-t bg-muted/20 p-3 space-y-3">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                Einträge im Vergleich
+                              </p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {/* Linke Karte: Aktueller Stand */}
+                                <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold">Aktueller Stand</span>
+                                    <span className="text-muted-foreground text-[10px]">{group.affectedRows.length} Einträge</span>
+                                  </div>
+                                  <div className="space-y-1 border-t pt-1.5">
+                                    {group.affectedRows.map(r => (
+                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+                                        <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
+                                          {r.currentId}
+                                        </code>
                                       </div>
                                     ))}
                                   </div>
-                                );
-                              })()}
+                                </div>
+                                {/* Rechte Karte: Nach Konsolidierung */}
+                                <div className="rounded-md border bg-blue-500/5 border-blue-500/30 p-2.5 space-y-2 text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-blue-700">Nach Konsolidierung</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 pb-1.5 border-b">
+                                    <span className="text-muted-foreground shrink-0">Einheitliche ID:</span>
+                                    <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
+                                  </div>
+                                  <div className="space-y-1 pt-0.5">
+                                    {group.affectedRows.map(r => (
+                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
+                                        {r.currentId !== group.correctId ? (
+                                          <div className="flex items-center gap-1">
+                                            <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
+                                            <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
+                                            <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-1">
+                                            <CheckCircle className="h-3 w-3 text-green-500" />
+                                            <span className="text-green-700">bereits korrekt</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )}
                          </div>
@@ -2122,81 +2114,133 @@ export function Step3Validation({
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-pupil-teal">
-                <TableHead className="text-pupil-teal-foreground w-20">Zeile</TableHead>
-                <TableHead className="text-pupil-teal-foreground">Spalte</TableHead>
-                <TableHead className="text-pupil-teal-foreground">Wert</TableHead>
-                <TableHead className="text-pupil-teal-foreground">Fehler</TableHead>
-                <TableHead className="text-pupil-teal-foreground w-32">Aktion</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {errors.slice(0, 50).map((error, idx) => {
-                const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
-                const isCorrected = error.correctedValue !== undefined;
+        <div className="space-y-2">
+          {errorsByColumn.map(([column, colErrors], colIdx) => {
+            const uncorrected = colErrors.filter(e => !e.correctedValue);
+            const corrected = colErrors.filter(e => e.correctedValue !== undefined);
+            // First column is expanded by default (using index 0)
+            const isOpen = colIdx === 0
+              ? !expandedErrorColumns.has(`__closed__${column}`)
+              : expandedErrorColumns.has(column);
+            const toggleCol = () => {
+              setExpandedErrorColumns(prev => {
+                const s = new Set(prev);
+                if (colIdx === 0) {
+                  // Toggle "closed" marker for first column
+                  s.has(`__closed__${column}`) ? s.delete(`__closed__${column}`) : s.add(`__closed__${column}`);
+                } else {
+                  s.has(column) ? s.delete(column) : s.add(column);
+                }
+                return s;
+              });
+            };
 
-                return (
-                  <TableRow 
-                    key={idx} 
-                    data-row={error.row}
-                    className={`transition-all ${isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}`}
+            return (
+              <div key={column} className="border rounded-lg overflow-hidden">
+                {/* Column group header */}
+                <button
+                  onClick={toggleCol}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    <code className="text-sm font-semibold font-mono">{column}</code>
+                    <div className="flex items-center gap-1.5">
+                      {uncorrected.length > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {uncorrected.length} offen
+                        </Badge>
+                      )}
+                      {corrected.length > 0 && (
+                        <Badge variant="secondary" className="text-xs text-pupil-success">
+                          {corrected.length} korrigiert
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1.5 text-xs shrink-0"
+                    onClick={(e) => { e.stopPropagation(); startStepByStep(colErrors.filter(e => !e.correctedValue).map(e => e.row), column); }}
                   >
-                    <TableCell className="font-mono">{error.row}</TableCell>
-                    <TableCell className="font-medium font-mono text-sm">{error.column}</TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <Input
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="h-8"
-                          autoFocus
-                        />
-                      ) : (
-                        <span className={isCorrected ? 'line-through text-muted-foreground' : ''}>
-                          {error.value || '(leer)'}
-                        </span>
-                      )}
-                      {isCorrected && !isEditing && (
-                        <span className="ml-2 text-pupil-success font-medium">
-                          → {error.correctedValue}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={isCorrected ? 'secondary' : 'destructive'}>
-                        {error.message}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <Button size="sm" onClick={handleSaveEdit}>
-                          <Save className="h-4 w-4 mr-1" />
-                          Speichern
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)}
-                        >
-                          <Edit2 className="h-4 w-4 mr-1" />
-                          {isCorrected ? 'Ändern' : 'Korrigieren'}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          {errors.length > 50 && (
-            <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50">
-              Zeige 50 von {errors.length} Fehlern. Nutzen Sie die lokale Musteranalyse oder die Schritt-für-Schritt Korrektur.
-            </div>
-          )}
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Alle korrigieren
+                  </Button>
+                </button>
+
+                {/* Collapsible table */}
+                {isOpen && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-pupil-teal">
+                        <TableHead className="text-pupil-teal-foreground w-20">Zeile</TableHead>
+                        <TableHead className="text-pupil-teal-foreground">Wert</TableHead>
+                        <TableHead className="text-pupil-teal-foreground">Fehler</TableHead>
+                        <TableHead className="text-pupil-teal-foreground w-32">Aktion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {colErrors.map((error, idx) => {
+                        const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
+                        const isCorrected = error.correctedValue !== undefined;
+                        return (
+                          <TableRow
+                            key={idx}
+                            data-row={error.row}
+                            className={`transition-all ${isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}`}
+                          >
+                            <TableCell className="font-mono">{error.row}</TableCell>
+                            <TableCell>
+                              {isEditing ? (
+                                <Input
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  className="h-8"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span className={isCorrected ? 'line-through text-muted-foreground' : ''}>
+                                  {error.value || '(leer)'}
+                                </span>
+                              )}
+                              {isCorrected && !isEditing && (
+                                <span className="ml-2 text-pupil-success font-medium">
+                                  → {error.correctedValue}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={isCorrected ? 'secondary' : 'destructive'}>
+                                {error.message}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {isEditing ? (
+                                <Button size="sm" onClick={handleSaveEdit}>
+                                  <Save className="h-4 w-4 mr-1" />
+                                  Speichern
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)}
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  {isCorrected ? 'Ändern' : 'Korrigieren'}
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       <NavigationButtons
