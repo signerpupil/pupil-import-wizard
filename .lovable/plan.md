@@ -1,125 +1,95 @@
 
-# Testdatei + Dokumentations-Nachführung
+## Problem Analysis
 
-## Ausgangslage
+The current "Details" expansion for both parent consolidation and name change detection shows aggregated data from a single reference row, making it unclear:
+1. Which specific records are being merged/compared
+2. What the "identical fields" actually mean (they look like a single person's data, not proof of identity)
+3. What will be changed vs. what stays the same
 
-Für Tests und Dokumentationskorrektur wurden folgende Punkte festgestellt:
+**Root Causes:**
+- **Parent Consolidation**: Shows fields from only `group.affectedRows[0]` as "identical" – this is just one row's data, not a comparison. The user can't see that two different records really are the same person.
+- **Name Change**: "Identisch (unverändert)" section lists shared fields, but without showing *both* rows side by side, the user can't confirm these rows belong to the same person.
 
-1. **Dokumentations-Lücke**: Der neue Abschnitt "Namenswechsel-Erkennung" fehlt vollständig in `src/pages/Documentation.tsx`. Das Wort "Namenswechsel" kommt dort kein einziges Mal vor – obwohl die Funktion `checkParentNameChanges()` seit der letzten Implementierung aktiv ist.
+## Solution: Person-Card Comparison Layout
 
-2. **Testdatei**: Es gibt keine CSV-Testdatei, die alle Regeln abdeckt. Eine solche Datei muss erstellt werden.
+Replace the current "identical/changed" split with an explicit **side-by-side person card layout** for both sections.
 
----
+### Parent Consolidation – New Details Layout
 
-## Teil 1: Testdatei erstellen
+For each group, show a **"Personen im Datensatz" grid** with one card per unique variant found in the data. Each card shows:
+- A header: "Zeile X" or student name (e.g. "Max Eltempaar4")
+- The current ID (highlighted if it differs from `correctId`)
+- All relevant person fields: Vorname, Name, Strasse, PLZ, Ort, AHV
 
-Die CSV-Datei wird unter `public/test-stammdaten.csv` abgelegt, damit sie direkt über den Browser heruntergeladen werden kann.
+Below the person cards, a clear **"Was wird geändert?"** section:
+- Only rows where `currentId !== correctId` get an arrow: `20408 → 20406`
+- Rows that already have the correct ID get a green checkmark "Bereits korrekt"
 
-### Struktur: ~200 Zeilen, ~75 Familien
+Remove the confusing "Identische Felder (bleiben unverändert)" section. Instead, visually highlight *differences between person variants* using colored borders – if two cards have the same name/address, a subtle note "Felder übereinstimmend" appears.
 
-Die Zeilen folgen dem echten Spaltenformat aus `schuelerColumns` (src/types/importTypes.ts).
+**Key change in logic:** Instead of pulling fields from only `affectedRows[0]`, extract fields from **each affected row individually** and display them as separate person cards. This makes it immediately clear that these are two different data rows representing the same person.
 
-### Abgedeckte Szenarien (mit Familiennummern)
+### Name Change – New Details Layout
 
-```text
-GRUPPE A – Normale, fehlerfreie Familien (~25 Familien)
-  Fam 1–25: Normale, vollständige Datensätze ohne Fehler
-  → Basis für saubere Importe
+Replace the current layout with two explicit person cards:
+- **Card "Zeile {fromRow} – bisheriger Name"**: gray background, shows Vorname, Name (old), Klasse, S_ID, S_AHV
+- **Card "Zeile {error.row} – neuer Name"**: amber/warning background, shows same fields with new Name highlighted in amber
 
-GRUPPE B – Duplikat-Szenarien (S_AHV, S_ID) (~5 Schüler)
-  Fam 26: S_AHV erscheint zweimal (zwei Zeilen selber Schüler)
-  Fam 27: S_ID erscheint zweimal
-  Fam 28: L_KL1_AHV doppelt (gleiche KL-Person in zwei Klassen)
+Each card is labeled with the row number and context. Below both cards, a note explains: "Beide Werte bleiben im Export unverändert, wenn Sie 'Ignorieren' wählen."
 
-GRUPPE C – Eltern-ID Konsistenz (AHV-Strategie) (~5 Familien)
-  Fam 29–30: Gleiche P_ERZ1_AHV aber andere P_ERZ1_ID  → Fehler
-  Fam 31–32: Gleiche P_ERZ1_AHV und gleiche ID → kein Fehler
+Remove the "Identisch (unverändert)" chip-list. Instead, identical fields are shown in both cards naturally – the user can see at a glance that Vorname, S_ID, Klasse match, and only the Name differs.
 
-GRUPPE D – Eltern-ID Konsistenz (Name+Strasse) (~5 Familien)
-  Fam 33–34: Gleicher Name+Strasse, andere ID → Fehler
-  Fam 35: Gleicher Name+Strasse, gleiche ID → kein Fehler
+## Technical Implementation
 
-GRUPPE E – Eltern-ID Konsistenz (Name-only Elternpaar) (~5 Familien)
-  Fam 36–37: Beide Elternteile stimmen überein, andere ID → Warnung
-  Fam 38: Nur ein Elternteil stimmt überein, keine Telefon-/EB-Übereinstimmung → keine Warnung
+**File to edit:** `src/components/import/Step3Validation.tsx`
 
-GRUPPE F – Eltern-ID (Adresse-Disambiguation) (~4 Familien)
-  Fam 39: Gleicher Name, andere Adresse, gleiche Telefon → Warnung (umgezogen)
-  Fam 40: Gleicher Name, andere Adresse, gleicher anderer EB → Warnung
-  Fam 41: Gleicher Name, andere Adresse, kein Telefon-/EB-Match → keine Warnung
+### Changes:
 
-GRUPPE G – Namenswechsel-Erkennung (~8 Familien)
-  Fam 42: Marina Ianuzi → Marina Ianuzi-Tadic (Bindestrich-Ergänzung)
-  Fam 43: Doris Brunner → Doris Fliege-Brunner (umgekehrter Doppelname)
-  Fam 44: Heidi Müller → Heidi Meier (vollständiger Namenswechsel, Fuzzy ≥65%)
-  Fam 45: Anna Schmidt → Anna Roth (Schmidt ↔ Roth: <65% → keine Warnung)
-  Fam 46: Peter Meier → Peter Maier (Fuzzy-Match auf kurzen Namen)
-  Fam 47: Namenswechsel ERZ2
-  Fam 48–49: Familien mit eindeutig verschiedenen Namen → kein Match
+**1. Parent Consolidation Details Block (lines ~1240–1278)**
 
-GRUPPE H – Diakritische Korrekturen (~5 Familien)
-  Fam 50–51: Müller vs. Muller, Schütz vs. Schutz → Auto-Korrektur
-  Fam 52: Björn vs. Bjorn
+Replace the current `<div className="border-t bg-muted/30 p-3 space-y-3">` contents with:
 
-GRUPPE I – Format-Fehler (~10 Familien / Schüler)
-  Fam 53–54: Ungültiges AHV-Format (z.B. 7561234567890 ohne Punkte)
-  Fam 55: Ungültiges Geburtsdatum (z.B. 15-03-2010)
-  Fam 56: Ungültiges Geschlecht (z.B. "Herr" → sollte M sein)
-  Fam 57: Ungültige E-Mail (z.B. "musteratgmail.com")
-  Fam 58: Ungültige Telefonnummer (z.B. "0041 79 123")
-  Fam 59–60: PLZ mit 3 Stellen
+```
+[Person Cards Grid]
+  Per affectedRow: card showing row number, student name, current ID (red if wrong), 
+  and all person fields (Vorname, Name, Strasse, PLZ, Ort, AHV) extracted from that specific row
 
-GRUPPE J – Pflichtfelder fehlen (~3 Schüler)
-  Fam 61: S_AHV fehlt
-  Fam 62: S_Geschlecht fehlt
-  Fam 63: K_Name fehlt
+[Was wird geändert? Section]
+  Only show rows where currentId !== correctId
+  Arrow: oldId → correctId  
+  Rows already correct: "Bereits korrekt ✓"
 ```
 
-### Spalten in der CSV
+Extract fields per row: `rows[r.row - 1]?.[`${prefix}${field}`]` for each `r` in `group.affectedRows`.
 
-Alle Pflichtfelder + die wichtigsten optionalen Felder:
-`Q_System; Q_Schuljahr; S_AHV; S_ID; S_Name; S_Vorname; S_Geschlecht; S_Geburtsdatum; S_Strasse; S_PLZ; S_Ort; P_ERZ1_ID; P_ERZ1_AHV; P_ERZ1_Name; P_ERZ1_Vorname; P_ERZ1_Strasse; P_ERZ1_PLZ; P_ERZ1_Ort; P_ERZ1_TelefonPrivat; P_ERZ1_Mobil; P_ERZ2_ID; P_ERZ2_AHV; P_ERZ2_Name; P_ERZ2_Vorname; P_ERZ2_Strasse; P_ERZ2_PLZ; P_ERZ2_Ort; P_ERZ2_TelefonPrivat; K_Name; L_KL1_AHV; L_KL1_ID; L_KL1_Name; L_KL1_Vorname`
+**2. Name Change Details Block (lines ~1419–1467)**
 
----
+Replace the current layout with two explicit side-by-side person cards:
 
-## Teil 2: Dokumentation nachführen
+```
+[Grid: 2 columns]
+  Left card (gray):
+    Header: "Zeile {entry.fromRow} · Bisheriger Eintrag"
+    Name: {fromName}  ← label: "Name (aktuell)"
+    Vorname, S_ID, Klasse from fromRow data
+    
+  Right card (amber):  
+    Header: "Zeile {entry.error.row} · Neuer Eintrag"  
+    Name: {toName}  ← label: "Name (neu)" — highlighted
+    Vorname, S_ID, Klasse from toRow data
 
-In `src/pages/Documentation.tsx` wird nach dem bestehenden Block "5. Diakritische Namenskorrektur" ein neuer Block **"6. Namenswechsel-Erkennung"** eingefügt. Der bestehende Block "6. Automatische Sammelkorrekturen" wird zu **"7. Automatische Sammelkorrekturen"** umnummeriert.
+[Note below]
+  "ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export."
+```
 
-### Inhalt des neuen Blocks
+The label changes from the vague "Identisch (unverändert)" chip-list to a natural card layout where identical fields are visible in both cards.
 
-- Erklärung: Eltern mit gleichem Vornamen, aber unterschiedlichem Nachnamen werden verglichen – keine AHV-Nummer nötig
-- Gruppierungslogik: nach Schüler-Kontext + Vorname
-- Vier erkannte Muster mit je einem Beispiel:
-  - Bindestrich-Ergänzung: Marina Ianuzi → Marina Ianuzi-Tadic
-  - Umgekehrter Doppelname: Doris Brunner → Doris Fliege-Brunner
-  - Vollständiger Namenswechsel (≥65% Ähnlichkeit): Heidi Müller → Heidi Meier
-  - Unsicherer Fuzzy-Match (≥55% Ähnlichkeit, kurze Namen): Peter Maier → Peter Mayer
-- Hinweis: Nur Warnungen, keine automatischen Korrekturen; manuelle Prüfung erforderlich
-- Betroffene Felder: P_ERZ1_Name, P_ERZ1_Vorname, P_ERZ2_Name, P_ERZ2_Vorname
+## Visual Design
 
----
-
-## Betroffene Dateien
-
-| Datei | Änderung |
-|---|---|
-| `public/test-stammdaten.csv` | Neu erstellen – ~200 Zeilen, alle Regeln abdeckend |
-| `src/pages/Documentation.tsx` | Neuer Block "Namenswechsel-Erkennung" hinzufügen, Block 6 → 7 |
-
----
-
-## Technische Details
-
-### CSV-Format
-- Semikolon-getrennt (`;`)
-- UTF-8 Encoding mit Umlauten (ä, ö, ü, é etc.)
-- AHV-Nummern im Format `756.XXXX.XXXX.XX` (gültige Prüfsumme nicht zwingend, aber strukturell korrekt)
-- Geburtsdaten im Format `DD.MM.YYYY`
-- IDs als Ganzzahlen (4–6-stellig)
-
-### Warum `public/`?
-Die Datei wird unter `public/test-stammdaten.csv` abgelegt, damit:
-- Benutzer sie direkt über `https://[URL]/test-stammdaten.csv` herunterladen können
-- Sie nicht in das React-Bundle kompiliert wird
-- Sie schnell durch eine neue Version ersetzt werden kann
+- Person cards: `rounded-md border p-3 space-y-2 bg-background` with a subtle left border accent
+- "Korrekte ID" card: `border-l-4 border-l-green-500`
+- "Falsche ID" card: `border-l-4 border-l-destructive/60`
+- "Bisheriger Name" card: `bg-muted/50`
+- "Neuer Name" card: `bg-pupil-warning/10 border-pupil-warning/30`
+- Highlighted changed value: amber text with bold weight
+- Section title removed; cards are self-explanatory with their header labels
