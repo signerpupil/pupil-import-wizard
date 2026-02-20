@@ -83,6 +83,7 @@ export function Step3Validation({
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
   const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
   const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
+  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const PARENTS_PER_PAGE = 4;
 
   // Name change UI state
@@ -243,17 +244,35 @@ export function Step3Validation({
     [parentIdInconsistencyGroups]
   );
 
-  // Filtered parent ID groups for search
+  // Filtered parent ID groups for search + reliability filter
   const filteredParentGroups = useMemo(() => {
-    if (!parentConsolidationSearch.trim()) return parentIdInconsistencyGroups;
-    const searchLower = parentConsolidationSearch.toLowerCase();
-    return parentIdInconsistencyGroups.filter(group => 
-      group.identifier.toLowerCase().includes(searchLower) ||
-      group.correctId.toLowerCase().includes(searchLower) ||
-      group.column.toLowerCase().includes(searchLower) ||
-      group.affectedRows.some(r => r.studentName?.toLowerCase().includes(searchLower))
-    );
-  }, [parentIdInconsistencyGroups, parentConsolidationSearch]);
+    let result = parentIdInconsistencyGroups;
+
+    // Reliability filter
+    if (parentReliabilityFilter !== 'all') {
+      result = result.filter(group => {
+        const r = group.matchReason.toLowerCase();
+        if (parentReliabilityFilter === 'high') return r.includes('hohe');
+        if (parentReliabilityFilter === 'medium') return r.includes('mittlere');
+        if (parentReliabilityFilter === 'low') return r.includes('tiefe');
+        return true;
+      });
+    }
+
+    // Text search
+    if (parentConsolidationSearch.trim()) {
+      const searchLower = parentConsolidationSearch.toLowerCase();
+      result = result.filter(group =>
+        group.identifier.toLowerCase().includes(searchLower) ||
+        group.correctId.toLowerCase().includes(searchLower) ||
+        group.column.toLowerCase().includes(searchLower) ||
+        (group.parentName?.toLowerCase().includes(searchLower) ?? false) ||
+        group.affectedRows.some(r => r.studentName?.toLowerCase().includes(searchLower))
+      );
+    }
+
+    return result;
+  }, [parentIdInconsistencyGroups, parentConsolidationSearch, parentReliabilityFilter]);
 
   // Paginated parent groups
   const paginatedParentGroups = useMemo(() => {
@@ -263,10 +282,10 @@ export function Step3Validation({
 
   const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
 
-  // Reset page when search changes
+  // Reset page when search or filter changes
   useEffect(() => {
     setParentConsolidationPage(0);
-  }, [parentConsolidationSearch]);
+  }, [parentConsolidationSearch, parentReliabilityFilter]);
 
   // Detect name change warnings from uncorrected errors
   interface NameChangeEntry {
@@ -1011,6 +1030,58 @@ export function Step3Validation({
               </CollapsibleTrigger>
               
               <CollapsibleContent className="mt-4 space-y-3">
+                {/* Reliability filter buttons - always visible */}
+                {(() => {
+                  const countHigh = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('hohe')).length;
+                  const countMedium = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('mittlere')).length;
+                  const countLow = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('tiefe')).length;
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={parentReliabilityFilter === 'all' ? 'default' : 'outline'}
+                        onClick={() => setParentReliabilityFilter('all')}
+                        className="gap-1.5"
+                      >
+                        Alle ({parentIdInconsistencyGroups.length})
+                      </Button>
+                      {countHigh > 0 && (
+                        <Button
+                          size="sm"
+                          variant={parentReliabilityFilter === 'high' ? 'default' : 'outline'}
+                          onClick={() => setParentReliabilityFilter('high')}
+                          className={`gap-1.5 ${parentReliabilityFilter !== 'high' ? 'border-green-500/50 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700'}`}
+                        >
+                          <span className="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                          Hohe Zuverlässigkeit ({countHigh})
+                        </Button>
+                      )}
+                      {countMedium > 0 && (
+                        <Button
+                          size="sm"
+                          variant={parentReliabilityFilter === 'medium' ? 'default' : 'outline'}
+                          onClick={() => setParentReliabilityFilter('medium')}
+                          className={`gap-1.5 ${parentReliabilityFilter !== 'medium' ? 'border-pupil-warning/50 text-pupil-warning hover:bg-pupil-warning/5' : 'bg-pupil-warning hover:bg-pupil-warning/90 text-white'}`}
+                        >
+                          <span className="inline-block w-2 h-2 rounded-full bg-pupil-warning shrink-0" />
+                          Mittlere Zuverlässigkeit ({countMedium})
+                        </Button>
+                      )}
+                      {countLow > 0 && (
+                        <Button
+                          size="sm"
+                          variant={parentReliabilityFilter === 'low' ? 'default' : 'outline'}
+                          onClick={() => setParentReliabilityFilter('low')}
+                          className={`gap-1.5 ${parentReliabilityFilter !== 'low' ? 'border-destructive/50 text-destructive hover:bg-destructive/5' : 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'}`}
+                        >
+                          <span className="inline-block w-2 h-2 rounded-full bg-destructive shrink-0" />
+                          Tiefe Zuverlässigkeit ({countLow})
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Search for large datasets */}
                 {parentIdInconsistencyGroups.length > 10 && (
                   <div className="relative">
@@ -1035,7 +1106,7 @@ export function Step3Validation({
                 )}
                 
                 {/* Results info */}
-                {parentConsolidationSearch && (
+                {(parentConsolidationSearch || parentReliabilityFilter !== 'all') && (
                   <p className="text-sm text-muted-foreground">
                     {filteredParentGroups.length} von {parentIdInconsistencyGroups.length} Ergebnissen
                   </p>
@@ -1046,7 +1117,7 @@ export function Step3Validation({
                   <div className="space-y-2">
                     {paginatedParentGroups.length === 0 ? (
                       <p className="text-center text-muted-foreground py-4">
-                        Keine Ergebnisse für "{parentConsolidationSearch}"
+                        Keine Ergebnisse{parentConsolidationSearch ? ` für "${parentConsolidationSearch}"` : ''}{parentReliabilityFilter !== 'all' ? ' in dieser Kategorie' : ''}
                       </p>
                     ) : (
                       paginatedParentGroups.map((group, idx) => (
