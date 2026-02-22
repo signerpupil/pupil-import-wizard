@@ -2233,7 +2233,7 @@ export function Step3Validation({
               <label className="text-sm font-medium">Korrigierter Wert:</label>
               {currentError && NATIONALITY_COLUMNS.has(currentError.column) ? (
                 <>
-                  <Select value={stepEditValue} onValueChange={(val) => { setStepEditValue(val); }}>
+                  <Select value={VALID_NATIONALITIES.has(stepEditValue) ? stepEditValue : undefined} onValueChange={(val) => { setStepEditValue(val); setNationalitySearch(''); }}>
                     <SelectTrigger className="font-mono">
                       <SelectValue placeholder="Land auswählen..." />
                     </SelectTrigger>
