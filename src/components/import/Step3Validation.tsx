@@ -451,15 +451,32 @@ export function Step3Validation({
       targetErrors = targetErrors.filter(e => e.column === filterColumn);
     }
     
+    // Fallback: if filtered result is empty but uncorrected errors exist, try without column filter
+    if (targetErrors.length === 0 && filterColumn && filterRows) {
+      targetErrors = uncorrectedErrors.filter(e => filterRows.includes(e.row));
+    }
+    // Fallback: if still empty, try without any filter
+    if (targetErrors.length === 0 && uncorrectedErrors.length > 0) {
+      targetErrors = uncorrectedErrors;
+      filterRows = undefined;
+      filterColumn = undefined;
+    }
+    
     if (targetErrors.length > 0) {
       setFilteredErrorRows(filterRows || null);
       setFilteredErrorColumn(filterColumn || null);
       setStepByStepMode(true);
       setCurrentErrorIndex(0);
+      setNationalitySearch(null);
       const firstErr = targetErrors[0];
       // For nationality columns, start with empty so user must pick from dropdown
       const isNatCol = firstErr && NATIONALITY_COLUMNS.has(firstErr.column);
       setStepEditValue(isNatCol ? '' : (firstErr?.value || ''));
+    } else {
+      toast({
+        title: 'Keine offenen Fehler',
+        description: 'Alle Fehler in dieser Kategorie wurden bereits korrigiert.',
+      });
     }
   };
 
@@ -969,7 +986,7 @@ export function Step3Validation({
   // Only include suggestions that still have uncorrected errors for their column
   const suggestionsWithApplicability = useMemo(() => {
     const uncorrectedRowsByColumn = new Map<string, Set<number>>();
-    for (const err of errors) {
+    for (const err of uncorrectedErrors) {
       if (!uncorrectedRowsByColumn.has(err.column)) uncorrectedRowsByColumn.set(err.column, new Set());
       uncorrectedRowsByColumn.get(err.column)!.add(err.row);
     }
@@ -985,7 +1002,7 @@ export function Step3Validation({
         const uncorrected = uncorrectedRowsByColumn.get(suggestion.affectedColumn);
         return suggestion.affectedRows.some(row => uncorrected?.has(row));
       });
-  }, [localSuggestions, errors]);
+  }, [localSuggestions, errors, uncorrectedErrors]);
 
   // Group errors by column for grouped display
   const errorsByColumn = useMemo(() => {
