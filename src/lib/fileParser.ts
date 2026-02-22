@@ -219,6 +219,80 @@ function findSimilarLanguage(value: string): string | null {
   return null;
 }
 
+// ==============================
+// Nationalitäten-Validierung
+// ==============================
+
+// Offizielle Länderliste
+export const VALID_NATIONALITIES = new Set([
+  'Schweiz','Albanien','Andorra','Belgien','Bulgarien','Dänemark','Deutschland','Finnland',
+  'Frankreich','Griechenland','Vereinigtes Königreich','Irland','Island','Italien','Liechtenstein',
+  'Luxemburg','Malta','Monaco','Niederlande','Norwegen','Österreich','Polen','Portugal','Rumänien',
+  'San Marino','Schweden','Spanien','Türkiye','Ungarn','Zypern','Slowakei','Tschechien','Kroatien',
+  'Slowenien','Bosnien und Herzegowina','Nordmazedonien','Estland','Lettland','Litauen','Moldau',
+  'Russland','Ukraine','Belarus (Weissrussland)',
+  'Äquatorial-Guinea','Äthiopien','Dschibuti','Algerien','Angola','Botswana','Burundi','Benin',
+  "Côte d'Ivoire",'Gabun','Gambia','Ghana','Guinea-Bissau','Guinea','Kamerun','Kap Verden','Kenia',
+  'Komoren','Kongo (Republik)','Demokratische Republik Kongo','Lesotho','Liberia','Libyen',
+  'Madagaskar','Malawi','Mali','Marokko','Mauretanien','Mauritius','Mosambik','Niger','Nigeria',
+  'Burkina Faso','Zimbabwe','Rwanda','Sambia','Senegal','Seyschellen','Sierra Leone','Somalia',
+  'Südafrika','Sudan','Namibia','Swasiland','Tansania','Togo','Tschad','Tunesien','Uganda','Ägypten',
+  'Zentralafrikanische Republik','Eritrea',
+  'Argentinien','Bahamas','Barbados','Bolivien','Brasilien','Chile','Costa Rica',
+  'Dominikanische Republik','Ecuador','El Salvador','Guatemala','Guyana','Haiti','Belize','Honduras',
+  'Jamaika','Kanada','Kolumbien','Kuba','Mexiko','Nicaragua','Panama','Paraguay','Peru','Suriname',
+  'Trinidad und Tobago','Uruguay','Venezuela','Vereinigte Staaten von Amerika','Dominica','Grenada',
+  'Antigua und Barbuda','St. Lucia','St. Vincent und Grenadines','St. Kitts und Nevis',
+  'Afghanistan','Bahrain','Bhutan','Brunei','Myanmar','Sri Lanka','Taiwan (Chinesisches Taipei)',
+  'China','Indien','Indonesien','Irak','Iran','Israel','Japan','Jemen','Jordanien','Kambodscha',
+  'Katar','Kuwait','Laos','Libanon','Malaysia','Malediven','Oman','Mongolei','Nepal',
+  'Korea (Dem. Volksrep.)','Vereinigte Arabische Emirate','Pakistan','Philippinen','Saudi-Arabien',
+  'Singapur','Korea (Republik Korea)','Syrien','Thailand','Vietnam','Bangladesh','Armenien',
+  'Aserbaidschan','Georgien','Kasachstan','Kirgisistan','Tadschikistan','Turkmenistan','Usbekistan',
+  'Australien','Fidschi','Nauru','Vanuatu','Neuseeland','Papua-Neuguinea','Tonga','Samoa',
+  'Salomon-Inseln','Tuvalu','Kiribati','Marshall-Inseln','Mikronesien',
+  'Serbien','Kosovo','Montenegro','Palau','Timor-Leste','Südsudan','Cookinseln','Niue',
+  'Vatikanstadt','Palästina',
+]);
+
+// Auto-Korrekturen für bekannte veraltete/falsche Bezeichnungen
+export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
+  'Tibet': 'China',
+  'Mazedonien': 'Nordmazedonien',
+  'Türkei': 'Türkiye',
+  'Slowakische Republik': 'Slowakei',
+  'Tschechische Republik': 'Tschechien',
+  'Bosnien-Herzegowina': 'Bosnien und Herzegowina',
+  'Vereinigte Staaten': 'Vereinigte Staaten von Amerika',
+  'Fidschi-Inseln': 'Fidschi',
+};
+
+// Case-insensitive lookup
+const NATIONALITY_NORMALIZED = new Map<string, string>(
+  [...VALID_NATIONALITIES].map(n => [n.toLowerCase().trim(), n])
+);
+
+const NATIONALITY_CORRECTIONS_NORMALIZED = new Map<string, string>(
+  Object.entries(NATIONALITY_AUTO_CORRECTIONS).map(([k, v]) => [k.toLowerCase().trim(), v])
+);
+
+function isValidNationality(value: string): boolean {
+  return NATIONALITY_NORMALIZED.has(value.trim().toLowerCase());
+}
+
+function findNationalityCorrection(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  // Check auto-corrections first
+  if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
+    return NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!;
+  }
+  // Case-insensitive match against valid list
+  if (NATIONALITY_NORMALIZED.has(normalized)) {
+    return NATIONALITY_NORMALIZED.get(normalized)!;
+  }
+  return null;
+}
+
 // Fields that should be checked for duplicates
 const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'L_KL1_AHV'];
 
@@ -983,6 +1057,22 @@ function validateFieldType(
           type: 'format',
           severity: similar ? 'warning' : 'error',
           correctedValue: similar ?? undefined,
+        };
+      }
+      break;
+    case 'nationality':
+      if (!isValidNationality(value)) {
+        const correction = findNationalityCorrection(value);
+        return {
+          row: rowNum,
+          column: columnName,
+          value,
+          message: correction
+            ? `"${value}" → "${correction}" (veraltete Bezeichnung)`
+            : `"${value}" ist keine gültige Nationalität`,
+          type: 'format',
+          severity: correction ? 'warning' : 'error',
+          correctedValue: correction ?? undefined,
         };
       }
       break;
