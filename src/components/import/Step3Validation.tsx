@@ -31,6 +31,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -109,6 +110,7 @@ export function Step3Validation({
   const [nationalityDropdownCell, setNationalityDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const NATIONALITY_COLUMNS = new Set(['S_Nationalitaet']);
   const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
+  const [nationalitySearch, setNationalitySearch] = useState('');
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -2229,23 +2231,59 @@ export function Step3Validation({
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Korrigierter Wert:</label>
-              <Input
-                value={stepEditValue}
-                onChange={(e) => setStepEditValue(e.target.value)}
-                placeholder="Korrigierten Wert eingeben..."
-                className="font-mono"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleStepSave();
-                  } else if (e.key === 'Escape') {
-                    handleStepSkip();
-                  }
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter = Speichern & Weiter | Escape = Überspringen
-              </p>
+              {currentError && NATIONALITY_COLUMNS.has(currentError.column) ? (
+                <>
+                  <Select value={stepEditValue} onValueChange={(val) => { setStepEditValue(val); }}>
+                    <SelectTrigger className="font-mono">
+                      <SelectValue placeholder="Land auswählen..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 z-[200]">
+                      <div className="p-2 sticky top-0 bg-popover">
+                        <Input
+                          placeholder="Land suchen..."
+                          value={nationalitySearch}
+                          onChange={(e) => setNationalitySearch(e.target.value)}
+                          className="h-8 text-xs"
+                          autoFocus
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <ScrollArea className="h-52">
+                        {NATIONALITIES_SORTED
+                          .filter(n => !nationalitySearch || n.toLowerCase().includes(nationalitySearch.toLowerCase()))
+                          .map(nat => (
+                            <SelectItem key={nat} value={nat} className="text-xs">
+                              {nat}
+                            </SelectItem>
+                          ))}
+                      </ScrollArea>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Land aus der Liste wählen, dann «Speichern & Weiter»
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Input
+                    value={stepEditValue}
+                    onChange={(e) => setStepEditValue(e.target.value)}
+                    placeholder="Korrigierten Wert eingeben..."
+                    className="font-mono"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleStepSave();
+                      } else if (e.key === 'Escape') {
+                        handleStepSkip();
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter = Speichern & Weiter | Escape = Überspringen
+                  </p>
+                </>
+              )}
             </div>
             
             <div className="flex items-center justify-between pt-2">
