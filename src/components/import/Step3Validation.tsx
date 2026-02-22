@@ -31,7 +31,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -110,7 +110,7 @@ export function Step3Validation({
   const [nationalityDropdownCell, setNationalityDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const NATIONALITY_COLUMNS = new Set(['S_Nationalitaet']);
   const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
-  const [nationalitySearch, setNationalitySearch] = useState('');
+  const [nationalitySearch, setNationalitySearch] = useState<string | null>(null);
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -456,7 +456,10 @@ export function Step3Validation({
       setFilteredErrorColumn(filterColumn || null);
       setStepByStepMode(true);
       setCurrentErrorIndex(0);
-      setStepEditValue(targetErrors[0]?.value || '');
+      const firstErr = targetErrors[0];
+      // For nationality columns, start with empty so user must pick from dropdown
+      const isNatCol = firstErr && NATIONALITY_COLUMNS.has(firstErr.column);
+      setStepEditValue(isNatCol ? '' : (firstErr?.value || ''));
     }
   };
 
@@ -541,7 +544,10 @@ export function Step3Validation({
   // Update step edit value when current error changes
   useEffect(() => {
     if (stepByStepMode && currentError) {
-      setStepEditValue(currentError.value || '');
+      // For nationality columns, always start empty so user picks from dropdown
+      const isNatCol = NATIONALITY_COLUMNS.has(currentError.column);
+      setStepEditValue(isNatCol ? '' : (currentError.value || ''));
+      setNationalitySearch(null);
     }
   }, [currentErrorIndex, uncorrectedErrors.length, stepByStepMode]);
 
@@ -2233,32 +2239,48 @@ export function Step3Validation({
               <label className="text-sm font-medium">Korrigierter Wert:</label>
               {currentError && NATIONALITY_COLUMNS.has(currentError.column) ? (
                 <>
-                  <Select value={VALID_NATIONALITIES.has(stepEditValue) ? stepEditValue : undefined} onValueChange={(val) => { setStepEditValue(val); setNationalitySearch(''); }}>
-                    <SelectTrigger className="font-mono">
-                      <SelectValue placeholder="Land auswählen..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 z-[200]">
-                      <div className="p-2 sticky top-0 bg-popover">
-                        <Input
-                          placeholder="Land suchen..."
-                          value={nationalitySearch}
-                          onChange={(e) => setNationalitySearch(e.target.value)}
-                          className="h-8 text-xs"
-                          autoFocus
-                          onKeyDown={(e) => e.stopPropagation()}
-                        />
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between font-mono"
+                      onClick={() => setNationalitySearch(prev => prev === null ? '' : null)}
+                    >
+                      {stepEditValue || 'Bitte wählen...'}
+                      <ChevronDown className={`h-4 w-4 ml-2 opacity-50 transition-transform ${nationalitySearch !== null ? 'rotate-180' : ''}`} />
+                    </Button>
+                    {nationalitySearch !== null && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg">
+                        <div className="p-2">
+                          <Input
+                            placeholder="Land suchen..."
+                            value={nationalitySearch || ''}
+                            onChange={(e) => setNationalitySearch(e.target.value)}
+                            className="h-8 text-xs"
+                            autoFocus
+                            onKeyDown={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <ScrollArea className="h-52">
+                          <div className="p-1">
+                            {NATIONALITIES_SORTED
+                              .filter(n => !nationalitySearch || n.toLowerCase().includes(nationalitySearch.toLowerCase()))
+                              .map(nat => (
+                                <button
+                                  key={nat}
+                                  className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                  onClick={() => {
+                                    setStepEditValue(nat);
+                                    setNationalitySearch(null);
+                                  }}
+                                >
+                                  {nat}
+                                </button>
+                              ))}
+                          </div>
+                        </ScrollArea>
                       </div>
-                      <ScrollArea className="h-52">
-                        {NATIONALITIES_SORTED
-                          .filter(n => !nationalitySearch || n.toLowerCase().includes(nationalitySearch.toLowerCase()))
-                          .map(nat => (
-                            <SelectItem key={nat} value={nat} className="text-xs">
-                              {nat}
-                            </SelectItem>
-                          ))}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Land aus der Liste wählen, dann «Speichern & Weiter»
                   </p>
