@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
-import { VALID_BISTA_LANGUAGES } from '@/lib/fileParser';
+import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
 import { useValidationWorker, type AnalysisPattern } from '@/hooks/useValidationWorker';
 import { 
   applyLocalCorrection, 
@@ -104,6 +104,11 @@ export function Step3Validation({
   const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const LANGUAGE_COLUMNS = new Set(['S_Muttersprache', 'S_Umgangssprache']);
   const BISTA_LANGUAGES_SORTED = useMemo(() => [...VALID_BISTA_LANGUAGES].sort((a, b) => a.localeCompare(b, 'de')), []);
+
+  // Nationality dropdown state
+  const [nationalityDropdownCell, setNationalityDropdownCell] = useState<{ row: number; column: string } | null>(null);
+  const NATIONALITY_COLUMNS = new Set(['S_Nationalitaet']);
+  const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
@@ -1039,6 +1044,8 @@ export function Step3Validation({
         return { icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Duplikate' };
       case 'parent_id_inconsistent':
         return { icon: <UserCog className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Eltern-ID Inkonsistenz' };
+      case 'nationality_correction':
+        return { icon: <Globe className="h-3.5 w-3.5 text-pupil-success" />, label: 'Nationalität', example: { from: 'Türkei', to: 'Türkiye' } };
       default:
         return { icon: <Zap className="h-3.5 w-3.5 text-pupil-success" />, label: type };
     }
@@ -2401,7 +2408,10 @@ export function Step3Validation({
                         const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
                         const isCorrected = error.correctedValue !== undefined;
                         const isLanguageCol = LANGUAGE_COLUMNS.has(error.column);
+                        const isNationalityCol = NATIONALITY_COLUMNS.has(error.column);
                         const isLanguageDropdownOpen = languageDropdownCell?.row === error.row && languageDropdownCell?.column === error.column;
+                        const isNationalityDropdownOpen = nationalityDropdownCell?.row === error.row && nationalityDropdownCell?.column === error.column;
+                        const isDropdownCol = isLanguageCol || isNationalityCol;
                         const shortMessage = error.message.length > 45
                           ? error.message.slice(0, 42) + '…'
                           : error.message;
@@ -2482,6 +2492,40 @@ export function Step3Validation({
                                     </div>
                                   )}
                                 </div>
+                              ) : isNationalityCol && !isCorrected ? (
+                                /* Nationality dropdown for S_Nationalitaet column */
+                                <div className="relative">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 w-full"
+                                    onClick={() => setNationalityDropdownCell(isNationalityDropdownOpen ? null : { row: error.row, column: error.column })}
+                                  >
+                                    <Globe className="h-3.5 w-3.5" />
+                                    Land wählen
+                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isNationalityDropdownOpen ? 'rotate-180' : ''}`} />
+                                  </Button>
+                                  {isNationalityDropdownOpen && (
+                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-64">
+                                      <ScrollArea className="h-72">
+                                        <div className="p-1">
+                                          {NATIONALITIES_SORTED.map(nat => (
+                                            <button
+                                              key={nat}
+                                              className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                              onClick={() => {
+                                                onErrorCorrect(error.row, error.column, nat, 'manual');
+                                                setNationalityDropdownCell(null);
+                                              }}
+                                            >
+                                              {nat}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </ScrollArea>
+                                    </div>
+                                  )}
+                                </div>
                               ) : isEditing ? (
                                 <Button size="sm" onClick={handleSaveEdit}>
                                   <Save className="h-4 w-4 mr-1" />
@@ -2493,10 +2537,12 @@ export function Step3Validation({
                                   variant="outline"
                                   onClick={() => isLanguageCol
                                     ? setLanguageDropdownCell({ row: error.row, column: error.column })
+                                    : isNationalityCol
+                                    ? setNationalityDropdownCell({ row: error.row, column: error.column })
                                     : handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)
                                   }
                                 >
-                                  {isLanguageCol ? <Languages className="h-4 w-4 mr-1" /> : <Edit2 className="h-4 w-4 mr-1" />}
+                                  {isLanguageCol ? <Languages className="h-4 w-4 mr-1" /> : isNationalityCol ? <Globe className="h-4 w-4 mr-1" /> : <Edit2 className="h-4 w-4 mr-1" />}
                                   {isCorrected ? 'Ändern' : 'Korrigieren'}
                                 </Button>
                               )}

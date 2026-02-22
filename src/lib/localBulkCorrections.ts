@@ -4,6 +4,7 @@
  */
 
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
+import { NATIONALITY_AUTO_CORRECTIONS } from '@/lib/fileParser';
 
 export interface LocalSuggestion {
   type: string;
@@ -502,6 +503,41 @@ function detectWhitespacePattern(index: ErrorIndex): PatternGroup[] {
   return groups;
 }
 
+// Detect nationality auto-corrections (veraltete Bezeichnungen → offizielle)
+function detectNationalityPattern(index: ErrorIndex): PatternGroup[] {
+  const natColumns = ['S_Nationalitaet'];
+  const groups: PatternGroup[] = [];
+
+  for (const col of natColumns) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of columnErrors) {
+      if (e.correctedValue !== undefined) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'nationality_correction',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'nationality_correction',
+        description: `${fixableRows.length} Nationalität(en) mit veralteter Bezeichnung können korrigiert werden`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
 // Detect BISTA language typos – errors that already have a correctedValue (typo-match)
 function detectLanguagePattern(index: ErrorIndex): PatternGroup[] {
   const languageColumns = ['S_Muttersprache', 'S_Umgangssprache'];
@@ -569,6 +605,7 @@ export function analyzeErrorsLocally(
     ...detectPLZPattern(index),
     ...detectGenderPattern(index),
     ...detectLanguagePattern(index),
+    ...detectNationalityPattern(index),
     ...detectDuplicateGroups(index),
     ...detectParentIdInconsistencies(index),
   ];
@@ -629,8 +666,8 @@ export function applyLocalCorrection(
       if (idMatch) {
         correctedValue = idMatch[1];
       }
-    } else if (suggestion.fixFunction === 'language_bista') {
-      // Language typo corrections already have correctedValue set by fileParser
+    } else if (suggestion.fixFunction === 'language_bista' || suggestion.fixFunction === 'nationality_correction') {
+      // Language/nationality corrections already have correctedValue set by fileParser
       correctedValue = error.correctedValue ?? null;
     }
     
@@ -671,6 +708,7 @@ function getFixFunction(name: string): ((value: string) => string | null) | null
     case 'date_de_format': return formatDateDE;
     case 'whitespace_trim': return trimWhitespace;
     case 'language_bista': return null; // handled via error.correctedValue directly
+    case 'nationality_correction': return null; // handled via error.correctedValue directly
     default: return null;
   }
 }
