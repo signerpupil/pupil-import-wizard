@@ -2427,7 +2427,14 @@ export function Step3Validation({
               </label>
             </div>
           </div>
-          {errorsByColumn.map(([column, colErrors], colIdx) => {
+          {errorsByColumn
+            .filter(([, colErrors]) => {
+              if (showOnlyOpenErrors) {
+                return colErrors.some(e => e.correctedValue === undefined);
+              }
+              return true;
+            })
+            .map(([column, colErrors], colIdx) => {
             const uncorrected = colErrors.filter(e => !e.correctedValue);
             const corrected = colErrors.filter(e => e.correctedValue !== undefined);
             // First column is expanded by default (using index 0)
