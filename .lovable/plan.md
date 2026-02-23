@@ -1,33 +1,49 @@
 
-# Schritt-fuer-Schritt Korrektur automatisch in den Viewport scrollen
 
-## Problem
-Wenn die Schritt-fuer-Schritt Korrektur geoeffnet wird (z.B. bei Sprache/Nationalitaet), muss der Benutzer manuell nach unten scrollen, um das Modal zu sehen. Das ist umstaendlich und nicht intuitiv.
+# Automatische Sprach-Korrektur fuer S_Muttersprache
 
-## Loesung
-Eine `useRef` Referenz auf die Step-by-Step Card setzen und per `scrollIntoView` automatisch dorthin scrollen, sobald das Modal aktiviert wird.
+## Uebersicht
+Werte in der Spalte "S_Muttersprache" (und "S_Umgangssprache"), die nicht in der offiziellen BISTA-Liste stehen, sollen automatisch in die korrekte BISTA-Sprache umgewandelt werden. Es wird eine explizite Zuordnungstabelle eingefuehrt, analog zur bestehenden Nationalitaeten-Auto-Korrektur.
+
+## Zuordnungstabelle
+
+| Eingabe | BISTA-Sprache |
+|---|---|
+| Tigrinya | Afrikanische Sprachen |
+| Dari | Westasiatische Sprachen |
+| Bangala | Indoarische und drawidische Sprachen |
+| Detusch | Deutsch |
+| Hindi | Indoarische und drawidische Sprachen |
+| Kosovarisch | Albanisch |
+| Farsi | Westasiatische Sprachen |
+| Tagalog | Ostasiatische Sprachen |
+| Malayalam | Indoarische und drawidische Sprachen |
+| Indische Sprachen | Indoarische und drawidische Sprachen |
+| Paschto | Westasiatische Sprachen |
+| Urdu | Indoarische und drawidische Sprachen |
+| Swahili | Afrikanische Sprachen |
+| Amharisch | Afrikanische Sprachen |
+| Nepalesisch | Indoarische und drawidische Sprachen |
+| Slovakisch | Slowakisch |
+| Bengalisch | Indoarische und drawidische Sprachen |
+| Uigurisch | Westasiatische Sprachen |
+| Litauisch | Uebrige osteuropaeische Sprachen |
+| Paschtou | Westasiatische Sprachen |
+| Persisch | Westasiatische Sprachen |
+| Kantonesisch | Chinesisch |
+| Mandarin | Chinesisch |
 
 ## Technische Aenderungen
 
-### Datei: `src/components/import/Step3Validation.tsx`
+### Datei: `src/lib/fileParser.ts`
 
-1. **Ref erstellen** (bei den anderen useState/useRef Deklarationen):
-   ```typescript
-   const stepByStepRef = useRef<HTMLDivElement>(null);
-   ```
+1. **Neue Konstante `LANGUAGE_AUTO_CORRECTIONS`** (nach `BISTA_NORMALIZED`, ca. Zeile 201): Eine exportierte Map analog zu `NATIONALITY_AUTO_CORRECTIONS` mit allen 24 Zuordnungen (Duplikate wie "Paschto" werden nur einmal erfasst).
 
-2. **useEffect hinzufuegen** der bei Aktivierung des Modals scrollt:
-   ```typescript
-   useEffect(() => {
-     if (stepByStepMode && currentError && stepByStepRef.current) {
-       stepByStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-     }
-   }, [stepByStepMode]);
-   ```
+2. **Normalisierte Lookup-Map** `LANGUAGE_CORRECTIONS_NORMALIZED`: Case-insensitive Map fuer schnellen Zugriff, analog zu `NATIONALITY_CORRECTIONS_NORMALIZED`.
 
-3. **Ref an die Card anbinden** (Zeile 1937):
-   ```tsx
-   <Card ref={stepByStepRef} className="border-2 border-primary">
-   ```
+3. **`findSimilarLanguage` erweitern**: Vor der Prefix-Suche zuerst die Auto-Corrections-Map pruefen. Wenn ein Treffer gefunden wird, diesen zurueckgeben. So werden die definierten Zuordnungen immer bevorzugt.
 
-Das sind insgesamt 3 kleine Aenderungen in einer Datei.
+### Datei: `src/lib/localBulkCorrections.ts`
+
+Keine Aenderung noetig -- die bestehende `detectLanguagePattern`-Funktion erkennt bereits Fehler mit `correctedValue` und bietet Bulk-Fix an. Die neuen Auto-Corrections werden automatisch erkannt, da `findSimilarLanguage` das `correctedValue`-Feld im Validierungsfehler setzt.
+
