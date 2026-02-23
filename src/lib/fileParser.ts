@@ -225,6 +225,9 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Persisch': 'Westasiatische Sprachen',
   'Kantonesisch': 'Chinesisch',
   'Mandarin': 'Chinesisch',
+  'Holländisch': 'Niederländisch',
+  'Susu': 'Afrikanische Sprachen',
+  'Indonesisch': 'Ostasiatische Sprachen',
 };
 
 // Case-insensitive lookup for language auto-corrections
