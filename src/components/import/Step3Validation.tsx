@@ -471,7 +471,8 @@ export function Step3Validation({
       const firstErr = targetErrors[0];
       // For nationality columns, start with empty so user must pick from dropdown
       const isNatCol = firstErr && NATIONALITY_COLUMNS.has(firstErr.column);
-      setStepEditValue(isNatCol ? '' : (firstErr?.value || ''));
+      const isLangCol = firstErr && LANGUAGE_COLUMNS.has(firstErr.column);
+      setStepEditValue((isNatCol || isLangCol) ? '' : (firstErr?.value || ''));
     } else {
       toast({
         title: 'Keine offenen Fehler',
@@ -561,9 +562,10 @@ export function Step3Validation({
   // Update step edit value when current error changes
   useEffect(() => {
     if (stepByStepMode && currentError) {
-      // For nationality columns, always start empty so user picks from dropdown
+      // For nationality/language columns, always start empty so user picks from dropdown
       const isNatCol = NATIONALITY_COLUMNS.has(currentError.column);
-      setStepEditValue(isNatCol ? '' : (currentError.value || ''));
+      const isLangCol = LANGUAGE_COLUMNS.has(currentError.column);
+      setStepEditValue((isNatCol || isLangCol) ? '' : (currentError.value || ''));
       setNationalitySearch(null);
     }
   }, [currentErrorIndex, uncorrectedErrors.length, stepByStepMode]);
@@ -1071,6 +1073,10 @@ export function Step3Validation({
         return { icon: <UserCog className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Eltern-ID Inkonsistenz' };
       case 'nationality_correction':
         return { icon: <Globe className="h-3.5 w-3.5 text-pupil-success" />, label: 'Nationalität', example: { from: 'Türkei', to: 'Türkiye' } };
+      case 'manual_review':
+        return { icon: <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Manuelle Prüfung' };
+      case 'language_bista':
+        return { icon: <Languages className="h-3.5 w-3.5 text-pupil-success" />, label: 'BISTA-Sprache', example: { from: 'Englsh', to: 'Englisch' } };
       default:
         return { icon: <Zap className="h-3.5 w-3.5 text-pupil-success" />, label: type };
     }
@@ -2254,54 +2260,62 @@ export function Step3Validation({
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Korrigierter Wert:</label>
-              {currentError && NATIONALITY_COLUMNS.has(currentError.column) ? (
-                <>
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between font-mono"
-                      onClick={() => setNationalitySearch(prev => prev === null ? '' : null)}
-                    >
-                      {stepEditValue || 'Bitte wählen...'}
-                      <ChevronDown className={`h-4 w-4 ml-2 opacity-50 transition-transform ${nationalitySearch !== null ? 'rotate-180' : ''}`} />
-                    </Button>
-                    {nationalitySearch !== null && (
-                      <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg">
-                        <div className="p-2">
-                          <Input
-                            placeholder="Land suchen..."
-                            value={nationalitySearch || ''}
-                            onChange={(e) => setNationalitySearch(e.target.value)}
-                            className="h-8 text-xs"
-                            autoFocus
-                            onKeyDown={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                        <ScrollArea className="h-52">
-                          <div className="p-1">
-                            {NATIONALITIES_SORTED
-                              .filter(n => !nationalitySearch || n.toLowerCase().includes(nationalitySearch.toLowerCase()))
-                              .map(nat => (
-                                <button
-                                  key={nat}
-                                  className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                                  onClick={() => {
-                                    setStepEditValue(nat);
-                                    setNationalitySearch(null);
-                                  }}
-                                >
-                                  {nat}
-                                </button>
-                              ))}
+              {currentError && (NATIONALITY_COLUMNS.has(currentError.column) || LANGUAGE_COLUMNS.has(currentError.column)) ? (
+                (() => {
+                  const isNatCol = NATIONALITY_COLUMNS.has(currentError.column);
+                  const items = isNatCol ? NATIONALITIES_SORTED : BISTA_LANGUAGES_SORTED;
+                  const placeholder = isNatCol ? 'Land suchen...' : 'Sprache suchen...';
+                  const hint = isNatCol ? 'Land aus der Liste wählen, dann «Speichern & Weiter»' : 'Sprache aus der Liste wählen, dann «Speichern & Weiter»';
+                  return (
+                    <>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between font-mono"
+                          onClick={() => setNationalitySearch(prev => prev === null ? '' : null)}
+                        >
+                          {stepEditValue || 'Bitte wählen...'}
+                          <ChevronDown className={`h-4 w-4 ml-2 opacity-50 transition-transform ${nationalitySearch !== null ? 'rotate-180' : ''}`} />
+                        </Button>
+                        {nationalitySearch !== null && (
+                          <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg">
+                            <div className="p-2">
+                              <Input
+                                placeholder={placeholder}
+                                value={nationalitySearch || ''}
+                                onChange={(e) => setNationalitySearch(e.target.value)}
+                                className="h-8 text-xs"
+                                autoFocus
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                            <ScrollArea className="h-52">
+                              <div className="p-1">
+                                {items
+                                  .filter(n => !nationalitySearch || n.toLowerCase().includes(nationalitySearch.toLowerCase()))
+                                  .map(item => (
+                                    <button
+                                      key={item}
+                                      className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                      onClick={() => {
+                                        setStepEditValue(item);
+                                        setNationalitySearch(null);
+                                      }}
+                                    >
+                                      {item}
+                                    </button>
+                                  ))}
+                              </div>
+                            </ScrollArea>
                           </div>
-                        </ScrollArea>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Land aus der Liste wählen, dann «Speichern & Weiter»
-                  </p>
-                </>
+                      <p className="text-xs text-muted-foreground">
+                        {hint}
+                      </p>
+                    </>
+                  );
+                })()
               ) : (
                 <>
                   <Input
@@ -2456,15 +2470,16 @@ export function Step3Validation({
                       )}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1.5 text-xs shrink-0"
-                    onClick={(e) => { e.stopPropagation(); startStepByStep(colErrors.filter(e => !e.correctedValue).map(e => e.row), column); }}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="inline-flex items-center gap-1.5 text-xs shrink-0 px-3 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); startStepByStep(colErrors.filter(err => !err.correctedValue).map(err => err.row), column); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); startStepByStep(colErrors.filter(err => !err.correctedValue).map(err => err.row), column); } }}
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                     Alle korrigieren
-                  </Button>
+                  </div>
                 </button>
 
                 {/* Collapsible table */}
