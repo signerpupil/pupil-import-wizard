@@ -200,15 +200,51 @@ const BISTA_NORMALIZED = new Map<string, string>(
   [...VALID_BISTA_LANGUAGES].map(lang => [lang.toLowerCase().trim(), lang])
 );
 
+// Auto-Korrekturen für bekannte nicht-BISTA Sprachen
+export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
+  'Tigrinya': 'Afrikanische Sprachen',
+  'Dari': 'Westasiatische Sprachen',
+  'Bangala': 'Indoarische und drawidische Sprachen',
+  'Detusch': 'Deutsch',
+  'Hindi': 'Indoarische und drawidische Sprachen',
+  'Kosovarisch': 'Albanisch',
+  'Farsi': 'Westasiatische Sprachen',
+  'Tagalog': 'Ostasiatische Sprachen',
+  'Malayalam': 'Indoarische und drawidische Sprachen',
+  'Indische Sprachen': 'Indoarische und drawidische Sprachen',
+  'Paschto': 'Westasiatische Sprachen',
+  'Urdu': 'Indoarische und drawidische Sprachen',
+  'Swahili': 'Afrikanische Sprachen',
+  'Amharisch': 'Afrikanische Sprachen',
+  'Nepalesisch': 'Indoarische und drawidische Sprachen',
+  'Slovakisch': 'Slowakisch',
+  'Bengalisch': 'Indoarische und drawidische Sprachen',
+  'Uigurisch': 'Westasiatische Sprachen',
+  'Litauisch': 'Übrige osteuropäische Sprachen',
+  'Paschtou': 'Westasiatische Sprachen',
+  'Persisch': 'Westasiatische Sprachen',
+  'Kantonesisch': 'Chinesisch',
+  'Mandarin': 'Chinesisch',
+};
+
+// Case-insensitive lookup for language auto-corrections
+const LANGUAGE_CORRECTIONS_NORMALIZED = new Map<string, string>(
+  Object.entries(LANGUAGE_AUTO_CORRECTIONS).map(([k, v]) => [k.toLowerCase().trim(), v])
+);
+
 function isValidLanguage(value: string): boolean {
   return VALID_BISTA_LANGUAGES.has(value.trim());
 }
 
 function findSimilarLanguage(value: string): string | null {
   const normalized = value.toLowerCase().trim();
-  // Exact match via normalized (case-insensitive)
+  // 1. Check explicit auto-corrections first (highest priority)
+  if (LANGUAGE_CORRECTIONS_NORMALIZED.has(normalized)) {
+    return LANGUAGE_CORRECTIONS_NORMALIZED.get(normalized)!;
+  }
+  // 2. Exact match via normalized (case-insensitive)
   if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // Partial prefix match (first 5 chars) for typo detection
+  // 3. Partial prefix match (first 5 chars) for typo detection
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
