@@ -523,6 +523,15 @@ export function Step3Validation({
 
   const handleStepSave = () => {
     if (currentError) {
+      // Enforce dropdown selection for language and nationality columns
+      if (LANGUAGE_COLUMNS.has(currentError.column) && !BISTA_LANGUAGES_SORTED.includes(stepEditValue)) {
+        toast({ title: 'Bitte Sprache aus der Liste wählen', variant: 'destructive' });
+        return;
+      }
+      if (NATIONALITY_COLUMNS.has(currentError.column) && !NATIONALITIES_SORTED.includes(stepEditValue)) {
+        toast({ title: 'Bitte Nationalität aus der Liste wählen', variant: 'destructive' });
+        return;
+      }
       onErrorCorrect(currentError.row, currentError.column, stepEditValue);
       // Move to next error (the array will update, so we stay at same index or go to 0)
       if (currentErrorIndex >= stepByStepErrors.length - 1) {
