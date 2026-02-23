@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,7 @@ export function Step3Validation({
   const [editValue, setEditValue] = useState('');
   const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
   const [stepByStepMode, setStepByStepMode] = useState(false);
+  const stepByStepRef = useRef<HTMLDivElement>(null);
   const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
   const [stepEditValue, setStepEditValue] = useState('');
   const [filteredErrorRows, setFilteredErrorRows] = useState<number[] | null>(null);
@@ -118,6 +119,13 @@ export function Step3Validation({
     setExpandedNameChanges(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
   const { toast } = useToast();
+
+  // Auto-scroll to step-by-step card when activated
+  useEffect(() => {
+    if (stepByStepMode && currentError && stepByStepRef.current) {
+      stepByStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [stepByStepMode]);
   
   // Web Worker for background processing
   const { analyze, isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
@@ -1934,7 +1942,7 @@ export function Step3Validation({
 
       {/* Step-by-Step Mode Modal */}
       {stepByStepMode && currentError && (
-        <Card className="border-2 border-primary">
+        <Card ref={stepByStepRef} className="border-2 border-primary">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
