@@ -247,6 +247,7 @@ export interface ClassTeacherData {
 
 export interface PupilClass {
   klassenname: string;
+  klassenlehrpersonen: string[];
 }
 
 // Gruppen-Import Typen

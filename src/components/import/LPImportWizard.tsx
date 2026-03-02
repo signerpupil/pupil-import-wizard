@@ -91,6 +91,8 @@ export function LPImportWizard({ onReset }: LPImportWizardProps) {
       {currentStep === 2 && (
         <LPStep3Export
           assignments={assignments}
+          classData={classData}
+          pupilClasses={pupilClasses}
           onBack={handleBack}
           onReset={onReset}
         />

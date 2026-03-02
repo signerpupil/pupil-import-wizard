@@ -5,19 +5,22 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Download, RotateCcw, AlertTriangle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
-import type { TeacherAssignment } from '@/types/importTypes';
+import type { TeacherAssignment, ClassTeacherData, PupilClass } from '@/types/importTypes';
+import { LPComparisonCard } from './LPComparisonCard';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 interface LPStep3ExportProps {
   assignments: TeacherAssignment[];
+  classData: ClassTeacherData[];
+  pupilClasses: PupilClass[];
   onBack: () => void;
   onReset: () => void;
 }
 
 const PAGE_SIZE = 50;
 
-export function LPStep3Export({ assignments, onBack, onReset }: LPStep3ExportProps) {
+export function LPStep3Export({ assignments, classData, pupilClasses, onBack, onReset }: LPStep3ExportProps) {
   const [page, setPage] = useState(0);
 
   const missingKeys = assignments.filter(a => !a.lpSchluessel);
@@ -184,6 +187,11 @@ export function LPStep3Export({ assignments, onBack, onReset }: LPStep3ExportPro
           )}
         </CardContent>
       </Card>
+
+      {/* Comparison Card - only shown when PUPIL classes with teacher data exist */}
+      {pupilClasses.some(pc => pc.klassenlehrpersonen.length > 0) && (
+        <LPComparisonCard classData={classData} pupilClasses={pupilClasses} />
+      )}
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack} className="shadow-sm">

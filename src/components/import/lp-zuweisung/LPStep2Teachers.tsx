@@ -211,14 +211,21 @@ export function LPStep2Teachers({
         return;
       }
 
+      // Also find Klassenlehrpersonen column
+      const klpIdx = headers.findIndex(h => h.includes('klassenlehrpersonen'));
+
       const parsed: PupilClass[] = result.rows
         .filter(row => {
           const name = String(row[result.headers[klassennameIdx]] || '').trim();
           return name.length > 0;
         })
-        .map(row => ({
-          klassenname: String(row[result.headers[klassennameIdx]] || '').trim(),
-        }));
+        .map(row => {
+          const klpRaw = klpIdx !== -1 ? String(row[result.headers[klpIdx]] || '').trim() : '';
+          return {
+            klassenname: String(row[result.headers[klassennameIdx]] || '').trim(),
+            klassenlehrpersonen: klpRaw ? klpRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+          };
+        });
 
       onPupilClassesChange(parsed);
     } catch (err) {

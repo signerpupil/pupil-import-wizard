@@ -1,0 +1,217 @@
+import { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GitCompareArrows, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import type { ClassTeacherData, PupilClass } from '@/types/importTypes';
+
+interface LPComparisonCardProps {
+  classData: ClassTeacherData[];
+  pupilClasses: PupilClass[];
+}
+
+function normalizeName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+interface ClassComparison {
+  klasse: string;
+  pupilKlasse: string;
+  onlyInLO: string[];
+  onlyInPupil: string[];
+  matching: string[];
+  hasDifferences: boolean;
+}
+
+export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardProps) {
+  const [showMatching, setShowMatching] = useState(false);
+
+  const comparisons = useMemo(() => {
+    const results: ClassComparison[] = [];
+
+    // Build a map of LO class -> teacher names
+    const loClassTeachers = new Map<string, string[]>();
+    for (const cd of classData) {
+      const existing = loClassTeachers.get(cd.klasse) || [];
+      existing.push(...cd.teachers.map(t => t.name));
+      loClassTeachers.set(cd.klasse, existing);
+    }
+
+    // Match each LO class to a PUPIL class and compare
+    for (const [loKlasse, loTeachers] of loClassTeachers) {
+      const loNorm = loKlasse.trim().toLowerCase();
+      const pupilClass = pupilClasses.find(pc => pc.klassenname.trim().toLowerCase().startsWith(loNorm));
+
+      if (!pupilClass || pupilClass.klassenlehrpersonen.length === 0) continue;
+
+      const loNormNames = new Set(loTeachers.map(normalizeName));
+      const pupilNormNames = new Set(pupilClass.klassenlehrpersonen.map(normalizeName));
+
+      // Build lookup for display names
+      const loNameMap = new Map<string, string>();
+      for (const n of loTeachers) loNameMap.set(normalizeName(n), n);
+      const pupilNameMap = new Map<string, string>();
+      for (const n of pupilClass.klassenlehrpersonen) pupilNameMap.set(normalizeName(n), n);
+
+      const onlyInLO: string[] = [];
+      const matching: string[] = [];
+      for (const norm of loNormNames) {
+        if (pupilNormNames.has(norm)) {
+          matching.push(loNameMap.get(norm) || norm);
+        } else {
+          onlyInLO.push(loNameMap.get(norm) || norm);
+        }
+      }
+
+      const onlyInPupil: string[] = [];
+      for (const norm of pupilNormNames) {
+        if (!loNormNames.has(norm)) {
+          onlyInPupil.push(pupilNameMap.get(norm) || norm);
+        }
+      }
+
+      results.push({
+        klasse: loKlasse,
+        pupilKlasse: pupilClass.klassenname,
+        onlyInLO,
+        onlyInPupil,
+        matching,
+        hasDifferences: onlyInLO.length > 0 || onlyInPupil.length > 0,
+      });
+    }
+
+    return results.sort((a, b) => (a.hasDifferences === b.hasDifferences ? 0 : a.hasDifferences ? -1 : 1));
+  }, [classData, pupilClasses]);
+
+  if (comparisons.length === 0) return null;
+
+  const withDiffs = comparisons.filter(c => c.hasDifferences);
+  const withoutDiffs = comparisons.filter(c => !c.hasDifferences);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <GitCompareArrows className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Vergleich PUPIL vs. LehrerOffice</CardTitle>
+            <CardDescription>Klassenlehrpersonen-Abgleich</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-3">
+          <Badge variant="secondary">{comparisons.length} Klassen verglichen</Badge>
+          {withDiffs.length > 0 && (
+            <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10 border-0">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {withDiffs.length} mit Unterschieden
+            </Badge>
+          )}
+          <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-0">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            {withoutDiffs.length} übereinstimmend
+          </Badge>
+        </div>
+
+        {withDiffs.length > 0 && (
+          <div className="border rounded-xl overflow-hidden">
+            <div className="p-3 bg-destructive/[0.03] border-b">
+              <p className="text-sm font-medium">Klassen mit Unterschieden</p>
+            </div>
+            <div className="max-h-[400px] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="bg-muted/50">Klasse</TableHead>
+                    <TableHead className="bg-muted/50">Nur in LO</TableHead>
+                    <TableHead className="bg-muted/50">Nur in PUPIL</TableHead>
+                    <TableHead className="bg-muted/50">Übereinstimmend</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {withDiffs.map(c => (
+                    <TableRow key={c.klasse}>
+                      <TableCell className="font-medium align-top">{c.klasse}</TableCell>
+                      <TableCell className="align-top">
+                        {c.onlyInLO.length > 0 ? (
+                          <div className="space-y-1">
+                            {c.onlyInLO.map(n => (
+                              <Badge key={n} variant="outline" className="text-amber-600 border-amber-300 block w-fit">
+                                {n}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : <span className="text-muted-foreground text-sm">—</span>}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        {c.onlyInPupil.length > 0 ? (
+                          <div className="space-y-1">
+                            {c.onlyInPupil.map(n => (
+                              <Badge key={n} variant="outline" className="text-destructive border-destructive/30 block w-fit">
+                                {n}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : <span className="text-muted-foreground text-sm">—</span>}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        {c.matching.length > 0 ? (
+                          <div className="space-y-1">
+                            {c.matching.map(n => (
+                              <Badge key={n} variant="outline" className="text-primary border-primary/30 block w-fit">
+                                {n}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : <span className="text-muted-foreground text-sm">—</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {withoutDiffs.length > 0 && (
+          <div className="border rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowMatching(!showMatching)}
+              className="w-full p-3 cursor-pointer text-sm font-medium bg-primary/[0.03] hover:bg-primary/[0.05] transition-colors flex items-center gap-2"
+            >
+              {showMatching ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              Übereinstimmende Klassen anzeigen ({withoutDiffs.length})
+            </button>
+            {showMatching && (
+              <div className="max-h-[300px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="bg-muted/50">Klasse</TableHead>
+                      <TableHead className="bg-muted/50">Lehrpersonen</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {withoutDiffs.map(c => (
+                      <TableRow key={c.klasse}>
+                        <TableCell className="font-medium">{c.klasse}</TableCell>
+                        <TableCell>{c.matching.join(', ')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
