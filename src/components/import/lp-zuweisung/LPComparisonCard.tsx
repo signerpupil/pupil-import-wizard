@@ -18,6 +18,22 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+function nameVariants(name: string): string[] {
+  const norm = normalizeName(name);
+  const parts = norm.split(/\s+/);
+  if (parts.length >= 2) {
+    const reversed = `${parts[parts.length - 1]} ${parts.slice(0, -1).join(' ')}`;
+    return [norm, reversed];
+  }
+  return [norm];
+}
+
+function namesMatch(a: string, b: string): boolean {
+  const aVars = nameVariants(a);
+  const bVars = nameVariants(b);
+  return aVars.some(av => bVars.some(bv => av === bv));
+}
+
 interface ClassComparison {
   klasse: string;
   pupilKlasse: string;
@@ -48,29 +64,29 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
 
       if (!pupilClass || pupilClass.klassenlehrpersonen.length === 0) continue;
 
-      const loNormNames = new Set(loTeachers.map(normalizeName));
-      const pupilNormNames = new Set(pupilClass.klassenlehrpersonen.map(normalizeName));
-
-      // Build lookup for display names
-      const loNameMap = new Map<string, string>();
-      for (const n of loTeachers) loNameMap.set(normalizeName(n), n);
-      const pupilNameMap = new Map<string, string>();
-      for (const n of pupilClass.klassenlehrpersonen) pupilNameMap.set(normalizeName(n), n);
-
+      // Compare using swapped name support
       const onlyInLO: string[] = [];
       const matching: string[] = [];
-      for (const norm of loNormNames) {
-        if (pupilNormNames.has(norm)) {
-          matching.push(loNameMap.get(norm) || norm);
-        } else {
-          onlyInLO.push(loNameMap.get(norm) || norm);
+      const matchedPupilIndices = new Set<number>();
+
+      for (const loName of loTeachers) {
+        let found = false;
+        for (let pi = 0; pi < pupilClass.klassenlehrpersonen.length; pi++) {
+          if (matchedPupilIndices.has(pi)) continue;
+          if (namesMatch(loName, pupilClass.klassenlehrpersonen[pi])) {
+            matching.push(loName);
+            matchedPupilIndices.add(pi);
+            found = true;
+            break;
+          }
         }
+        if (!found) onlyInLO.push(loName);
       }
 
       const onlyInPupil: string[] = [];
-      for (const norm of pupilNormNames) {
-        if (!loNormNames.has(norm)) {
-          onlyInPupil.push(pupilNameMap.get(norm) || norm);
+      for (let pi = 0; pi < pupilClass.klassenlehrpersonen.length; pi++) {
+        if (!matchedPupilIndices.has(pi)) {
+          onlyInPupil.push(pupilClass.klassenlehrpersonen[pi]);
         }
       }
 
