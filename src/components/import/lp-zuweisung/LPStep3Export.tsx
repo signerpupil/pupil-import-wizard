@@ -22,11 +22,17 @@ const PAGE_SIZE = 50;
 
 export function LPStep3Export({ assignments, classData, pupilClasses, onBack, onReset }: LPStep3ExportProps) {
   const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState<'all' | 'valid' | 'missing'>('all');
 
   const missingKeys = assignments.filter(a => !a.lpSchluessel);
   const validAssignments = assignments.filter(a => a.lpSchluessel);
-  const totalPages = Math.ceil(assignments.length / PAGE_SIZE);
-  const pageAssignments = assignments.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const filteredAssignments = filter === 'all' ? assignments
+    : filter === 'valid' ? validAssignments
+    : missingKeys;
+
+  const totalPages = Math.ceil(filteredAssignments.length / PAGE_SIZE);
+  const pageAssignments = filteredAssignments.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook();
@@ -105,17 +111,40 @@ export function LPStep3Export({ assignments, classData, pupilClasses, onBack, on
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <Badge variant="secondary">{assignments.length} Zuweisungen total</Badge>
-            <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-0">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setFilter('all'); setPage(0); }}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${
+                filter === 'all' 
+                  ? 'bg-secondary text-secondary-foreground ring-2 ring-primary/30' 
+                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+              }`}
+            >
+              {assignments.length} Zuweisungen total
+            </button>
+            <button
+              onClick={() => { setFilter('valid'); setPage(0); }}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${
+                filter === 'valid'
+                  ? 'bg-primary/15 text-primary ring-2 ring-primary/30'
+                  : 'bg-primary/10 text-primary hover:bg-primary/15'
+              }`}
+            >
+              <CheckCircle2 className="h-3 w-3" />
               {validAssignments.length} mit Schlüssel
-            </Badge>
+            </button>
             {missingKeys.length > 0 && (
-              <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10 border-0">
-                <AlertTriangle className="h-3 w-3 mr-1" />
+              <button
+                onClick={() => { setFilter('missing'); setPage(0); }}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${
+                  filter === 'missing'
+                    ? 'bg-destructive/15 text-destructive ring-2 ring-destructive/30'
+                    : 'bg-destructive/10 text-destructive hover:bg-destructive/15'
+                }`}
+              >
+                <AlertTriangle className="h-3 w-3" />
                 {missingKeys.length} ohne Schlüssel
-              </Badge>
+              </button>
             )}
           </div>
 
