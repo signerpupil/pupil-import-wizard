@@ -68,15 +68,45 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       return;
     }
 
-    // Find header row
+    // Find header row(s) - LehrerOffice may use a two-row header
+    // Row 1: "Klasse | Status | Grunddaten | Unterricht | ..."
+    // Row 2: "| Im 1. Halbjahr | ... | Klassenlehrperson | Klassenlehrperson 2 | ..."
     let headerIndex = -1;
+    let headerEndIndex = -1;
     let headerCols: string[] = [];
+    
     for (let i = 0; i < Math.min(lines.length, 5); i++) {
       const cols = splitLine(lines[i]);
-      if (cols[0]?.trim().toLowerCase() === 'klasse' ||
-          cols.some(c => c.toLowerCase().includes('lehrperson'))) {
-        headerIndex = i;
-        headerCols = cols.map(c => c.trim());
+      const hasKlasse = cols[0]?.trim().toLowerCase() === 'klasse';
+      const hasLP = cols.some(c => c.toLowerCase().includes('lehrperson'));
+      
+      if (hasKlasse || hasLP) {
+        if (headerIndex === -1) {
+          headerIndex = i;
+          headerCols = cols.map(c => c.trim());
+        }
+        
+        // If this row has teacher columns, we're done
+        if (hasLP) {
+          headerEndIndex = i;
+          headerCols = cols.map(c => c.trim());
+          break;
+        }
+        
+        // Row has "Klasse" but no teacher cols → check next row for multi-row header
+        if (hasKlasse && !hasLP && i + 1 < lines.length) {
+          const nextCols = splitLine(lines[i + 1]);
+          if (nextCols.some(c => c.toLowerCase().includes('lehrperson'))) {
+            // Multi-row header: use row 2 for column names, merge "Klasse" from row 1
+            headerEndIndex = i + 1;
+            headerCols = nextCols.map(c => c.trim());
+            // Ensure first col is "Klasse" if row 2 has it empty
+            if (!headerCols[0]) headerCols[0] = 'Klasse';
+            break;
+          }
+        }
+        
+        headerEndIndex = i;
         break;
       }
     }
@@ -98,13 +128,12 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
 
     const teacherColumns = detectTeacherColumns(headerCols);
     if (teacherColumns.length === 0) {
-      const debugInfo = `Header hat ${headerCols.length} Spalten. Erste 5: [${headerCols.slice(0, 5).join(' | ')}]. Letzte 5: [${headerCols.slice(-5).join(' | ')}]. Split-Methode: ${headerCols === rawText.split('\n').filter(l => l.trim())[headerIndex]?.split('\t').map(c => c.trim()) ? 'tab' : 'space'}`;
-      setParseError(`Keine Lehrpersonen-Spalten im Header erkannt. Debug: ${debugInfo}`);
+      setParseError(`Keine Lehrpersonen-Spalten im Header erkannt. (${headerCols.length} Spalten erkannt, Header Zeile ${headerIndex + 1}–${headerEndIndex + 1})`);
       return;
     }
 
     const results: ClassTeacherData[] = [];
-    const dataLines = lines.slice(headerIndex + 1);
+    const dataLines = lines.slice(headerEndIndex + 1);
 
     for (const line of dataLines) {
       const cols = splitLine(line).map(c => c.trim());
