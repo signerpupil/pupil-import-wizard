@@ -1,57 +1,35 @@
 
 
-# PUPIL-Klassen-Abgleich im LP-Zuweisungs-Wizard
+# LP-Vergleich: PUPIL vs. LehrerOffice
 
-## Kontext
+## Uebersicht
 
-Aktuell verwendet der LP-Export die Klassennamen direkt aus dem LehrerOffice-Paste (z.B. "KG 1 Br a"). Die PUPIL-Klassen-Datei enthaelt die vollstaendigen Klassennamen (z.B. "KG 1 Br a Primarschule Brunegg"). Der Export soll die PUPIL-Klassennamen verwenden, damit die Zuweisungen korrekt importiert werden koennen.
-
-## PUPIL-Klassen-Datei Struktur
-
-| Klassenname | Klassenbeschreibung | Klassenlehrpersonen |
-|---|---|---|
-| B 1 Wi a Bezirksschule | B 1 Wi a Bezirksschule | Simon Jenzer |
-| KG 1 Br a Primarschule Brunegg | KG 1 Br a Primarschule Brunegg | Claudia Imholz, Sabine Brunner |
-
-Der **Klassenname** ist der relevante Wert. Die LO-Klasse "KG 1 Br a" ist ein Prefix des PUPIL-Klassennamens "KG 1 Br a Primarschule Brunegg".
+Die PUPIL-Klassen-Datei enthaelt eine Spalte "Klassenlehrpersonen" (kommagetrennt). Diese soll mit den aus LehrerOffice erkannten Lehrpersonen pro Klasse verglichen werden, um Unterschiede hervorzuheben -- z.B. LP in PUPIL eingetragen aber nicht in LO, oder umgekehrt.
 
 ## Aenderungen
 
-### 1. Neuer Typ `PupilClass` in `src/types/importTypes.ts`
+### 1. `src/types/importTypes.ts` -- PupilClass erweitern
 
-```typescript
-export interface PupilClass {
-  klassenname: string;  // Voller PUPIL-Klassenname
-}
-```
+Feld `klassenlehrpersonen: string[]` hinzufuegen (die kommagetrennte Spalte wird beim Parsen gesplittet).
 
-### 2. `LPImportWizard.tsx` -- Neuer State fuer PUPIL-Klassen
+### 2. `src/components/import/lp-zuweisung/LPStep2Teachers.tsx` -- Klassenlehrpersonen parsen
 
-- Neuer State `pupilClasses: PupilClass[]` hinzufuegen
-- An Step 2 (oder als neuen Upload in Step 2) weitergeben
+Beim Upload der PUPIL-Klassen-Datei zusaetzlich die Spalte "Klassenlehrpersonen" auslesen und als Array speichern.
 
-### 3. `LPStep2Teachers.tsx` -- Zweiter File-Upload fuer PUPIL-Klassen
+### 3. `src/components/import/lp-zuweisung/LPStep3Export.tsx` -- Vergleichs-Card
 
-- Zweite Upload-Card fuer die PUPIL-Klassen-Datei (xlsx) hinzufuegen
-- Parsing: Spalte "Klassenname" auslesen
-- Matching-Logik: Fuer jede LO-Klasse pruefen, ob ein PUPIL-Klassenname mit diesem Kuerzel beginnt (normalisiert, Leerzeichen-tolerant)
-- Anzeige: Badge mit Anzahl gematchter / nicht gematchter Klassen
-- Die gematchten PUPIL-Klassennamen in die Assignments uebernehmen (statt der LO-Kuerzel)
+Neue optionale Card "Vergleich PUPIL vs. LehrerOffice" am Ende von Step 3:
 
-### 4. `LPStep3Export.tsx` -- Export mit PUPIL-Klassennamen
+- Nur anzeigen, wenn `pupilClasses` mit Lehrpersonen-Daten vorhanden sind
+- Pro gematchte Klasse vergleichen:
+  - **Nur in LO**: LP-Namen die in LO einer Klasse zugewiesen sind aber nicht in der PUPIL-Klassenlehrpersonen-Liste stehen
+  - **Nur in PUPIL**: LP-Namen die in PUPIL stehen aber nicht in den LO-Zuweisungen
+  - **Uebereinstimmend**: In beiden vorhanden
+- Namens-Matching ueber `normalizeName` (case-insensitive, diakritik-tolerant)
+- Tabelle mit Spalten: Klasse | Nur in LO | Nur in PUPIL | Uebereinstimmend
+- Klassen ohne Unterschiede werden in einem zuklappbaren `<details>` Block angezeigt, Klassen mit Unterschieden prominent
 
-- Keine Code-Aenderung noetig, da die Assignments bereits den PUPIL-Klassennamen enthalten werden
-- Die "Klasse"-Spalte im Export zeigt dann automatisch den vollen PUPIL-Namen
+### 4. `LPImportWizard.tsx` und Props
 
-### Matching-Algorithmus
-
-```text
-LO-Klasse:    "KG 1 Br a"
-PUPIL-Klasse: "KG 1 Br a Primarschule Brunegg"
-
-Regel: PUPIL-Klassenname.startsWith(LO-Klasse)
-       (case-insensitive, trimmed)
-```
-
-Falls kein Match gefunden wird, bleibt der LO-Klassenname erhalten und wird im Export orange markiert.
+`pupilClasses` an `LPStep3Export` durchreichen (neues Prop), sowie `classData` fuer den LO-seitigen Vergleich.
 
