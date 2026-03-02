@@ -49,6 +49,17 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
   const [rawText, setRawText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
 
+  const splitLine = (line: string): string[] => {
+    // Try tab-separated first
+    const tabCols = line.split('\t');
+    if (tabCols.length >= 5) return tabCols;
+    // Fallback: split by 2+ spaces (but not single space inside names)
+    const spaceCols = line.split(/\s{2,}/);
+    if (spaceCols.length >= 5) return spaceCols;
+    // Last resort: return tab split even if few columns
+    return tabCols;
+  };
+
   const parseData = () => {
     setParseError(null);
     const lines = rawText.split('\n').filter(l => l.trim());
@@ -61,7 +72,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
     let headerIndex = -1;
     let headerCols: string[] = [];
     for (let i = 0; i < Math.min(lines.length, 5); i++) {
-      const cols = lines[i].split('\t');
+      const cols = splitLine(lines[i]);
       if (cols[0]?.trim().toLowerCase() === 'klasse' ||
           cols.some(c => c.toLowerCase().includes('lehrperson'))) {
         headerIndex = i;
@@ -95,7 +106,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
     const dataLines = lines.slice(headerIndex + 1);
 
     for (const line of dataLines) {
-      const cols = line.split('\t').map(c => c.trim());
+      const cols = splitLine(line).map(c => c.trim());
       if (cols.length < 3) continue;
 
       const klasse = cols[0];
