@@ -10,6 +10,39 @@ import type { ClassTeacherData } from '@/types/importTypes';
 
 const SECTION_HEADERS = ['kindergarten', 'primarschule', 'bezirksschule', 'realschule', 'sekundarschule', 'sonder'];
 
+// Words/patterns that should NEVER be treated as teacher names
+const NOT_A_NAME_PATTERNS = [
+  /^\d/, // starts with number
+  /^\d{2}\.\d{2}\.\d{4}/, // date
+  /^#/, // #### placeholders
+  /^import\s/i,
+  /^wie\s/i,
+  /schüler/i,
+  /umteilen/i,
+  /belassen/i,
+  /entfernen/i,
+  /archivieren/i,
+  /möglich/i,
+  /einbeziehen/i,
+  /ausschliessen/i,
+  /ablegen/i,
+  /transfer/i,
+  /^\d+\s*sus$/i, // "25 SuS"
+  /^\d+(\.\d+)?(\s*\|\s*\d+(\.\d+)?)+/, // "3.75 | 4.75 | 5.5"
+  /^[A-Z0-9]{6,}$/, // long uppercase/number codes like UDMKH4BG556BE155
+  /^[A-Z]\d[A-Z]/, // codes like KG1BRA, P1HOA
+];
+
+function looksLikePersonName(value: string): boolean {
+  if (!value || value.length < 3 || value.length > 60) return false;
+  if (NOT_A_NAME_PATTERNS.some(p => p.test(value))) return false;
+  // Should have at most 5 words, contain mostly letters
+  const words = value.split(/\s+/);
+  if (words.length > 5) return false;
+  // At least one word should be >2 chars and start with uppercase
+  return words.some(w => w.length > 2 && /^[A-ZÄÖÜÉÈÀ]/.test(w));
+}
+
 interface TeacherColumn {
   index: number;
   rolle: string;
@@ -18,7 +51,14 @@ interface TeacherColumn {
 function detectTeacherColumns(headerCols: string[]): TeacherColumn[] {
   const columns: TeacherColumn[] = [];
   for (let i = 0; i < headerCols.length; i++) {
-    const col = headerCols[i].toLowerCase();
+    const col = headerCols[i].toLowerCase().trim();
+    if (!col) continue;
+    
+    // Exclude the count column "Lehrpersonen" (plural, no specific role)
+    if (col === 'lehrpersonen') continue;
+    // Exclude other non-teacher columns that might partially match
+    if (col === 'schüler/innen' || col === 'wortbeurteilung') continue;
+    
     if (col.includes('klassenlehrperson')) {
       columns.push({ index: i, rolle: 'Klassenlehrperson' });
     } else if (col.includes('weitere stellvertretung')) {
@@ -49,17 +89,6 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
   const [rawText, setRawText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
 
-  const splitLine = (line: string): string[] => {
-    // Try tab-separated first
-    const tabCols = line.split('\t');
-    if (tabCols.length >= 5) return tabCols;
-    // Fallback: split by 2+ spaces (but not single space inside names)
-    const spaceCols = line.split(/\s{2,}/);
-    if (spaceCols.length >= 5) return spaceCols;
-    // Last resort: return tab split even if few columns
-    return tabCols;
-  };
-
   const parseData = () => {
     setParseError(null);
     const lines = rawText.split('\n').filter(l => l.trim());
@@ -68,94 +97,97 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       return;
     }
 
-    // Find header row(s) - LehrerOffice may use a two-row header
-    // Row 1: "Klasse | Status | Grunddaten | Unterricht | ..."
-    // Row 2: "| Im 1. Halbjahr | ... | Klassenlehrperson | Klassenlehrperson 2 | ..."
-    let headerIndex = -1;
-    let headerEndIndex = -1;
-    let headerCols: string[] = [];
+    // Split each line by tabs
+    const allRows = lines.map(l => l.split('\t').map(c => c.trim()));
+
+    // Find header row(s): look for lines containing teacher keywords
+    // LehrerOffice can produce either:
+    //   A) Single header row with all column names
+    //   B) Two header rows: row1 = group headers (Klasse, Status, Grunddaten...),
+    //      row2 = sub-headers (..., Klassenlehrperson, Vikariat, ...)
     
-    for (let i = 0; i < Math.min(lines.length, 5); i++) {
-      const cols = splitLine(lines[i]);
-      const hasKlasse = cols[0]?.trim().toLowerCase() === 'klasse';
-      const hasLP = cols.some(c => c.toLowerCase().includes('lehrperson'));
+    let headerRowIndices: number[] = [];
+    let mergedHeader: string[] = [];
+    
+    for (let i = 0; i < Math.min(allRows.length, 5); i++) {
+      const row = allRows[i];
+      const hasKlasse = row[0]?.toLowerCase() === 'klasse';
+      const hasLP = row.some(c => c.toLowerCase().includes('lehrperson'));
       
       if (hasKlasse || hasLP) {
-        if (headerIndex === -1) {
-          headerIndex = i;
-          headerCols = cols.map(c => c.trim());
-        }
-        
-        // If this row has teacher columns, we're done
-        if (hasLP) {
-          headerEndIndex = i;
-          headerCols = cols.map(c => c.trim());
+        headerRowIndices.push(i);
+        // If this row has both Klasse and LP columns, it's a single-row header
+        if (hasKlasse && hasLP) {
+          mergedHeader = row;
           break;
         }
-        
-        // Row has "Klasse" but no teacher cols → check next row for multi-row header
-        if (hasKlasse && !hasLP && i + 1 < lines.length) {
-          const nextCols = splitLine(lines[i + 1]);
-          if (nextCols.some(c => c.toLowerCase().includes('lehrperson'))) {
-            // Multi-row header: use row 2 for column names, merge "Klasse" from row 1
-            headerEndIndex = i + 1;
-            headerCols = nextCols.map(c => c.trim());
-            // Ensure first col is "Klasse" if row 2 has it empty
-            if (!headerCols[0]) headerCols[0] = 'Klasse';
-            break;
-          }
-        }
-        
-        headerEndIndex = i;
-        break;
+        // If we found LP (teacher columns), stop looking
+        if (hasLP) break;
       }
     }
 
-    if (headerIndex === -1) {
-      setParseError('Kein Header mit "Klasse" oder "Lehrperson" gefunden. Bitte kopieren Sie die Daten inkl. Kopfzeile.');
+    if (headerRowIndices.length === 0) {
+      setParseError('Kein Header mit "Klasse" oder "Lehrperson" gefunden.');
       return;
     }
 
-    // Detect status column and teacher columns dynamically
+    // Merge multiple header rows: for each column position, take the non-empty value
+    // from the LAST header row (sub-headers override group headers)
+    if (mergedHeader.length === 0) {
+      // Determine max columns across header rows
+      const maxCols = Math.max(...headerRowIndices.map(i => allRows[i].length));
+      mergedHeader = new Array(maxCols).fill('');
+      
+      // Fill from first to last header row (later rows override)
+      for (const idx of headerRowIndices) {
+        const row = allRows[idx];
+        for (let c = 0; c < row.length; c++) {
+          if (row[c]) mergedHeader[c] = row[c];
+        }
+      }
+    }
+
+    // Detect status and teacher columns from merged header
     let statusIndex = -1;
-    for (let i = 0; i < headerCols.length; i++) {
-      const col = headerCols[i].toLowerCase();
-      if (col === 'status' || col.startsWith('im ') || col.includes('semester') || col.includes('halbjahr')) {
+    for (let i = 0; i < mergedHeader.length; i++) {
+      const col = mergedHeader[i].toLowerCase();
+      if (col === 'status' || col.startsWith('im ') || col.includes('halbjahr')) {
         statusIndex = i;
         break;
       }
     }
 
-    const teacherColumns = detectTeacherColumns(headerCols);
+    const teacherColumns = detectTeacherColumns(mergedHeader);
     if (teacherColumns.length === 0) {
-      setParseError(`Keine Lehrpersonen-Spalten im Header erkannt. (${headerCols.length} Spalten erkannt, Header Zeile ${headerIndex + 1}–${headerEndIndex + 1})`);
+      setParseError(`Keine Lehrpersonen-Spalten erkannt. Header: ${mergedHeader.filter(h => h).slice(0, 10).join(', ')}...`);
       return;
     }
 
+    // Data starts after the last header row
+    const dataStartIndex = Math.max(...headerRowIndices) + 1;
     const results: ClassTeacherData[] = [];
-    const dataLines = lines.slice(headerEndIndex + 1);
 
-    for (const line of dataLines) {
-      const cols = splitLine(line).map(c => c.trim());
+    for (let r = dataStartIndex; r < allRows.length; r++) {
+      const cols = allRows[r];
       if (cols.length < 3) continue;
 
       const klasse = cols[0];
       if (!klasse) continue;
 
-      // Filter section headers
+      // Filter section headers (Kindergarten, Primarschule, etc.)
       if (SECTION_HEADERS.some(s => klasse.toLowerCase() === s || klasse.toLowerCase().startsWith(s + ' '))) {
-        // Only skip if no status or status is not "aktiv"
         if (statusIndex < 0 || cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
       }
 
-      // Filter non-active
+      // Filter non-active rows
       if (statusIndex >= 0 && cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
 
       const teachers: { name: string; rolle: string }[] = [];
       for (const tc of teacherColumns) {
         if (tc.index < cols.length && cols[tc.index]) {
           const name = cols[tc.index].trim();
-          if (name) {
+          // Validate: must look like a person name
+          if (name && looksLikePersonName(name)) {
             teachers.push({ name, rolle: tc.rolle });
           }
         }
