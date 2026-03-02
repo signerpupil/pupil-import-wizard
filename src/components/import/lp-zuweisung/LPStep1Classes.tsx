@@ -98,7 +98,8 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
 
     const teacherColumns = detectTeacherColumns(headerCols);
     if (teacherColumns.length === 0) {
-      setParseError('Keine Lehrpersonen-Spalten im Header erkannt.');
+      const debugInfo = `Header hat ${headerCols.length} Spalten. Erste 5: [${headerCols.slice(0, 5).join(' | ')}]. Letzte 5: [${headerCols.slice(-5).join(' | ')}]. Split-Methode: ${headerCols === rawText.split('\n').filter(l => l.trim())[headerIndex]?.split('\t').map(c => c.trim()) ? 'tab' : 'space'}`;
+      setParseError(`Keine Lehrpersonen-Spalten im Header erkannt. Debug: ${debugInfo}`);
       return;
     }
 
