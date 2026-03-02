@@ -1,49 +1,55 @@
 
 
-# Automatische Sprach-Korrektur fuer S_Muttersprache
+# LP-Klassenzuweisungen: Dynamischer Header-basierter Parser
 
-## Uebersicht
-Werte in der Spalte "S_Muttersprache" (und "S_Umgangssprache"), die nicht in der offiziellen BISTA-Liste stehen, sollen automatisch in die korrekte BISTA-Sprache umgewandelt werden. Es wird eine explizite Zuordnungstabelle eingefuehrt, analog zur bestehenden Nationalitaeten-Auto-Korrektur.
+## Problem
 
-## Zuordnungstabelle
+Der aktuelle Parser in `LPStep1Classes.tsx` verwendet **hartcodierte Rollen-Offsets** (`ROLE_POSITIONS`), die nicht zum tatsaechlichen LehrerOffice-Export passen. Das fuehrt zu falschen Rollenzuordnungen:
 
-| Eingabe | BISTA-Sprache |
-|---|---|
-| Tigrinya | Afrikanische Sprachen |
-| Dari | Westasiatische Sprachen |
-| Bangala | Indoarische und drawidische Sprachen |
-| Detusch | Deutsch |
-| Hindi | Indoarische und drawidische Sprachen |
-| Kosovarisch | Albanisch |
-| Farsi | Westasiatische Sprachen |
-| Tagalog | Ostasiatische Sprachen |
-| Malayalam | Indoarische und drawidische Sprachen |
-| Indische Sprachen | Indoarische und drawidische Sprachen |
-| Paschto | Westasiatische Sprachen |
-| Urdu | Indoarische und drawidische Sprachen |
-| Swahili | Afrikanische Sprachen |
-| Amharisch | Afrikanische Sprachen |
-| Nepalesisch | Indoarische und drawidische Sprachen |
-| Slovakisch | Slowakisch |
-| Bengalisch | Indoarische und drawidische Sprachen |
-| Uigurisch | Westasiatische Sprachen |
-| Litauisch | Uebrige osteuropaeische Sprachen |
-| Paschtou | Westasiatische Sprachen |
-| Persisch | Westasiatische Sprachen |
-| Kantonesisch | Chinesisch |
-| Mandarin | Chinesisch |
+| Spalte im Export | Aktuelle (falsche) Rolle | Korrekte Rolle |
+|---|---|---|
+| Vikariat (Offset 3) | Weitere Lehrperson | Vikariat |
+| Lehrperson 6 (Offset 6) | Heilpaedagoge/in | Weitere Lehrperson |
+| Schulsozialarbeiter/in (Offset 9) | Weitere Foerderlehrperson | Schulsozialarbeiter/in |
+| Foerderlehrperson 3 (Offset 12) | Vikariat | Foerderlehrperson |
+| Weitere Stellvertretung (Offset 13) | Vikariat | Weitere Stellvertretung |
 
-## Technische Aenderungen
+Zusaetzlich:
+- Abschnitts-Ueberschriften ("Kindergarten", "Primarschule", "Bezirksschule", "Realschule", "Sekundarschule") werden als Datenzeilen gelesen
+- Es fehlt eine Rolle "Schulsozialarbeiter/in" im System
 
-### Datei: `src/lib/fileParser.ts`
+## Loesung: Dynamische Header-Erkennung
 
-1. **Neue Konstante `LANGUAGE_AUTO_CORRECTIONS`** (nach `BISTA_NORMALIZED`, ca. Zeile 201): Eine exportierte Map analog zu `NATIONALITY_AUTO_CORRECTIONS` mit allen 24 Zuordnungen (Duplikate wie "Paschto" werden nur einmal erfasst).
+### Datei: `src/components/import/lp-zuweisung/LPStep1Classes.tsx`
 
-2. **Normalisierte Lookup-Map** `LANGUAGE_CORRECTIONS_NORMALIZED`: Case-insensitive Map fuer schnellen Zugriff, analog zu `NATIONALITY_CORRECTIONS_NORMALIZED`.
+1. **`ROLE_POSITIONS` entfernen** -- die statische Zuordnungstabelle wird nicht mehr benoetigt.
 
-3. **`findSimilarLanguage` erweitern**: Vor der Prefix-Suche zuerst die Auto-Corrections-Map pruefen. Wenn ein Treffer gefunden wird, diesen zurueckgeben. So werden die definierten Zuordnungen immer bevorzugt.
+2. **Neue Funktion `detectTeacherColumns(headerCols)`**: Iteriert ueber alle Header-Spalten und erkennt Lehrer-Spalten anhand von Schluesselbegriffen im Spaltennamen. Fuer jede erkannte Spalte wird der Index und die Rolle gespeichert:
 
-### Datei: `src/lib/localBulkCorrections.ts`
+```text
+Header-Name enthaelt...        → Rolle
+"klassenlehrperson"            → Klassenlehrperson
+"vikariat"                     → Vikariat
+"lehrperson" (generisch)       → Weitere Lehrperson
+"heilpädagog"                  → Heilpädagoge/in
+"schulsozialarbeiter"          → Schulsozialarbeiter/in
+"förderlehrperson"             → Förderlehrperson
+"weitere stellvertretung"      → Weitere Stellvertretung
+```
 
-Keine Aenderung noetig -- die bestehende `detectLanguagePattern`-Funktion erkennt bereits Fehler mit `correctedValue` und bietet Bulk-Fix an. Die neuen Auto-Corrections werden automatisch erkannt, da `findSimilarLanguage` das `correctedValue`-Feld im Validierungsfehler setzt.
+3. **Parser-Logik anpassen**: Statt feste Offsets ab `lpStartIndex` zu verwenden, wird fuer jede Datenzeile ueber die dynamisch erkannten Spalten-Indizes iteriert und der Wert + die zugehoerige Rolle ausgelesen.
+
+4. **Abschnitts-Ueberschriften filtern**: Zeilen, bei denen der erste Tab-Wert einem bekannten Abschnittsnamen entspricht ("Kindergarten", "Primarschule", "Bezirksschule", "Realschule", "Sekundarschule", "Sonder") und kein Status-Feld "aktiv" haben, werden uebersprungen.
+
+5. **Info-Alert aktualisieren**: Die statische Format-Beschreibung wird durch einen dynamischeren Hinweis ersetzt, der erklaert, dass Header automatisch erkannt werden.
+
+### Datei: `src/types/importTypes.ts`
+
+Die `ClassTeacherData`-Typen bleiben unveraendert -- die Struktur `{ klasse, teachers: { name, rolle }[] }` passt bereits.
+
+## Ergebnis
+
+- Rollen werden korrekt aus den Header-Namen abgeleitet, unabhaengig von der Spaltenreihenfolge
+- Neue Rollen wie "Schulsozialarbeiter/in" werden automatisch erkannt
+- Abschnitts-Zeilen und "Sonder"-Klassen stoeren nicht mehr
 
