@@ -3,7 +3,7 @@ import { WizardProgress, type WizardStep } from '@/components/import/WizardProgr
 import { LPStep1Classes } from './lp-zuweisung/LPStep1Classes';
 import { LPStep2Teachers } from './lp-zuweisung/LPStep2Teachers';
 import { LPStep3Export } from './lp-zuweisung/LPStep3Export';
-import type { ClassTeacherData, PupilPerson, TeacherAssignment } from '@/types/importTypes';
+import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ClipboardList } from 'lucide-react';
 
@@ -22,6 +22,7 @@ export function LPImportWizard({ onReset }: LPImportWizardProps) {
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [classData, setClassData] = useState<ClassTeacherData[]>([]);
   const [persons, setPersons] = useState<PupilPerson[]>([]);
+  const [pupilClasses, setPupilClasses] = useState<PupilClass[]>([]);
   const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
 
   const handleNext = useCallback(() => {
@@ -78,6 +79,8 @@ export function LPImportWizard({ onReset }: LPImportWizardProps) {
           classData={classData}
           persons={persons}
           onPersonsChange={setPersons}
+          pupilClasses={pupilClasses}
+          onPupilClassesChange={setPupilClasses}
           assignments={assignments}
           onAssignmentsChange={setAssignments}
           onBack={handleBack}
