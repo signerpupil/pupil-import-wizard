@@ -17,6 +17,8 @@ const NOT_A_NAME_PATTERNS = [
   /^#/, // #### placeholders
   /^import\s/i,
   /^wie\s/i,
+  /^in\s+der\s/i,
+  /^aus\s+der\s/i,
   /schüler/i,
   /umteilen/i,
   /belassen/i,
@@ -25,12 +27,38 @@ const NOT_A_NAME_PATTERNS = [
   /möglich/i,
   /einbeziehen/i,
   /ausschliessen/i,
+  /ausschließen/i,
   /ablegen/i,
   /transfer/i,
+  /vikariat/i,
+  /planklasse/i,
+  /homeschooling/i,
+  /privatschul/i,
+  /sportschule/i,
+  /volksschule/i,
+  /extern$/i,
+  /sonder/i,
+  /oberstufe/i,
+  /ehemalige/i,
+  /einteilung/i,
+  /temporär/i,
+  /fehlende/i,
+  /kursid/i,
+  /fremdschlüssel/i,
+  /schnittstelle/i,
+  /bemerkung/i,
+  /bista/i,
+  /geändert/i,
+  /erstellt/i,
+  /einstellung/i,
+  /weiteres/i,
+  /wortbeurteilung/i,
+  /schuljahreswechsel/i,
   /^\d+\s*sus$/i, // "25 SuS"
   /^\d+(\.\d+)?(\s*\|\s*\d+(\.\d+)?)+/, // "3.75 | 4.75 | 5.5"
   /^[A-Z0-9]{6,}$/, // long uppercase/number codes like UDMKH4BG556BE155
   /^[A-Z]\d[A-Z]/, // codes like KG1BRA, P1HOA
+  /^[A-Z]{2,}\d/, // codes starting with letters then digit like SS4IG, L29JF
 ];
 
 function looksLikePersonName(value: string): boolean {
