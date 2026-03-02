@@ -245,6 +245,10 @@ export interface ClassTeacherData {
   teachers: { name: string; rolle: string }[];
 }
 
+export interface PupilClass {
+  klassenname: string;
+}
+
 // Gruppen-Import Typen
 export interface GroupData {
   name: string;
