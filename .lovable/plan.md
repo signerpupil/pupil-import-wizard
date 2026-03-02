@@ -1,55 +1,57 @@
 
 
-# LP-Klassenzuweisungen: Dynamischer Header-basierter Parser
+# PUPIL-Klassen-Abgleich im LP-Zuweisungs-Wizard
 
-## Problem
+## Kontext
 
-Der aktuelle Parser in `LPStep1Classes.tsx` verwendet **hartcodierte Rollen-Offsets** (`ROLE_POSITIONS`), die nicht zum tatsaechlichen LehrerOffice-Export passen. Das fuehrt zu falschen Rollenzuordnungen:
+Aktuell verwendet der LP-Export die Klassennamen direkt aus dem LehrerOffice-Paste (z.B. "KG 1 Br a"). Die PUPIL-Klassen-Datei enthaelt die vollstaendigen Klassennamen (z.B. "KG 1 Br a Primarschule Brunegg"). Der Export soll die PUPIL-Klassennamen verwenden, damit die Zuweisungen korrekt importiert werden koennen.
 
-| Spalte im Export | Aktuelle (falsche) Rolle | Korrekte Rolle |
+## PUPIL-Klassen-Datei Struktur
+
+| Klassenname | Klassenbeschreibung | Klassenlehrpersonen |
 |---|---|---|
-| Vikariat (Offset 3) | Weitere Lehrperson | Vikariat |
-| Lehrperson 6 (Offset 6) | Heilpaedagoge/in | Weitere Lehrperson |
-| Schulsozialarbeiter/in (Offset 9) | Weitere Foerderlehrperson | Schulsozialarbeiter/in |
-| Foerderlehrperson 3 (Offset 12) | Vikariat | Foerderlehrperson |
-| Weitere Stellvertretung (Offset 13) | Vikariat | Weitere Stellvertretung |
+| B 1 Wi a Bezirksschule | B 1 Wi a Bezirksschule | Simon Jenzer |
+| KG 1 Br a Primarschule Brunegg | KG 1 Br a Primarschule Brunegg | Claudia Imholz, Sabine Brunner |
 
-Zusaetzlich:
-- Abschnitts-Ueberschriften ("Kindergarten", "Primarschule", "Bezirksschule", "Realschule", "Sekundarschule") werden als Datenzeilen gelesen
-- Es fehlt eine Rolle "Schulsozialarbeiter/in" im System
+Der **Klassenname** ist der relevante Wert. Die LO-Klasse "KG 1 Br a" ist ein Prefix des PUPIL-Klassennamens "KG 1 Br a Primarschule Brunegg".
 
-## Loesung: Dynamische Header-Erkennung
+## Aenderungen
 
-### Datei: `src/components/import/lp-zuweisung/LPStep1Classes.tsx`
+### 1. Neuer Typ `PupilClass` in `src/types/importTypes.ts`
 
-1. **`ROLE_POSITIONS` entfernen** -- die statische Zuordnungstabelle wird nicht mehr benoetigt.
-
-2. **Neue Funktion `detectTeacherColumns(headerCols)`**: Iteriert ueber alle Header-Spalten und erkennt Lehrer-Spalten anhand von Schluesselbegriffen im Spaltennamen. Fuer jede erkannte Spalte wird der Index und die Rolle gespeichert:
-
-```text
-Header-Name enthaelt...        → Rolle
-"klassenlehrperson"            → Klassenlehrperson
-"vikariat"                     → Vikariat
-"lehrperson" (generisch)       → Weitere Lehrperson
-"heilpädagog"                  → Heilpädagoge/in
-"schulsozialarbeiter"          → Schulsozialarbeiter/in
-"förderlehrperson"             → Förderlehrperson
-"weitere stellvertretung"      → Weitere Stellvertretung
+```typescript
+export interface PupilClass {
+  klassenname: string;  // Voller PUPIL-Klassenname
+}
 ```
 
-3. **Parser-Logik anpassen**: Statt feste Offsets ab `lpStartIndex` zu verwenden, wird fuer jede Datenzeile ueber die dynamisch erkannten Spalten-Indizes iteriert und der Wert + die zugehoerige Rolle ausgelesen.
+### 2. `LPImportWizard.tsx` -- Neuer State fuer PUPIL-Klassen
 
-4. **Abschnitts-Ueberschriften filtern**: Zeilen, bei denen der erste Tab-Wert einem bekannten Abschnittsnamen entspricht ("Kindergarten", "Primarschule", "Bezirksschule", "Realschule", "Sekundarschule", "Sonder") und kein Status-Feld "aktiv" haben, werden uebersprungen.
+- Neuer State `pupilClasses: PupilClass[]` hinzufuegen
+- An Step 2 (oder als neuen Upload in Step 2) weitergeben
 
-5. **Info-Alert aktualisieren**: Die statische Format-Beschreibung wird durch einen dynamischeren Hinweis ersetzt, der erklaert, dass Header automatisch erkannt werden.
+### 3. `LPStep2Teachers.tsx` -- Zweiter File-Upload fuer PUPIL-Klassen
 
-### Datei: `src/types/importTypes.ts`
+- Zweite Upload-Card fuer die PUPIL-Klassen-Datei (xlsx) hinzufuegen
+- Parsing: Spalte "Klassenname" auslesen
+- Matching-Logik: Fuer jede LO-Klasse pruefen, ob ein PUPIL-Klassenname mit diesem Kuerzel beginnt (normalisiert, Leerzeichen-tolerant)
+- Anzeige: Badge mit Anzahl gematchter / nicht gematchter Klassen
+- Die gematchten PUPIL-Klassennamen in die Assignments uebernehmen (statt der LO-Kuerzel)
 
-Die `ClassTeacherData`-Typen bleiben unveraendert -- die Struktur `{ klasse, teachers: { name, rolle }[] }` passt bereits.
+### 4. `LPStep3Export.tsx` -- Export mit PUPIL-Klassennamen
 
-## Ergebnis
+- Keine Code-Aenderung noetig, da die Assignments bereits den PUPIL-Klassennamen enthalten werden
+- Die "Klasse"-Spalte im Export zeigt dann automatisch den vollen PUPIL-Namen
 
-- Rollen werden korrekt aus den Header-Namen abgeleitet, unabhaengig von der Spaltenreihenfolge
-- Neue Rollen wie "Schulsozialarbeiter/in" werden automatisch erkannt
-- Abschnitts-Zeilen und "Sonder"-Klassen stoeren nicht mehr
+### Matching-Algorithmus
+
+```text
+LO-Klasse:    "KG 1 Br a"
+PUPIL-Klasse: "KG 1 Br a Primarschule Brunegg"
+
+Regel: PUPIL-Klassenname.startsWith(LO-Klasse)
+       (case-insensitive, trimmed)
+```
+
+Falls kein Match gefunden wird, bleibt der LO-Klassenname erhalten und wird im Export orange markiert.
 
