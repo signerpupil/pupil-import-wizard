@@ -8,22 +8,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, ArrowRight, ClipboardPaste, CheckCircle2, Info } from 'lucide-react';
 import type { ClassTeacherData } from '@/types/importTypes';
 
-const ROLE_POSITIONS: { offset: number; rolle: string }[] = [
-  { offset: 0, rolle: 'Klassenlehrperson' },
-  { offset: 1, rolle: 'Klassenlehrperson' },
-  { offset: 2, rolle: 'Klassenlehrperson' },
-  { offset: 3, rolle: 'Weitere Lehrperson' },
-  { offset: 4, rolle: 'Weitere Lehrperson' },
-  { offset: 5, rolle: 'Weitere Lehrperson' },
-  { offset: 6, rolle: 'Heilpädagoge/in' },
-  { offset: 7, rolle: 'Heilpädagoge/in' },
-  { offset: 8, rolle: 'Heilpädagoge/in' },
-  { offset: 9, rolle: 'Weitere Förderlehrperson' },
-  { offset: 10, rolle: 'Weitere Förderlehrperson' },
-  { offset: 11, rolle: 'Weitere Förderlehrperson' },
-  { offset: 12, rolle: 'Vikariat' },
-  { offset: 13, rolle: 'Vikariat' },
-];
+const SECTION_HEADERS = ['kindergarten', 'primarschule', 'bezirksschule', 'realschule', 'sekundarschule', 'sonder'];
+
+interface TeacherColumn {
+  index: number;
+  rolle: string;
+}
+
+function detectTeacherColumns(headerCols: string[]): TeacherColumn[] {
+  const columns: TeacherColumn[] = [];
+  for (let i = 0; i < headerCols.length; i++) {
+    const col = headerCols[i].toLowerCase();
+    if (col.includes('klassenlehrperson')) {
+      columns.push({ index: i, rolle: 'Klassenlehrperson' });
+    } else if (col.includes('weitere stellvertretung')) {
+      columns.push({ index: i, rolle: 'Weitere Stellvertretung' });
+    } else if (col.includes('vikariat')) {
+      columns.push({ index: i, rolle: 'Vikariat' });
+    } else if (col.includes('heilpädagog') || col.includes('heilpaedagog')) {
+      columns.push({ index: i, rolle: 'Heilpädagoge/in' });
+    } else if (col.includes('schulsozialarbeiter')) {
+      columns.push({ index: i, rolle: 'Schulsozialarbeiter/in' });
+    } else if (col.includes('förderlehrperson') || col.includes('foerderlehrperson')) {
+      columns.push({ index: i, rolle: 'Förderlehrperson' });
+    } else if (col.includes('lehrperson')) {
+      columns.push({ index: i, rolle: 'Weitere Lehrperson' });
+    }
+  }
+  return columns;
+}
 
 interface LPStep1ClassesProps {
   classData: ClassTeacherData[];
@@ -44,11 +57,12 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       return;
     }
 
+    // Find header row
     let headerIndex = -1;
     let headerCols: string[] = [];
     for (let i = 0; i < Math.min(lines.length, 5); i++) {
       const cols = lines[i].split('\t');
-      if (cols[0]?.trim().toLowerCase() === 'klasse' || 
+      if (cols[0]?.trim().toLowerCase() === 'klasse' ||
           cols.some(c => c.toLowerCase().includes('lehrperson'))) {
         headerIndex = i;
         headerCols = cols.map(c => c.trim());
@@ -57,24 +71,28 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
     }
 
     if (headerIndex === -1) {
-      headerIndex = -1;
+      setParseError('Kein Header mit "Klasse" oder "Lehrperson" gefunden. Bitte kopieren Sie die Daten inkl. Kopfzeile.');
+      return;
     }
 
-    let lpStartIndex = -1;
+    // Detect status column and teacher columns dynamically
     let statusIndex = -1;
-    
-    if (headerCols.length > 0) {
-      for (let i = 0; i < headerCols.length; i++) {
-        const col = headerCols[i].toLowerCase();
-        if (col === 'status' || col.startsWith('im ') || col.includes('semester')) statusIndex = i;
-        if ((col.includes('lehrperson 1') || col === 'klassenlehrperson 1') && lpStartIndex === -1) {
-          lpStartIndex = i;
-        }
+    for (let i = 0; i < headerCols.length; i++) {
+      const col = headerCols[i].toLowerCase();
+      if (col === 'status' || col.startsWith('im ') || col.includes('semester') || col.includes('halbjahr')) {
+        statusIndex = i;
+        break;
       }
     }
-    
+
+    const teacherColumns = detectTeacherColumns(headerCols);
+    if (teacherColumns.length === 0) {
+      setParseError('Keine Lehrpersonen-Spalten im Header erkannt.');
+      return;
+    }
+
     const results: ClassTeacherData[] = [];
-    const dataLines = headerIndex >= 0 ? lines.slice(headerIndex + 1) : lines;
+    const dataLines = lines.slice(headerIndex + 1);
 
     for (const line of dataLines) {
       const cols = line.split('\t').map(c => c.trim());
@@ -83,21 +101,21 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       const klasse = cols[0];
       if (!klasse) continue;
 
-      if (statusIndex >= 0 && cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
-
-      let effectiveLpStart = lpStartIndex >= 0 ? lpStartIndex : 2;
-      
-      if (lpStartIndex < 0 && headerIndex < 0) {
-        effectiveLpStart = 2;
+      // Filter section headers
+      if (SECTION_HEADERS.some(s => klasse.toLowerCase() === s || klasse.toLowerCase().startsWith(s + ' '))) {
+        // Only skip if no status or status is not "aktiv"
+        if (statusIndex < 0 || cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
       }
 
+      // Filter non-active
+      if (statusIndex >= 0 && cols[statusIndex]?.toLowerCase() !== 'aktiv') continue;
+
       const teachers: { name: string; rolle: string }[] = [];
-      for (let i = 0; i < ROLE_POSITIONS.length; i++) {
-        const colIdx = effectiveLpStart + ROLE_POSITIONS[i].offset;
-        if (colIdx < cols.length && cols[colIdx]) {
-          const name = cols[colIdx].trim();
+      for (const tc of teacherColumns) {
+        if (tc.index < cols.length && cols[tc.index]) {
+          const name = cols[tc.index].trim();
           if (name) {
-            teachers.push({ name, rolle: ROLE_POSITIONS[i].rolle });
+            teachers.push({ name, rolle: tc.rolle });
           }
         }
       }
@@ -136,7 +154,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
           <Alert className="border-primary/20 bg-primary/[0.03]">
             <Info className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
-              Format: Klasse | [Klasse] | KLP 1 | KLP 2 | KLP 3 | WLP 1-3 | HP 1-3 | WFL 1-3 | Vikariat
+              Kopieren Sie die Daten inkl. Kopfzeile aus LehrerOffice. Rollen (Klassenlehrperson, Vikariat, Heilpädagoge/in, Förderlehrperson, Schulsozialarbeiter/in etc.) werden automatisch aus den Spaltenüberschriften erkannt.
             </AlertDescription>
           </Alert>
 
