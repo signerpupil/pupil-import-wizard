@@ -118,7 +118,11 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
           </div>
           <div>
             <CardTitle className="text-base">Vergleich PUPIL vs. LehrerOffice</CardTitle>
-            <CardDescription>Klassenlehrpersonen-Abgleich</CardDescription>
+            <CardDescription>
+              Klassenlehrpersonen aus PUPIL werden mit allen zugewiesenen LP aus LehrerOffice abgeglichen. 
+              Dies dient zur Verifizierung der Klassenzuordnung — prüfen Sie insbesondere Klassen, 
+              bei denen in PUPIL andere Klassenlehrpersonen hinterlegt sind als in LehrerOffice.
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
