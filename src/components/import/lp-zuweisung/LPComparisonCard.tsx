@@ -162,9 +162,8 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
                 <TableHeader>
                   <TableRow>
                     <TableHead className="bg-muted/50">Klasse</TableHead>
-                    <TableHead className="bg-muted/50">Nur in LO</TableHead>
                     <TableHead className="bg-muted/50">Nur in PUPIL</TableHead>
-                    <TableHead className="bg-muted/50">Übereinstimmend</TableHead>
+                    <TableHead className="bg-muted/50">LP in LehrerOffice</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,37 +171,25 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
                     <TableRow key={c.klasse}>
                       <TableCell className="font-medium align-top">{c.klasse}</TableCell>
                       <TableCell className="align-top">
-                        {c.onlyInLO.length > 0 ? (
-                          <div className="space-y-1">
-                            {c.onlyInLO.map(n => (
-                              <Badge key={n} variant="outline" className="text-amber-600 border-amber-300 block w-fit">
-                                {n}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : <span className="text-muted-foreground text-sm">—</span>}
+                        <div className="space-y-1">
+                          {c.onlyInPupil.map(n => (
+                            <Badge key={n} variant="outline" className="text-destructive border-destructive/30 block w-fit">
+                              {n}
+                            </Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="align-top">
-                        {c.onlyInPupil.length > 0 ? (
-                          <div className="space-y-1">
-                            {c.onlyInPupil.map(n => (
-                              <Badge key={n} variant="outline" className="text-destructive border-destructive/30 block w-fit">
-                                {n}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : <span className="text-muted-foreground text-sm">—</span>}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {c.matching.length > 0 ? (
-                          <div className="space-y-1">
-                            {c.matching.map(n => (
-                              <Badge key={n} variant="outline" className="text-primary border-primary/30 block w-fit">
-                                {n}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : <span className="text-muted-foreground text-sm">—</span>}
+                        <div className="space-y-1">
+                          {c.matching.map(n => (
+                            <Badge key={n} variant="outline" className="text-primary border-primary/30 block w-fit font-semibold">
+                              ✓ {n}
+                            </Badge>
+                          ))}
+                          {c.onlyInLO.map(n => (
+                            <span key={n} className="text-muted-foreground text-sm block">{n}</span>
+                          ))}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
