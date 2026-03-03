@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, Scho
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
 import { PUPILInstructionGuide } from './PUPILInstructionGuide';
+import { PUPILClassesInstructionGuide } from './PUPILClassesInstructionGuide';
 
 interface LPStep2TeachersProps {
   classData: ClassTeacherData[];
@@ -383,6 +384,7 @@ export function LPStep2Teachers({
           <p className="text-sm text-muted-foreground">
             Die LO-Klassennamen werden mit den vollständigen PUPIL-Klassennamen abgeglichen (z.B. "KG 1 Br a" → "KG 1 Br a Primarschule Brunegg").
           </p>
+          <PUPILClassesInstructionGuide />
           <div className="flex items-center gap-4">
             <input
               type="file"
