@@ -86,6 +86,7 @@ export function LPStep2Teachers({
   const [classFileLoading, setClassFileLoading] = useState(false);
   const [classFileError, setClassFileError] = useState<string | null>(null);
   const [manualOverrides, setManualOverrides] = useState<Map<string, string>>(new Map());
+  const [manualClassOverrides, setManualClassOverrides] = useState<Map<string, string>>(new Map());
 
   const uniqueTeacherNames = useMemo(() => {
     const names = new Set<string>();
@@ -105,18 +106,34 @@ export function LPStep2Teachers({
   const matched = matchResults.filter(r => r.person);
   const unmatched = matchResults.filter(r => !r.person);
 
-  // Class matching results
+  // Class matching results (includes manual overrides)
   const classMatchResults = useMemo(() => {
     if (pupilClasses.length === 0) return [];
     const uniqueClasses = [...new Set(classData.map(cd => cd.klasse))];
-    return uniqueClasses.map(klasse => ({
-      loKlasse: klasse,
-      pupilKlasse: matchClassToPupil(klasse, pupilClasses),
-    }));
-  }, [classData, pupilClasses]);
+    return uniqueClasses.map(klasse => {
+      const manualMatch = manualClassOverrides.get(klasse);
+      if (manualMatch) {
+        const pc = pupilClasses.find(p => p.klassenname === manualMatch);
+        return { loKlasse: klasse, pupilKlasse: pc?.klassenname || null };
+      }
+      return {
+        loKlasse: klasse,
+        pupilKlasse: matchClassToPupil(klasse, pupilClasses),
+      };
+    });
+  }, [classData, pupilClasses, manualClassOverrides]);
 
   const classesMatched = classMatchResults.filter(r => r.pupilKlasse);
   const classesUnmatched = classMatchResults.filter(r => !r.pupilKlasse);
+
+  // Free PUPIL classes (not yet assigned to any LO class)
+  const assignedPupilNames = useMemo(() => {
+    return new Set(classesMatched.map(r => r.pupilKlasse!));
+  }, [classesMatched]);
+
+  const freePupilClasses = useMemo(() => {
+    return pupilClasses.filter(pc => !assignedPupilNames.has(pc.klassenname));
+  }, [pupilClasses, assignedPupilNames]);
 
   // Build class mapping for assignments
   const classMap = useMemo(() => {
@@ -128,6 +145,18 @@ export function LPStep2Teachers({
     }
     return map;
   }, [classMatchResults]);
+
+  const handleManualClassOverride = (loKlasse: string, pupilKlasse: string) => {
+    setManualClassOverrides(prev => {
+      const next = new Map(prev);
+      if (pupilKlasse === '__none__') {
+        next.delete(loKlasse);
+      } else {
+        next.set(loKlasse, pupilKlasse);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (persons.length === 0) return;
@@ -347,12 +376,15 @@ export function LPStep2Teachers({
                   Folgende LO-Klassen konnten keiner PUPIL-Klasse zugeordnet werden:
                 </p>
               </div>
-              <div className="max-h-[200px] overflow-auto">
+              <div className="max-h-[300px] overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="bg-muted/50">LO-Klasse</TableHead>
                       <TableHead className="bg-muted/50">Status</TableHead>
+                      {freePupilClasses.length > 0 && (
+                        <TableHead className="bg-muted/50">PUPIL-Klasse zuweisen</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -364,6 +396,26 @@ export function LPStep2Teachers({
                             LO-Name wird verwendet
                           </Badge>
                         </TableCell>
+                        {freePupilClasses.length > 0 && (
+                          <TableCell>
+                            <Select
+                              value={manualClassOverrides.get(r.loKlasse) || '__none__'}
+                              onValueChange={(val) => handleManualClassOverride(r.loKlasse, val)}
+                            >
+                              <SelectTrigger className="w-[280px] h-8 text-sm">
+                                <SelectValue placeholder="PUPIL-Klasse wählen…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— Keine Zuordnung —</SelectItem>
+                                {freePupilClasses.map(pc => (
+                                  <SelectItem key={pc.klassenname} value={pc.klassenname}>
+                                    {pc.klassenname}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
