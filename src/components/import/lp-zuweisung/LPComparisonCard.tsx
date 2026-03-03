@@ -162,8 +162,8 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
                 <TableHeader>
                   <TableRow>
                     <TableHead className="bg-muted/50">Klasse</TableHead>
-                    <TableHead className="bg-muted/50">Nur in PUPIL</TableHead>
-                    <TableHead className="bg-muted/50">LP in LehrerOffice</TableHead>
+                    <TableHead className="bg-muted/50">PUPIL</TableHead>
+                    <TableHead className="bg-muted/50">LehrerOffice</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,6 +172,9 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
                       <TableCell className="font-medium align-top">{c.klasse}</TableCell>
                       <TableCell className="align-top">
                         <div className="space-y-1">
+                          {c.matching.map(n => (
+                            <span key={n} className="text-sm block">{n}</span>
+                          ))}
                           {c.onlyInPupil.map(n => (
                             <Badge key={n} variant="outline" className="text-destructive border-destructive/30 block w-fit">
                               {n}
@@ -182,7 +185,7 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
                       <TableCell className="align-top">
                         <div className="space-y-1">
                           {c.matching.map(n => (
-                            <Badge key={n} variant="outline" className="text-primary border-primary/30 block w-fit font-semibold">
+                            <Badge key={n} variant="outline" className="text-primary border-primary/30 block w-fit">
                               ✓ {n}
                             </Badge>
                           ))}
