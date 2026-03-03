@@ -19,7 +19,7 @@ function StepNumber({ n }: { n: number }) {
 export function LOInstructionGuide() {
   const [open, setOpen] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === null ? true : stored === 'true';
+    return stored === null ? false : stored === 'true';
   });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
@@ -56,12 +56,17 @@ export function LOInstructionGuide() {
                 <span><strong className="text-foreground">Alles</strong> auswählen (damit alle Spalten sichtbar sind)</span>
               </div>
             </div>
-            <img
-              src={loAnsicht}
-              alt="LehrerOffice: Ansicht > Alles auswählen"
-              className="max-h-[200px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
-              onClick={() => setLightboxSrc(loAnsicht)}
-            />
+            <div className="relative group w-fit">
+              <img
+                src={loAnsicht}
+                alt="LehrerOffice: Ansicht > Alles auswählen"
+                className="max-h-[200px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
+                onClick={() => setLightboxSrc(loAnsicht)}
+              />
+              <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-xs px-2 py-1 rounded border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                🔍 Klicken zum Vergrössern
+              </span>
+            </div>
           </div>
 
           {/* Phase B */}
@@ -81,12 +86,17 @@ export function LOInstructionGuide() {
                 <span>Hier im Textfeld mit <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono">Ctrl+V</kbd> einfügen</span>
               </div>
             </div>
-            <img
-              src={loKopieren}
-              alt="LehrerOffice: Bearbeiten > Tabelle kopieren"
-              className="max-h-[200px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
-              onClick={() => setLightboxSrc(loKopieren)}
-            />
+            <div className="relative group w-fit">
+              <img
+                src={loKopieren}
+                alt="LehrerOffice: Bearbeiten > Tabelle kopieren"
+                className="max-h-[200px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
+                onClick={() => setLightboxSrc(loKopieren)}
+              />
+              <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-xs px-2 py-1 rounded border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                🔍 Klicken zum Vergrössern
+              </span>
+            </div>
           </div>
         </CollapsibleContent>
       </Collapsible>
