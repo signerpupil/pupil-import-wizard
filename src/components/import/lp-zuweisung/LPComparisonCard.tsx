@@ -97,7 +97,7 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
         onlyInLO,
         onlyInPupil,
         matching,
-        hasDifferences: onlyInLO.length > 0 || onlyInPupil.length > 0,
+        hasDifferences: onlyInPupil.length > 0,
       });
     }
 
