@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2 } from 'lucide-react';
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
+import { PUPILInstructionGuide } from './PUPILInstructionGuide';
 
 interface LPStep2TeachersProps {
   classData: ClassTeacherData[];
@@ -341,6 +342,7 @@ export function LPStep2Teachers({
           <p className="text-sm text-muted-foreground">
             Die LP-Namen aus Schritt 1 werden automatisch mit den PUPIL-Schlüsseln abgeglichen.
           </p>
+          <PUPILInstructionGuide />
           <div className="flex items-center gap-4">
             <input
               type="file"
