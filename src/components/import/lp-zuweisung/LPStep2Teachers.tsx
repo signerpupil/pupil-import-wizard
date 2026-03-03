@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2 } from 'lucide-react';
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
 
@@ -153,6 +153,52 @@ export function LPStep2Teachers({
         next.delete(loKlasse);
       } else {
         next.set(loKlasse, pupilKlasse);
+      }
+      return next;
+    });
+  };
+
+  // Pattern detection: try fuzzy strategies on unmatched classes against free PUPIL classes
+  const classPatternSuggestions = useMemo(() => {
+    if (classesUnmatched.length === 0 || freePupilClasses.length === 0) return [];
+
+    const suggestions: { loKlasse: string; pupilKlasse: string; pattern: string }[] = [];
+    const usedPupil = new Set<string>();
+
+    for (const um of classesUnmatched) {
+      // Already manually overridden — skip
+      if (manualClassOverrides.has(um.loKlasse)) continue;
+
+      const loNorm = um.loKlasse.trim().toLowerCase().replace(/\s+/g, '');
+
+      for (const pc of freePupilClasses) {
+        if (usedPupil.has(pc.klassenname)) continue;
+        const pupilNorm = pc.klassenname.trim().toLowerCase().replace(/\s+/g, '');
+
+        // Strategy 1: whitespace-insensitive startsWith
+        if (pupilNorm.startsWith(loNorm)) {
+          suggestions.push({ loKlasse: um.loKlasse, pupilKlasse: pc.klassenname, pattern: 'Leerzeichen-tolerant' });
+          usedPupil.add(pc.klassenname);
+          break;
+        }
+
+        // Strategy 2: PUPIL name contains the LO name (substring)
+        if (pupilNorm.includes(loNorm) && loNorm.length >= 3) {
+          suggestions.push({ loKlasse: um.loKlasse, pupilKlasse: pc.klassenname, pattern: 'Enthält LO-Name' });
+          usedPupil.add(pc.klassenname);
+          break;
+        }
+      }
+    }
+
+    return suggestions;
+  }, [classesUnmatched, freePupilClasses, manualClassOverrides]);
+
+  const handleApplyPatternSuggestions = () => {
+    setManualClassOverrides(prev => {
+      const next = new Map(prev);
+      for (const s of classPatternSuggestions) {
+        next.set(s.loKlasse, s.pupilKlasse);
       }
       return next;
     });
@@ -367,6 +413,37 @@ export function LPStep2Teachers({
                   {classesUnmatched.length} nicht zugeordnet
                 </Badge>
               )}
+            </div>
+          )}
+          {pupilClasses.length > 0 && classesUnmatched.length > 0 && classPatternSuggestions.length > 0 && (
+            <div className="border rounded-xl overflow-hidden bg-accent/30">
+              <div className="p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-primary" />
+                  <p className="text-sm">
+                    <span className="font-medium">{classPatternSuggestions.length} Klassen</span> können per Muster zugeordnet werden
+                    <span className="text-muted-foreground ml-1">({classPatternSuggestions[0].pattern})</span>
+                  </p>
+                </div>
+                <Button size="sm" onClick={handleApplyPatternSuggestions} className="shrink-0">
+                  <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                  Muster anwenden
+                </Button>
+              </div>
+              <div className="px-3 pb-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {classPatternSuggestions.slice(0, 5).map(s => (
+                    <Badge key={s.loKlasse} variant="secondary" className="text-xs">
+                      {s.loKlasse} → {s.pupilKlasse.length > 30 ? s.pupilKlasse.slice(0, 30) + '…' : s.pupilKlasse}
+                    </Badge>
+                  ))}
+                  {classPatternSuggestions.length > 5 && (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      +{classPatternSuggestions.length - 5} weitere
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           {pupilClasses.length > 0 && classesUnmatched.length > 0 && (
