@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, ArrowRight, ClipboardPaste, CheckCircle2, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ClipboardPaste, CheckCircle2 } from 'lucide-react';
 import type { ClassTeacherData } from '@/types/importTypes';
+import { LOInstructionGuide } from './LOInstructionGuide';
 
 const SECTION_HEADERS = ['kindergarten', 'primarschule', 'bezirksschule', 'realschule', 'sekundarschule', 'sonder'];
 
@@ -252,12 +254,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="border-primary/20 bg-primary/[0.03]">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-sm">
-              Kopieren Sie die Daten inkl. Kopfzeile aus LehrerOffice. Rollen (Klassenlehrperson, Vikariat, Heilpädagoge/in, Förderlehrperson, Schulsozialarbeiter/in etc.) werden automatisch aus den Spaltenüberschriften erkannt.
-            </AlertDescription>
-          </Alert>
+          <LOInstructionGuide />
 
           <Textarea
             value={rawText}
