@@ -103,7 +103,7 @@ export function LOInstructionGuide() {
 
       {/* Lightbox */}
       <Dialog open={!!lightboxSrc} onOpenChange={() => setLightboxSrc(null)}>
-        <DialogContent className="max-w-4xl p-2">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
           {lightboxSrc && (
             <img src={lightboxSrc} alt="LehrerOffice Anleitung" className="w-full h-auto rounded" />
           )}
