@@ -45,6 +45,7 @@ interface ClassComparison {
 
 export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardProps) {
   const [showMatching, setShowMatching] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'diffs' | 'matching'>('all');
 
   const comparisons = useMemo(() => {
     const results: ClassComparison[] = [];
@@ -123,20 +124,31 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-3">
-          <Badge variant="secondary">{comparisons.length} Klassen verglichen</Badge>
+          <button
+            onClick={() => setFilter('all')}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors border ${filter === 'all' ? 'ring-2 ring-ring ring-offset-1 bg-secondary text-secondary-foreground' : 'bg-secondary/60 text-secondary-foreground hover:bg-secondary'}`}
+          >
+            {comparisons.length} Klassen verglichen
+          </button>
           {withDiffs.length > 0 && (
-            <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10 border-0">
+            <button
+              onClick={() => setFilter('diffs')}
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors border-0 ${filter === 'diffs' ? 'ring-2 ring-ring ring-offset-1 bg-destructive/15 text-destructive' : 'bg-destructive/10 text-destructive hover:bg-destructive/15'}`}
+            >
               <AlertTriangle className="h-3 w-3 mr-1" />
               {withDiffs.length} mit Unterschieden
-            </Badge>
+            </button>
           )}
-          <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-0">
+          <button
+            onClick={() => setFilter('matching')}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors border-0 ${filter === 'matching' ? 'ring-2 ring-ring ring-offset-1 bg-primary/15 text-primary' : 'bg-primary/10 text-primary hover:bg-primary/15'}`}
+          >
             <CheckCircle2 className="h-3 w-3 mr-1" />
             {withoutDiffs.length} übereinstimmend
-          </Badge>
+          </button>
         </div>
 
-        {withDiffs.length > 0 && (
+        {withDiffs.length > 0 && filter !== 'matching' && (
           <div className="border rounded-xl overflow-hidden">
             <div className="p-3 bg-destructive/[0.03] border-b">
               <p className="text-sm font-medium">Klassen mit Unterschieden</p>
@@ -196,7 +208,7 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
           </div>
         )}
 
-        {withoutDiffs.length > 0 && (
+        {withoutDiffs.length > 0 && filter !== 'diffs' && (
           <div className="border rounded-xl overflow-hidden">
             <button
               onClick={() => setShowMatching(!showMatching)}
