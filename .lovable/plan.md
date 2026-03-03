@@ -1,35 +1,48 @@
 
 
-# LP-Vergleich: PUPIL vs. LehrerOffice
+## Interaktive Anleitung fuer LPStep1Classes
 
-## Uebersicht
+Der aktuelle Schritt 1 hat nur einen kurzen Hinweis-Text. Der User moechte eine visuelle Schritt-fuer-Schritt-Anleitung mit den hochgeladenen Screenshots, die das Kopieren aus LehrerOffice erklaeren.
 
-Die PUPIL-Klassen-Datei enthaelt eine Spalte "Klassenlehrpersonen" (kommagetrennt). Diese soll mit den aus LehrerOffice erkannten Lehrpersonen pro Klasse verglichen werden, um Unterschiede hervorzuheben -- z.B. LP in PUPIL eingetragen aber nicht in LO, oder umgekehrt.
+### Konzept: Aufklappbare Anleitung mit nummerierten Schritten und Screenshots
 
-## Aenderungen
+Statt die Screenshots nur statisch einzubetten, baue ich eine **aufklappbare Anleitung** (Collapsible/Accordion) direkt in die Card ein, die standardmaessig eingeklappt ist, damit erfahrene User nicht gestoert werden.
 
-### 1. `src/types/importTypes.ts` -- PupilClass erweitern
+### Aenderungen
 
-Feld `klassenlehrpersonen: string[]` hinzufuegen (die kommagetrennte Spalte wird beim Parsen gesplittet).
+**1. Screenshots ins Projekt kopieren**
+- `user-uploads://2026-03-03-06-40-43.png` → `src/assets/lo-anleitung-ansicht.png` (Ansicht > Alles)
+- `user-uploads://2026-03-03-06-41-05.png` → `src/assets/lo-anleitung-kopieren.png` (Bearbeiten > Tabelle kopieren)
 
-### 2. `src/components/import/lp-zuweisung/LPStep2Teachers.tsx` -- Klassenlehrpersonen parsen
+**2. `src/components/import/lp-zuweisung/LPStep1Classes.tsx` erweitern**
 
-Beim Upload der PUPIL-Klassen-Datei zusaetzlich die Spalte "Klassenlehrpersonen" auslesen und als Array speichern.
+Den bestehenden `Alert`-Hinweis ersetzen durch eine aufklappbare Anleitung:
 
-### 3. `src/components/import/lp-zuweisung/LPStep3Export.tsx` -- Vergleichs-Card
+- **Collapsible-Bereich** mit Titel "Anleitung: Daten aus LehrerOffice kopieren" und einem Toggle-Button
+- **Zwei nummerierte Bloecke** (Phase A: Alles auswaehlen, Phase B: Tabelle kopieren):
 
-Neue optionale Card "Vergleich PUPIL vs. LehrerOffice" am Ende von Step 3:
+  **Phase A — Alle Spalten einblenden:**
+  1. Klassen im linken Menu anklicken
+  2. Registerkarte **Ansicht** waehlen
+  3. **Alles** auswaehlen (damit alle Spalten sichtbar sind)
+  
+  Screenshot `lo-anleitung-ansicht.png` darunter, klickbar (oeffnet in Dialog/Lightbox gross)
 
-- Nur anzeigen, wenn `pupilClasses` mit Lehrpersonen-Daten vorhanden sind
-- Pro gematchte Klasse vergleichen:
-  - **Nur in LO**: LP-Namen die in LO einer Klasse zugewiesen sind aber nicht in der PUPIL-Klassenlehrpersonen-Liste stehen
-  - **Nur in PUPIL**: LP-Namen die in PUPIL stehen aber nicht in den LO-Zuweisungen
-  - **Uebereinstimmend**: In beiden vorhanden
-- Namens-Matching ueber `normalizeName` (case-insensitive, diakritik-tolerant)
-- Tabelle mit Spalten: Klasse | Nur in LO | Nur in PUPIL | Uebereinstimmend
-- Klassen ohne Unterschiede werden in einem zuklappbaren `<details>` Block angezeigt, Klassen mit Unterschieden prominent
+  **Phase B — Tabelle kopieren:**
+  1. Registerkarte **Bearbeiten** waehlen
+  2. **Tabelle kopieren** auswaehlen
+  3. Hier im Textfeld mit **Ctrl+V** einfuegen
 
-### 4. `LPImportWizard.tsx` und Props
+  Screenshot `lo-anleitung-kopieren.png` darunter, klickbar
 
-`pupilClasses` an `LPStep3Export` durchreichen (neues Prop), sowie `classData` fuer den LO-seitigen Vergleich.
+- Klickbare Screenshots oeffnen eine **Dialog-Lightbox** mit dem Bild in voller Groesse
+- Der Collapsible-Zustand wird in `localStorage` gespeichert, damit wiederkehrende User die Anleitung nicht jedes Mal sehen
+
+### Technische Details
+
+- Verwende `@radix-ui/react-collapsible` (bereits installiert) fuer den aufklappbaren Bereich
+- Screenshots als ES6-Imports aus `src/assets/`
+- Lightbox via `Dialog` aus shadcn/ui
+- Nummerierung mit gestylten Kreisen (1, 2, 3) und fetten Schluesselbegriffen
+- Kompakte Darstellung: Screenshots mit `max-h-[200px] object-contain cursor-pointer rounded-lg border` im eingeklappten Zustand
 
