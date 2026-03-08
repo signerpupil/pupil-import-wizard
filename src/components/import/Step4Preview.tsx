@@ -1,4 +1,4 @@
-import { Download, CheckCircle, ArrowLeft, SplitSquareVertical } from 'lucide-react';
+import { Download, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
