@@ -64,9 +64,6 @@ export function Step4Preview({
   const [splitBySource, setSplitBySource] = useState(false);
 
   const isMultiFile = sourceFiles && sourceFiles.length > 1;
-  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
-  const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
-  const [exported, setExported] = useState(false);
 
   const uncorrectedErrors = errors.filter(e => !e.correctedValue);
   const errorRows = new Set(uncorrectedErrors.map(e => e.row));
