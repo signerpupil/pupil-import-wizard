@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
-import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES } from '@/lib/formatters';
+import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES, isValidAHVChecksum } from '@/lib/formatters';
 
 export interface ParseResult {
   headers: string[];
@@ -1057,6 +1057,10 @@ function validateFieldType(
     case 'ahv':
       if (!isValidAHV(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)' };
+      }
+      // Format is correct — now check checksum
+      if (!isValidAHVChecksum(value)) {
+        return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', severity: 'warning' };
       }
       break;
     case 'email':
