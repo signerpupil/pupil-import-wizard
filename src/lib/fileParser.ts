@@ -1112,6 +1112,46 @@ function checkSiblingConsistency(rows: ParsedRow[]): ValidationError[] {
   return errors;
 }
 
+// PLZ↔Ort consistency check using Swiss PLZ database
+function checkPlzOrtConsistency(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  // Pairs of PLZ and Ort columns to cross-check
+  const plzOrtPairs: [string, string][] = [
+    ['S_PLZ', 'S_Ort'],
+    ['P_ERZ1_PLZ', 'P_ERZ1_Ort'],
+    ['P_ERZ2_PLZ', 'P_ERZ2_Ort'],
+  ];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 1;
+
+    for (const [plzCol, ortCol] of plzOrtPairs) {
+      const plz = String(row[plzCol] ?? '').trim();
+      const ort = String(row[ortCol] ?? '').trim();
+
+      if (plz === '' || ort === '') continue;
+
+      const result = validatePlzOrt(plz, ort);
+
+      if (result !== null && result !== true) {
+        // Mismatch found
+        const expected = result.slice(0, 3).join(', ');
+        errors.push({
+          row: rowNum,
+          column: ortCol,
+          value: ort,
+          message: `PLZ ${plz} gehört zu "${expected}", nicht zu "${ort}"`,
+          type: 'business',
+          severity: 'warning',
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+
 // Optimized field type validation
 function validateFieldType(
   validationType: string | undefined,
