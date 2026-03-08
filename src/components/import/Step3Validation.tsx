@@ -135,7 +135,7 @@ export function Step3Validation({
 
   // Helper function to get student name - must be defined BEFORE useMemo that uses it
   const getStudentNameForRow = useCallback((rowNumber: number) => {
-    const row = rows.find((_, index) => index + 1 === rowNumber);
+    const row = rows[rowNumber - 1];
     if (!row) return null;
     const name = row['S_Name'] || row['S_name'] || '';
     const vorname = row['S_Vorname'] || row['S_vorname'] || '';

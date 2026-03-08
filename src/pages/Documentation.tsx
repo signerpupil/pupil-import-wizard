@@ -404,9 +404,71 @@ export default function Documentation() {
                     </div>
                   </div>
 
-                  {/* 7. Automatische Korrekturen */}
+                  {/* 7. Sprach- und Nationalitäten-Validierung */}
                   <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-                    <h5 className="font-semibold text-sm">7. Automatische Sammelkorrekturen</h5>
+                    <h5 className="font-semibold text-sm">7. Sprach- und Nationalitäten-Validierung</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Sprachen und Nationalitäten werden gegen offizielle Listen geprüft:
+                    </p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>
+                        <strong>BISTA-Sprachen:</strong> S_Muttersprache und S_Umgangssprache werden gegen die 49 gültigen BISTA-Codes geprüft.
+                        Bekannte Nicht-BISTA-Sprachen (z.B. «Tigrinya» → «Afrikanische Sprachen», «Farsi» → «Westasiatische Sprachen») werden automatisch korrigiert.
+                        Tippfehler werden per Präfix-Matching erkannt.
+                      </li>
+                      <li>
+                        <strong>Nationalitäten:</strong> S_Nationalitaet wird gegen die offizielle Länderliste geprüft.
+                        Veraltete Bezeichnungen (z.B. «Türkei» → «Türkiye», «Mazedonien» → «Nordmazedonien») werden automatisch korrigiert.
+                      </li>
+                    </ul>
+                    <div className="flex flex-wrap gap-2">
+                      {['S_Muttersprache', 'S_Umgangssprache', 'S_Nationalitaet'].map(f => (
+                        <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 8. AHV-Prüfziffer */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">8. AHV-Prüfziffer (EAN-13)</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Nach der Formatprüfung wird die Prüfziffer der AHV-Nummer mit dem EAN-13-Algorithmus verifiziert.
+                      Ungültige Prüfziffern werden als <strong>Warnung</strong> angezeigt (nicht als Fehler), da Tippfehler möglich sind.
+                    </p>
+                  </div>
+
+                  {/* 9. Geschwister-Konsistenz */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">9. Geschwister-Konsistenz</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Kinder mit derselben Eltern-ID (P_ERZ1_ID / P_ERZ2_ID) werden verglichen: Abweichungen bei <code className="bg-muted px-1 rounded text-xs">S_PLZ</code> und <code className="bg-muted px-1 rounded text-xs">S_Ort</code> werden als Warnung gemeldet.
+                    </p>
+                  </div>
+
+                  {/* 10. PLZ↔Ort-Prüfung */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">10. PLZ↔Ort-Prüfung</h5>
+                    <p className="text-xs text-muted-foreground">
+                      PLZ und Ort werden gegen eine lokale Datenbank mit ~2'000 Schweizer Postleitzahlen geprüft. Nicht übereinstimmende Kombinationen werden als Warnung angezeigt.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {['S_PLZ ↔ S_Ort', 'P_ERZ1_PLZ ↔ P_ERZ1_Ort', 'P_ERZ2_PLZ ↔ P_ERZ2_Ort'].map(f => (
+                        <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 11. Altersplausibilität */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">11. Altersplausibilität</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Das Geburtsdatum (<code className="bg-muted px-1 rounded text-xs">S_Geburtsdatum</code>) wird geprüft: Schüler/innen müssen zwischen 4 und 20 Jahren alt sein. Abweichungen werden als Warnung angezeigt.
+                    </p>
+                  </div>
+
+                  {/* 12. Automatische Sammelkorrekturen */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">12. Automatische Sammelkorrekturen</h5>
                     <p className="text-xs text-muted-foreground">
                       Der Wizard erkennt Fehlermuster und bietet Sammelkorrekturen an. Folgende Korrekturen sind verfügbar:
                     </p>
@@ -418,8 +480,11 @@ export default function Documentation() {
                       <li><strong>Geschlecht-Normalisierung:</strong> Varianten wie «männlich», «male», «Herr» werden zu M/W/D vereinheitlicht.</li>
                       <li><strong>Namen-Kapitalisierung:</strong> GROSSBUCHSTABEN oder kleinbuchstaben werden korrekt kapitalisiert (inkl. Bindestriche).</li>
                       <li><strong>Strassen-Format:</strong> Grossschreibung korrigiert, Abkürzungen wie «Str.» aufgelöst.</li>
+                      <li><strong>Ort-Normalisierung:</strong> Ortsangaben in GROSSBUCHSTABEN oder kleinbuchstaben werden korrekt kapitalisiert (Proper Case).</li>
                       <li><strong>IBAN-Format:</strong> Wird zu <code className="bg-muted px-1 rounded text-xs">CHXX XXXX XXXX XXXX XXXX X</code> formatiert.</li>
                       <li><strong>Excel-Datum:</strong> Excel-Seriennummern werden zu <code className="bg-muted px-1 rounded text-xs">DD.MM.YYYY</code> konvertiert.</li>
+                      <li><strong>Datums-Varianten:</strong> Formate wie <code className="bg-muted px-1 rounded text-xs">DD-MM-YYYY</code>, <code className="bg-muted px-1 rounded text-xs">YYYY-MM-DD</code>, <code className="bg-muted px-1 rounded text-xs">DD/MM/YYYY</code> werden zu DD.MM.YYYY konvertiert.</li>
+                      <li><strong>Whitespace:</strong> Führende/nachfolgende Leerzeichen und Doppelleerzeichen werden bereinigt.</li>
                     </ul>
                   </div>
 

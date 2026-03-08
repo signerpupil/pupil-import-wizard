@@ -32,20 +32,6 @@ interface ApplyCorrectionPayload {
   newValue?: string;
 }
 
-// Build error index for O(1) lookups
-function buildErrorIndex(errors: ValidationError[]): Map<string, ValidationError[]> {
-  const index = new Map<string, ValidationError[]>();
-  
-  for (const error of errors) {
-    const key = `${error.column}:${error.type}`;
-    if (!index.has(key)) {
-      index.set(key, []);
-    }
-    index.get(key)!.push(error);
-  }
-  
-  return index;
-}
 
 // Analyze errors and suggest local corrections
 function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
@@ -59,7 +45,6 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     suggestedAction?: string;
   }>;
 } {
-  const errorIndex = buildErrorIndex(errors);
   const patterns: Array<{
     type: string;
     column: string;
