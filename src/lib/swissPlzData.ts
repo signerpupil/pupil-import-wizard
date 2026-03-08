@@ -1379,7 +1379,6 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '5742': ['Kölliken'],
   '5745': ['Safenwil'],
   '5746': ['Walterswil SO'],
-  '5600': ['Lenzburg'],
 
   // Uri, Schwyz, Nidwalden, Obwalden, Zug
   '6300': ['Zug'],
