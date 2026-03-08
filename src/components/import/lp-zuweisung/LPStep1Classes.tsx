@@ -277,7 +277,7 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
       </Card>
 
       {classData.length > 0 && (
-        <>
+        <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -328,7 +328,6 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
             </div>
           </CardContent>
         </Card>
-        </>
       )}
 
       <div className="flex justify-between">
