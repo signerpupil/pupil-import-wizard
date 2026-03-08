@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
 import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES, isValidAHVChecksum } from '@/lib/formatters';
+import { validatePlzOrt } from '@/lib/swissPlzData';
 
 export interface ParseResult {
   headers: string[];
@@ -1042,6 +1043,10 @@ export function validateData(
   const siblingErrors = checkSiblingConsistency(rows);
   errors.push(...siblingErrors);
 
+  // Check PLZ↔Ort consistency
+  const plzOrtErrors = checkPlzOrtConsistency(rows);
+  errors.push(...plzOrtErrors);
+
   return errors;
 }
 
@@ -1102,6 +1107,46 @@ function checkSiblingConsistency(rows: ParsedRow[]): ValidationError[] {
         }
       }
     });
+  }
+
+  return errors;
+}
+
+// PLZ↔Ort consistency check using Swiss PLZ database
+function checkPlzOrtConsistency(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  // Pairs of PLZ and Ort columns to cross-check
+  const plzOrtPairs: [string, string][] = [
+    ['S_PLZ', 'S_Ort'],
+    ['P_ERZ1_PLZ', 'P_ERZ1_Ort'],
+    ['P_ERZ2_PLZ', 'P_ERZ2_Ort'],
+  ];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 1;
+
+    for (const [plzCol, ortCol] of plzOrtPairs) {
+      const plz = String(row[plzCol] ?? '').trim();
+      const ort = String(row[ortCol] ?? '').trim();
+
+      if (plz === '' || ort === '') continue;
+
+      const result = validatePlzOrt(plz, ort);
+
+      if (result !== null && result !== true) {
+        // Mismatch found
+        const expected = result.slice(0, 3).join(', ');
+        errors.push({
+          row: rowNum,
+          column: ortCol,
+          value: ort,
+          message: `PLZ ${plz} gehört zu "${expected}", nicht zu "${ort}"`,
+          type: 'business',
+          severity: 'warning',
+        });
+      }
+    }
   }
 
   return errors;
