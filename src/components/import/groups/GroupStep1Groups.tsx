@@ -475,25 +475,23 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
                         Betrifft {affectedGroups.length} Gruppe{affectedGroups.length !== 1 ? 'n' : ''}: {affectedGroups.map(g => g.name).join(', ')}
                       </div>
                     </div>
-                    <Select onValueChange={(val) => {
-                      if (val !== '__skip__') {
-                        handleReassignSubject(subject, val);
-                      }
-                    }}>
-                      <SelectTrigger className="w-[220px] h-9 text-sm">
-                        <SelectValue placeholder="Anderes Fach zuweisen..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        <SelectItem value="__skip__" className="text-muted-foreground italic">
-                          In PUPIL erfassen (nicht ändern)
-                        </SelectItem>
-                        {pupilSubjects.map((ps) => (
-                          <SelectItem key={ps.name} value={ps.name}>
-                            {ps.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value="__none__"
+                      onValueChange={(val) => {
+                        if (val !== '__none__') {
+                          handleReassignSubject(subject, val);
+                        }
+                      }}
+                      options={pupilSubjects.map(ps => ({
+                        value: ps.name,
+                        label: ps.name,
+                        sublabel: ps.schluessel || undefined,
+                      }))}
+                      placeholder="Anderes Fach zuweisen..."
+                      searchPlaceholder="Fach suchen…"
+                      noneLabel="In PUPIL erfassen (nicht ändern)"
+                      className="w-[250px]"
+                    />
                   </div>
                 );
               })}
