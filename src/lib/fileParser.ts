@@ -1043,6 +1043,10 @@ export function validateData(
   const siblingErrors = checkSiblingConsistency(rows);
   errors.push(...siblingErrors);
 
+  // Check PLZ↔Ort consistency
+  const plzOrtErrors = checkPlzOrtConsistency(rows);
+  errors.push(...plzOrtErrors);
+
   return errors;
 }
 
