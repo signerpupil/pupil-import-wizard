@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
+import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES } from '@/lib/formatters';
 
 export interface ParseResult {
   headers: string[];
@@ -1120,14 +1121,10 @@ function validateFieldType(
 }
 
 function isValidDate(value: string): boolean {
-  // Accept various date formats and Excel serial numbers
-  const patterns = [
-    /^\d{2}\.\d{2}\.\d{4}$/, // DD.MM.YYYY
-    /^\d{4}-\d{2}-\d{2}$/,   // YYYY-MM-DD
-    /^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
-    /^\d+$/,                  // Excel serial number
-  ];
-  return patterns.some(p => p.test(value)) || !isNaN(Date.parse(value));
+  // Only accept DD.MM.YYYY as the valid Swiss date format.
+  // Other formats (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Excel serial) are flagged
+  // so the auto-fix patterns can convert them.
+  return /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value);
 }
 
 function isValidAHV(value: string): boolean {
@@ -1148,10 +1145,8 @@ function isValidPLZ(value: string): boolean {
 }
 
 function isValidGender(value: string): boolean {
-  // Accept M, W, D (case-insensitive) and common variations
-  const normalized = value.toUpperCase().trim();
-  const validValues = ['M', 'W', 'D', 'MÄNNLICH', 'WEIBLICH', 'DIVERS', 'MALE', 'FEMALE', 'DIVERSE'];
-  return validValues.includes(normalized);
+  // Uses shared formatter — accepts all values formatGender can normalize (M, W, D, MÄNNLICH, etc.)
+  return checkGenderValid(value);
 }
 
 function isValidPhone(value: string): boolean {
