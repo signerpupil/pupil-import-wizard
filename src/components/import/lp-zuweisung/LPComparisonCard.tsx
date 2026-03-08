@@ -4,34 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { GitCompareArrows, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import type { ClassTeacherData, PupilClass } from '@/types/importTypes';
+import { namesMatch, matchClassName } from '@/lib/nameUtils';
 
 interface LPComparisonCardProps {
   classData: ClassTeacherData[];
   pupilClasses: PupilClass[];
-}
-
-function normalizeName(name: string): string {
-  return name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function nameVariants(name: string): string[] {
-  const norm = normalizeName(name);
-  const parts = norm.split(/\s+/);
-  if (parts.length >= 2) {
-    const reversed = `${parts[parts.length - 1]} ${parts.slice(0, -1).join(' ')}`;
-    return [norm, reversed];
-  }
-  return [norm];
-}
-
-function namesMatch(a: string, b: string): boolean {
-  const aVars = nameVariants(a);
-  const bVars = nameVariants(b);
-  return aVars.some(av => bVars.some(bv => av === bv));
 }
 
 interface ClassComparison {
@@ -60,12 +37,14 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
 
     // Match each LO class to a PUPIL class and compare
     for (const [loKlasse, loTeachers] of loClassTeachers) {
-      const loNorm = loKlasse.trim().toLowerCase();
-      const pupilClass = pupilClasses.find(pc => pc.klassenname.trim().toLowerCase().startsWith(loNorm));
+      const pupilClassName = matchClassName(loKlasse, pupilClasses);
+      const pupilClass = pupilClassName
+        ? pupilClasses.find(pc => pc.klassenname === pupilClassName)
+        : null;
 
       if (!pupilClass || pupilClass.klassenlehrpersonen.length === 0) continue;
 
-      // Compare using swapped name support
+      // Compare using shared namesMatch (supports swapped, token-based, fuzzy)
       const onlyInLO: string[] = [];
       const matching: string[] = [];
       const matchedPupilIndices = new Set<number>();
@@ -119,9 +98,7 @@ export function LPComparisonCard({ classData, pupilClasses }: LPComparisonCardPr
           <div>
             <CardTitle className="text-base">Vergleich PUPIL vs. LehrerOffice</CardTitle>
             <CardDescription>
-              Klassenlehrpersonen aus PUPIL werden mit allen zugewiesenen LP aus LehrerOffice abgeglichen. 
-              Dies dient zur Verifizierung der Klassenzuordnung — prüfen Sie insbesondere Klassen, 
-              bei denen in PUPIL andere Klassenlehrpersonen hinterlegt sind als in LehrerOffice.
+              Klassenlehrpersonen aus PUPIL werden mit allen zugewiesenen LP aus LehrerOffice abgeglichen.
             </CardDescription>
           </div>
         </div>
