@@ -173,11 +173,51 @@ describe('Shared Formatters', () => {
   });
 
   describe('convertExcelDate', () => {
-    it('converts Excel serial number', () => {
+    it('converts Excel serial number 44123', () => {
       expect(convertExcelDate('44123')).toBe('19.10.2020');
+    });
+    it('converts Excel serial number 41640 (Jan 2014)', () => {
+      const result = convertExcelDate('41640');
+      expect(result).toMatch(/^\d{2}\.\d{2}\.2014$/);
+    });
+    it('converts Excel serial number 44927 (Dec 2022)', () => {
+      const result = convertExcelDate('44927');
+      expect(result).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
     });
     it('returns null for non-serial', () => {
       expect(convertExcelDate('abc')).toBeNull();
+    });
+    it('returns null for too small serial (< 1)', () => {
+      expect(convertExcelDate('0')).toBeNull();
+    });
+    it('returns null for negative serial', () => {
+      expect(convertExcelDate('-100')).toBeNull();
+    });
+  });
+
+  // ===== Date format edge cases =====
+  describe('formatDateDE - extended edge cases', () => {
+    it('converts single-digit day/month slash format 1/3/2014', () => {
+      expect(formatDateDE('1/3/2014')).toBe('01.03.2014');
+    });
+    it('converts DD-MM-YYYY with leading zeros', () => {
+      expect(formatDateDE('01-01-2020')).toBe('01.01.2020');
+    });
+    it('converts YYYY-MM-DD edge year', () => {
+      expect(formatDateDE('2000-12-31')).toBe('31.12.2000');
+    });
+    it('returns null for invalid format like MM/DD/YYYY ambiguity', () => {
+      // 15/03/2014 is treated as DD/MM since day > 12
+      expect(formatDateDE('15/03/2014')).toBe('15.03.2014');
+    });
+    it('returns null for plain text', () => {
+      expect(formatDateDE('not-a-date')).toBeNull();
+    });
+    it('returns null for partial date', () => {
+      expect(formatDateDE('15.03')).toBeNull();
+    });
+    it('handles YYYY-MM-DD with Feb 29 leap year', () => {
+      expect(formatDateDE('2020-02-29')).toBe('29.02.2020');
     });
   });
 
