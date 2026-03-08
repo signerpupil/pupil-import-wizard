@@ -9,8 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus, ChangeLogEntry } from '@/types/importTypes';
 import type { CorrectionRule } from '@/types/correctionTypes';
