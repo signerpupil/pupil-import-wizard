@@ -278,18 +278,6 @@ export function LPStep1Classes({ classData, onClassDataChange, onBack, onNext }:
 
       {classData.length > 0 && (
         <>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} className="shadow-sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Zurück
-          </Button>
-          <Button onClick={onNext} disabled={classData.length === 0} className="shadow-sm">
-            Weiter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-
-        <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
