@@ -5,6 +5,21 @@
 
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
 import { NATIONALITY_AUTO_CORRECTIONS } from '@/lib/fileParser';
+import {
+  formatSwissPhone, formatSwissPLZ, formatPostfach, formatAHV, convertExcelDate,
+  formatDateDE, trimWhitespace, formatEmail, formatGender, formatName, formatStreet,
+  formatOrt, formatIBAN, getFixFunction,
+  PHONE_COLUMNS, EMAIL_COLUMNS, AHV_COLUMNS, DATE_COLUMNS, PLZ_COLUMNS,
+  GENDER_COLUMNS, NAME_COLUMNS, STREET_COLUMNS, ORT_COLUMNS, WHITESPACE_COLUMNS,
+  isValidAHVChecksum, parseDateDMY, calculateAge,
+} from '@/lib/formatters';
+
+// Re-export format functions for backward compatibility
+export {
+  formatSwissPhone, formatSwissPLZ, formatPostfach, formatAHV, convertExcelDate,
+  formatDateDE, trimWhitespace, formatEmail, formatGender, formatName, formatStreet,
+  formatIBAN, formatOrt,
+};
 
 export interface LocalSuggestion {
   type: string;
@@ -15,161 +30,6 @@ export interface LocalSuggestion {
   autoFix: boolean;
   fixFunction: string;
   correctValue?: string | null;
-}
-
-// ============================================
-// Format Functions (Swiss-specific)
-// ============================================
-
-export function formatSwissPhone(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  
-  // Swiss mobile: 07X XXX XX XX
-  if (digits.length === 10 && digits.startsWith('07')) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
-  }
-  // Swiss landline: 0XX XXX XX XX
-  if (digits.length === 10 && digits.startsWith('0')) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
-  }
-  // With country code +41
-  if (digits.length === 11 && digits.startsWith('41')) {
-    return `+41 ${digits.slice(2, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`;
-  }
-  // With 0041 prefix
-  if (digits.length === 13 && digits.startsWith('0041')) {
-    return `+41 ${digits.slice(4, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 11)} ${digits.slice(11, 13)}`;
-  }
-  return null;
-}
-
-export function formatSwissPLZ(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 4) {
-    return digits;
-  }
-  return null;
-}
-
-export function formatPostfach(value: string): string | null {
-  const lower = value.toLowerCase().trim();
-  const match = lower.match(/(?:postfach|pf|p\.f\.)?\s*(\d+)/i);
-  if (match) {
-    return `Postfach ${match[1]}`;
-  }
-  return null;
-}
-
-export function formatAHV(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 13 && digits.startsWith('756')) {
-    return `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
-  }
-  return null;
-}
-
-export function convertExcelDate(value: string): string | null {
-  const serialNum = parseInt(value);
-  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 100000) {
-    const date = new Date((serialNum - 25569) * 86400 * 1000);
-    if (!isNaN(date.getTime())) {
-      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
-    }
-  }
-  return null;
-}
-
-// Convert date formats: DD-MM-YYYY or YYYY-MM-DD → DD.MM.YYYY
-export function formatDateDE(value: string): string | null {
-  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (dashMatch) return `${dashMatch[1].padStart(2, '0')}.${dashMatch[2].padStart(2, '0')}.${dashMatch[3]}`;
-  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
-  return null;
-}
-
-// Trim leading/trailing whitespace and normalize multiple spaces
-export function trimWhitespace(value: string): string | null {
-  const trimmed = value.trim().replace(/\s{2,}/g, ' ');
-  return trimmed !== value ? trimmed : null;
-}
-
-export function formatEmail(value: string): string | null {
-  let cleaned = value.trim().toLowerCase();
-  cleaned = cleaned.replace(/\s+/g, '');
-  cleaned = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  if (cleaned.includes('@') && cleaned.includes('.')) {
-    return cleaned;
-  }
-  return null;
-}
-
-export function formatGender(value: string): string | null {
-  const normalized = value.toUpperCase().trim();
-  const maleValues = ['MÄNNLICH', 'MALE', 'MANN', 'M', 'MAENNLICH', 'HERR', 'H'];
-  const femaleValues = ['WEIBLICH', 'FEMALE', 'FRAU', 'W', 'F'];
-  const diverseValues = ['DIVERS', 'DIVERSE', 'D', 'X', 'ANDERES'];
-  
-  if (maleValues.includes(normalized)) return 'M';
-  if (femaleValues.includes(normalized)) return 'W';
-  if (diverseValues.includes(normalized)) return 'D';
-  
-  return null;
-}
-
-// Format name - capitalize properly
-export function formatName(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  
-  // Check if it needs formatting (all caps, all lower)
-  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
-  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
-  
-  if (!isAllCaps && !isAllLower) return null;
-  
-  // Capitalize each word, handle hyphenated names
-  return trimmed
-    .toLowerCase()
-    .split(/(\s+|-)/g)
-    .map(part => {
-      if (part === '-' || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
-}
-
-// Format street address
-export function formatStreet(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  
-  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
-  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
-  
-  if (!isAllCaps && !isAllLower) return null;
-  
-  let formatted = trimmed.toLowerCase();
-  formatted = formatted.replace(/^str\.?\s*/i, 'Strasse ');
-  formatted = formatted.replace(/\bstr\.?$/i, 'strasse');
-  
-  return formatted
-    .split(/(\s+)/g)
-    .map(part => {
-      if (/^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
-}
-
-// Format IBAN
-export function formatIBAN(value: string): string | null {
-  const cleaned = value.replace(/\s/g, '').toUpperCase();
-  if (cleaned.startsWith('CH') && cleaned.length === 21) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)} ${cleaned.slice(12, 16)} ${cleaned.slice(16, 20)} ${cleaned.slice(20)}`;
-  }
-  return null;
 }
 
 // ============================================
@@ -257,10 +117,9 @@ function detectPatternForColumns(
 }
 
 function detectPhonePattern(index: ErrorIndex): PatternGroup[] {
-  const phoneColumns = ['P_ERZ1_Tel', 'P_ERZ2_Tel', 'P_ERZ1_Mobile', 'P_ERZ2_Mobile', 'S_Tel', 'S_Mobile'];
   return detectPatternForColumns(
     index,
-    phoneColumns,
+    PHONE_COLUMNS,
     'Telefonformat',
     formatSwissPhone,
     'phone_format',
@@ -270,10 +129,9 @@ function detectPhonePattern(index: ErrorIndex): PatternGroup[] {
 }
 
 function detectAHVPattern(index: ErrorIndex): PatternGroup[] {
-  const ahvColumns = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
   return detectPatternForColumns(
     index,
-    ahvColumns,
+    AHV_COLUMNS,
     'AHV',
     formatAHV,
     'ahv_format',
@@ -282,11 +140,44 @@ function detectAHVPattern(index: ErrorIndex): PatternGroup[] {
   );
 }
 
+function detectAHVChecksumPattern(index: ErrorIndex): PatternGroup[] {
+  const groups: PatternGroup[] = [];
+  
+  for (const col of AHV_COLUMNS) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+    
+    const invalidRows: number[] = [];
+    const invalidValues: string[] = [];
+    
+    for (const e of columnErrors) {
+      // Only check already formatted AHV numbers for checksum
+      if (/^756\.\d{4}\.\d{4}\.\d{2}$/.test(e.value) && !isValidAHVChecksum(e.value)) {
+        invalidRows.push(e.row);
+        invalidValues.push(e.value);
+      }
+    }
+    
+    if (invalidRows.length > 0) {
+      groups.push({
+        type: 'ahv_checksum',
+        column: col,
+        rows: invalidRows,
+        values: invalidValues,
+        fixFunction: 'manual',
+        description: `${invalidRows.length} AHV-Nummern mit ungültiger Prüfziffer – Manuelle Prüfung erforderlich`,
+        canAutoFix: false
+      });
+    }
+  }
+  
+  return groups;
+}
+
 function detectDatePattern(index: ErrorIndex): PatternGroup[] {
   const groups: PatternGroup[] = [];
-  const dateColumns = ['S_Geburtsdatum', 'P_ERZ1_Geburtsdatum', 'P_ERZ2_Geburtsdatum', 'Datum'];
   
-  for (const col of dateColumns) {
+  for (const col of DATE_COLUMNS) {
     const columnErrors = index.byColumn.get(col);
     if (!columnErrors || columnErrors.length === 0) continue;
     
@@ -321,23 +212,21 @@ function detectDatePattern(index: ErrorIndex): PatternGroup[] {
 }
 
 function detectEmailPattern(index: ErrorIndex): PatternGroup[] {
-  const emailColumns = ['S_Email', 'P_ERZ1_Email', 'P_ERZ2_Email', 'P_Email'];
   return detectPatternForColumns(
     index,
-    emailColumns,
+    EMAIL_COLUMNS,
     'E-Mail',
     formatEmail,
     'email_format',
     'formatEmail',
-    (count) => `${count} E-Mail-Adressen können bereinigt werden (Leerzeichen, Umlaute)`
+    (count) => `${count} E-Mail-Adressen können bereinigt werden (Tippfehler, Leerzeichen, Umlaute)`
   );
 }
 
 function detectPLZPattern(index: ErrorIndex): PatternGroup[] {
-  const plzColumns = ['S_PLZ', 'P_ERZ1_PLZ', 'P_ERZ2_PLZ'];
   return detectPatternForColumns(
     index,
-    plzColumns,
+    PLZ_COLUMNS,
     'PLZ',
     formatSwissPLZ,
     'plz_format',
@@ -347,15 +236,95 @@ function detectPLZPattern(index: ErrorIndex): PatternGroup[] {
 }
 
 function detectGenderPattern(index: ErrorIndex): PatternGroup[] {
-  const genderColumns = ['S_Geschlecht'];
   return detectPatternForColumns(
     index,
-    genderColumns,
+    GENDER_COLUMNS,
     'Geschlecht',
     formatGender,
     'gender_format',
     'formatGender',
     (count) => `${count} Geschlechtsangaben können normalisiert werden (M/W/D)`
+  );
+}
+
+// Detect DD-MM-YYYY, YYYY-MM-DD, or DD/MM/YYYY date format issues
+function detectDateFormatPattern(index: ErrorIndex): PatternGroup[] {
+  const groups: PatternGroup[] = [];
+
+  for (const col of DATE_COLUMNS) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of columnErrors) {
+      if (formatDateDE(e.value) !== null) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'date_de_format',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'date_de_format',
+        description: `${fixableRows.length} Datumsangaben im falschen Format (Bindestriche/Schrägstriche/ISO) → DD.MM.YYYY`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
+// Detect whitespace issues in ALL text columns
+function detectWhitespacePattern(index: ErrorIndex): PatternGroup[] {
+  const groups: PatternGroup[] = [];
+
+  for (const col of WHITESPACE_COLUMNS) {
+    const columnErrors = index.byColumn.get(col);
+    if (!columnErrors || columnErrors.length === 0) continue;
+
+    const fixableRows: number[] = [];
+    const fixableValues: string[] = [];
+
+    for (const e of columnErrors) {
+      if (trimWhitespace(e.value) !== null) {
+        fixableRows.push(e.row);
+        fixableValues.push(e.value);
+      }
+    }
+
+    if (fixableRows.length > 0) {
+      groups.push({
+        type: 'whitespace_trim',
+        column: col,
+        rows: fixableRows,
+        values: fixableValues,
+        fixFunction: 'whitespace_trim',
+        description: `${fixableRows.length} Einträge in "${col}" mit führenden/nachfolgenden Leerzeichen`,
+        canAutoFix: true,
+      });
+    }
+  }
+
+  return groups;
+}
+
+// Detect Ort (location) normalization patterns
+function detectOrtPattern(index: ErrorIndex): PatternGroup[] {
+  return detectPatternForColumns(
+    index,
+    ORT_COLUMNS,
+    '', // match any error message for Ort columns
+    formatOrt,
+    'ort_format',
+    'formatOrt',
+    (count) => `${count} Ortsangaben können normalisiert werden (Gross-/Kleinschreibung)`
   );
 }
 
@@ -429,80 +398,6 @@ function detectParentIdInconsistencies(index: ErrorIndex): PatternGroup[] {
   return groups;
 }
 
-// Detect DD-MM-YYYY or YYYY-MM-DD date format issues
-function detectDateFormatPattern(index: ErrorIndex): PatternGroup[] {
-  const dateColumns = ['S_Geburtsdatum', 'P_ERZ1_Geburtsdatum', 'P_ERZ2_Geburtsdatum', 'Datum'];
-  const groups: PatternGroup[] = [];
-
-  for (const col of dateColumns) {
-    const columnErrors = index.byColumn.get(col);
-    if (!columnErrors || columnErrors.length === 0) continue;
-
-    const fixableRows: number[] = [];
-    const fixableValues: string[] = [];
-
-    for (const e of columnErrors) {
-      if (formatDateDE(e.value) !== null) {
-        fixableRows.push(e.row);
-        fixableValues.push(e.value);
-      }
-    }
-
-    if (fixableRows.length > 0) {
-      groups.push({
-        type: 'date_de_format',
-        column: col,
-        rows: fixableRows,
-        values: fixableValues,
-        fixFunction: 'date_de_format',
-        description: `${fixableRows.length} Datumsangaben im falschen Format (Bindestriche/ISO) → DD.MM.YYYY`,
-        canAutoFix: true,
-      });
-    }
-  }
-
-  return groups;
-}
-
-// Detect whitespace issues (leading/trailing spaces, double spaces) in text columns
-function detectWhitespacePattern(index: ErrorIndex): PatternGroup[] {
-  const textColumns = [
-    'S_Name', 'S_Vorname', 'S_Strasse', 'S_Ort',
-    'P_ERZ1_Name', 'P_ERZ1_Vorname', 'P_ERZ1_Strasse', 'P_ERZ1_Ort',
-    'P_ERZ2_Name', 'P_ERZ2_Vorname', 'P_ERZ2_Strasse', 'P_ERZ2_Ort',
-  ];
-  const groups: PatternGroup[] = [];
-
-  for (const col of textColumns) {
-    const columnErrors = index.byColumn.get(col);
-    if (!columnErrors || columnErrors.length === 0) continue;
-
-    const fixableRows: number[] = [];
-    const fixableValues: string[] = [];
-
-    for (const e of columnErrors) {
-      if (trimWhitespace(e.value) !== null) {
-        fixableRows.push(e.row);
-        fixableValues.push(e.value);
-      }
-    }
-
-    if (fixableRows.length > 0) {
-      groups.push({
-        type: 'whitespace_trim',
-        column: col,
-        rows: fixableRows,
-        values: fixableValues,
-        fixFunction: 'whitespace_trim',
-        description: `${fixableRows.length} Einträge in "${col}" mit führenden/nachfolgenden Leerzeichen`,
-        canAutoFix: true,
-      });
-    }
-  }
-
-  return groups;
-}
-
 // Detect nationality auto-corrections (veraltete Bezeichnungen → offizielle)
 function detectNationalityPattern(index: ErrorIndex): PatternGroup[] {
   const natColumns = ['S_Nationalitaet'];
@@ -545,7 +440,6 @@ function detectLanguagePattern(index: ErrorIndex): PatternGroup[] {
 
   for (const col of languageColumns) {
     // We need ALL errors for this column (including those with correctedValue already set)
-    // because language typo-warnings come pre-loaded with correctedValue from fileParser
     const allColErrors: ValidationError[] = [];
     for (const error of [...(index.byColumn.get(col) ?? []), ...index.uncorrected.filter(e => e.column === col && e.correctedValue !== undefined)]) {
       if (!allColErrors.includes(error)) allColErrors.push(error);
@@ -577,20 +471,55 @@ function detectLanguagePattern(index: ErrorIndex): PatternGroup[] {
   return groups;
 }
 
+// Detect age plausibility issues (students: 4-20, parents: >18)
+function detectAgePlausibility(index: ErrorIndex, rows: ParsedRow[]): PatternGroup[] {
+  const groups: PatternGroup[] = [];
+  const implausibleRows: number[] = [];
+  const implausibleValues: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const birthDateStr = String(rows[i]['S_Geburtsdatum'] ?? '').trim();
+    if (!birthDateStr) continue;
+
+    const birthDate = parseDateDMY(birthDateStr);
+    if (!birthDate) continue;
+
+    const age = calculateAge(birthDate);
+    if (age < 4 || age > 20) {
+      implausibleRows.push(i + 1); // 1-indexed
+      implausibleValues.push(`${birthDateStr} (Alter: ${age})`);
+    }
+  }
+
+  if (implausibleRows.length > 0) {
+    groups.push({
+      type: 'age_plausibility',
+      column: 'S_Geburtsdatum',
+      rows: implausibleRows,
+      values: implausibleValues,
+      fixFunction: 'manual',
+      description: `${implausibleRows.length} Schüler/innen mit unplausiblem Alter (< 4 oder > 20 Jahre) – Manuelle Prüfung`,
+      canAutoFix: false,
+    });
+  }
+
+  return groups;
+}
+
 // ============================================
 // Main Analysis Function - Optimized
 // ============================================
 
 export function analyzeErrorsLocally(
   errors: ValidationError[],
-  _rows: ParsedRow[]
+  rows: ParsedRow[]
 ): LocalSuggestion[] {
   const suggestions: LocalSuggestion[] = [];
   
   // Build index once for O(1) column lookups
   const index = buildErrorIndex(errors);
   
-  if (index.uncorrected.length === 0) {
+  if (index.uncorrected.length === 0 && rows.length === 0) {
     return suggestions;
   }
   
@@ -598,16 +527,19 @@ export function analyzeErrorsLocally(
   const patternGroups: PatternGroup[] = [
     ...detectPhonePattern(index),
     ...detectAHVPattern(index),
+    ...detectAHVChecksumPattern(index),
     ...detectDatePattern(index),
     ...detectDateFormatPattern(index),
     ...detectWhitespacePattern(index),
     ...detectEmailPattern(index),
     ...detectPLZPattern(index),
     ...detectGenderPattern(index),
+    ...detectOrtPattern(index),
     ...detectLanguagePattern(index),
     ...detectNationalityPattern(index),
     ...detectDuplicateGroups(index),
     ...detectParentIdInconsistencies(index),
+    ...detectAgePlausibility(index, rows),
   ];
   
   // Convert pattern groups to suggestions
@@ -667,7 +599,6 @@ export function applyLocalCorrection(
         correctedValue = idMatch[1];
       }
     } else if (suggestion.fixFunction === 'language_bista' || suggestion.fixFunction === 'nationality_correction') {
-      // Language/nationality corrections already have correctedValue set by fileParser
       correctedValue = error.correctedValue ?? null;
     }
     
@@ -681,34 +612,4 @@ export function applyLocalCorrection(
   }
   
   return corrections;
-}
-
-// Get the appropriate fix function
-function getFixFunction(name: string): ((value: string) => string | null) | null {
-  switch (name) {
-    case 'formatSwissPhone': return formatSwissPhone;
-    case 'formatAHV': return formatAHV;
-    case 'convertExcelDate': return convertExcelDate;
-    case 'formatEmail': return formatEmail;
-    case 'formatSwissPLZ': return formatSwissPLZ;
-    case 'formatGender': return formatGender;
-    case 'formatName': return formatName;
-    case 'formatStreet': return formatStreet;
-    case 'formatIBAN': return formatIBAN;
-    // Worker-style types
-    case 'phone_format': return formatSwissPhone;
-    case 'ahv_format': return formatAHV;
-    case 'email_format': return formatEmail;
-    case 'plz_format': return formatSwissPLZ;
-    case 'gender_format': return formatGender;
-    case 'name_format': return formatName;
-    case 'street_format': return formatStreet;
-    case 'iban_format': return formatIBAN;
-    case 'date_format': return convertExcelDate;
-    case 'date_de_format': return formatDateDE;
-    case 'whitespace_trim': return trimWhitespace;
-    case 'language_bista': return null; // handled via error.correctedValue directly
-    case 'nationality_correction': return null; // handled via error.correctedValue directly
-    default: return null;
-  }
 }
