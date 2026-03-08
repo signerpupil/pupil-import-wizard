@@ -86,25 +86,10 @@ export function Step4Preview({
     // Filter out _source_file from export headers unless user wants it
     const cleanHeaders = headers.filter(h => h !== '_source_file');
 
-    if (splitBySource && isMultiFile) {
-      // Export one file per source
-      for (const sf of sourceFiles!) {
-        const sourceRows = rows.filter((r, i) => {
-          return r['_source_file'] === sf.name;
-        });
-        const sourceName = `${importTypeName}_${sf.name.replace(/\.[^.]+$/, '')}`;
-        if (exportFormat === 'csv') {
-          exportToCSV(sourceRows, cleanHeaders, sourceName, options);
-        } else {
-          await exportToExcel(sourceRows, cleanHeaders, sourceName, options);
-        }
-      }
+    if (exportFormat === 'csv') {
+      exportToCSV(rows, cleanHeaders, importTypeName, options);
     } else {
-      if (exportFormat === 'csv') {
-        exportToCSV(rows, cleanHeaders, importTypeName, options);
-      } else {
-        await exportToExcel(rows, cleanHeaders, importTypeName, options);
-      }
+      await exportToExcel(rows, cleanHeaders, importTypeName, options);
     }
     setExported(true);
   };
