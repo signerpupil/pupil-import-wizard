@@ -1149,10 +1149,8 @@ function isValidPLZ(value: string): boolean {
 }
 
 function isValidGender(value: string): boolean {
-  // Accept all values that formatGender can handle (M, W, D, MÄNNLICH, WEIBLICH, DIVERS,
-  // MALE, FEMALE, DIVERSE, MANN, FRAU, MAENNLICH, HERR, H, F, X, ANDERES)
-  const { isValidGender: checkGender } = require('@/lib/formatters');
-  return checkGender(value);
+  // Uses shared formatter — accepts all values formatGender can normalize (M, W, D, MÄNNLICH, etc.)
+  return checkGenderValid(value);
 }
 
 function isValidPhone(value: string): boolean {
