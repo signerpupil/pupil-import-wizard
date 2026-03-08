@@ -513,17 +513,8 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       )}
 
       {groups.length > 0 && (
-        <>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} className="shadow-sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Zurück
-          </Button>
-          <Button onClick={onNext} disabled={groups.length === 0} className="shadow-sm">
-            Weiter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+
+
 
         <Card className="transition-all duration-200">
           <CardHeader>
