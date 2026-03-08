@@ -2087,7 +2087,6 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '1660': ['Château-d\'Oex'],
   '1680': ['Romont FR'],
   '2560': ['Nidau'],
-  '2502': ['Biel/Bienne', 'Biel', 'Bienne'],
   '2540': ['Grenchen'],
   '2600': ['Bienne', 'Biel/Bienne'],
   '2610': ['St-Imier', 'Saint-Imier'],
