@@ -70,10 +70,11 @@ export function Step4Preview({
     .filter(c => c.status !== 'extra')
     .map(c => c.name);
 
-  // Determine export headers
-  const exportHeaders = removeExtraColumns
+  // Determine export headers – always exclude _source_file
+  const exportHeaders = (removeExtraColumns
     ? headers.filter(h => expectedColumns.includes(h))
-    : headers;
+    : headers
+  ).filter(h => h !== '_source_file');
 
   const handleExport = async () => {
     const options = {
