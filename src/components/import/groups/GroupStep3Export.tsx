@@ -185,7 +185,7 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
                 <CardDescription>Erstellt die Gruppen in PUPIL</CardDescription>
               </div>
             </div>
-            <Button onClick={handleExportGroups} disabled={groups.length === 0} className="shadow-sm">
+            <Button onClick={handleExportGroups} disabled={groups.length === 0 || !schuljahr.trim()} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
