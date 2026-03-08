@@ -84,8 +84,7 @@ export function Step4Preview({
       expectedColumns,
     };
 
-    // Filter out _source_file from export headers unless user wants it
-    const cleanHeaders = headers.filter(h => h !== '_source_file');
+    // Use exportHeaders which already excludes _source_file
 
     if (exportFormat === 'csv') {
       exportToCSV(rows, cleanHeaders, importTypeName, options);
