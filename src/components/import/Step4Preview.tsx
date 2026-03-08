@@ -70,10 +70,11 @@ export function Step4Preview({
     .filter(c => c.status !== 'extra')
     .map(c => c.name);
 
-  // Determine export headers
-  const exportHeaders = removeExtraColumns
+  // Determine export headers – always exclude _source_file
+  const exportHeaders = (removeExtraColumns
     ? headers.filter(h => expectedColumns.includes(h))
-    : headers;
+    : headers
+  ).filter(h => h !== '_source_file');
 
   const handleExport = async () => {
     const options = {
@@ -83,13 +84,12 @@ export function Step4Preview({
       expectedColumns,
     };
 
-    // Filter out _source_file from export headers unless user wants it
-    const cleanHeaders = headers.filter(h => h !== '_source_file');
+    // Use exportHeaders which already excludes _source_file
 
     if (exportFormat === 'csv') {
-      exportToCSV(rows, cleanHeaders, importTypeName, options);
+      exportToCSV(rows, exportHeaders, importTypeName, options);
     } else {
-      await exportToExcel(rows, cleanHeaders, importTypeName, options);
+      await exportToExcel(rows, exportHeaders, importTypeName, options);
     }
     setExported(true);
   };
