@@ -258,7 +258,7 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
             </div>
           </CardContent>
         </Card>
-        </>
+
       )}
 
       <div className="flex justify-between pt-4">

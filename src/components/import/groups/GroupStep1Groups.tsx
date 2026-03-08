@@ -594,7 +594,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             </div>
           </CardContent>
         </Card>
-        </>
+
       )}
 
       <div className="flex justify-between pt-4">
