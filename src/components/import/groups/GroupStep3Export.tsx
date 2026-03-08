@@ -165,16 +165,6 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack} className="shadow-sm">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button variant="outline" onClick={onReset} className="shadow-sm">
-          <RotateCcw className="mr-2 h-4 w-4" />
-          Neuer Import
-        </Button>
-      </div>
 
       {/* Preview & Export: Groups */}
       <Card className="transition-all duration-200">
