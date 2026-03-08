@@ -1058,6 +1058,10 @@ function validateFieldType(
       if (!isValidAHV(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültiges AHV-Format (756.XXXX.XXXX.XX)' };
       }
+      // Format is correct — now check checksum
+      if (!isValidAHVChecksum(value)) {
+        return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', type: 'warning' };
+      }
       break;
     case 'email':
       if (!isValidEmail(value)) {
