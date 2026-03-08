@@ -1148,10 +1148,10 @@ function isValidPLZ(value: string): boolean {
 }
 
 function isValidGender(value: string): boolean {
-  // Accept M, W, D (case-insensitive) and common variations
-  const normalized = value.toUpperCase().trim();
-  const validValues = ['M', 'W', 'D', 'MÄNNLICH', 'WEIBLICH', 'DIVERS', 'MALE', 'FEMALE', 'DIVERSE'];
-  return validValues.includes(normalized);
+  // Accept all values that formatGender can handle (M, W, D, MÄNNLICH, WEIBLICH, DIVERS,
+  // MALE, FEMALE, DIVERSE, MANN, FRAU, MAENNLICH, HERR, H, F, X, ANDERES)
+  const { isValidGender: checkGender } = require('@/lib/formatters');
+  return checkGender(value);
 }
 
 function isValidPhone(value: string): boolean {
