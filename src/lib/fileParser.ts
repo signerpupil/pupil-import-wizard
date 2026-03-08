@@ -1060,7 +1060,7 @@ function validateFieldType(
       }
       // Format is correct — now check checksum
       if (!isValidAHVChecksum(value)) {
-        return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', type: 'warning' };
+        return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', severity: 'warning' };
       }
       break;
     case 'email':
