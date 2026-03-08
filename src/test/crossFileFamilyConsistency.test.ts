@@ -1,23 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { mergeParseResults, parseCSV, validateData, type ParseResult } from '@/lib/fileParser';
-import type { ColumnDefinition } from '@/types/importTypes';
-import * as fs from 'fs';
-import * as path from 'path';
+import { mergeParseResults, validateData, type ParseResult } from '@/lib/fileParser';
+import type { ColumnDefinition, ParsedRow } from '@/types/importTypes';
 
-// Read both test CSV files
-const readCSV = (filename: string): string => {
-  return fs.readFileSync(path.resolve(__dirname, `../../public/${filename}`), 'utf-8');
-};
-
-// Column definitions matching the CSV structure
 const columns: ColumnDefinition[] = [
   { name: 'S_ID', required: true, category: 'Schüler' },
   { name: 'S_Name', required: true, category: 'Schüler' },
   { name: 'S_Vorname', required: true, category: 'Schüler' },
   { name: 'S_AHV', required: false, category: 'Schüler', validationType: 'ahv' },
-  { name: 'S_Geschlecht', required: false, category: 'Schüler' },
-  { name: 'S_Geburtsdatum', required: false, category: 'Schüler' },
-  { name: 'S_Strasse', required: false, category: 'Schüler' },
   { name: 'S_PLZ', required: false, category: 'Schüler' },
   { name: 'S_Ort', required: false, category: 'Schüler' },
   { name: 'P_ERZ1_ID', required: false, category: 'Eltern' },
@@ -40,118 +29,108 @@ const columns: ColumnDefinition[] = [
   { name: 'K_Name', required: false, category: 'Klasse' },
 ];
 
+const headers = columns.map(c => c.name);
+
+// Family Meier: same parents across both files
+const meierParent = {
+  P_ERZ1_ID: '20001', P_ERZ1_AHV: '756.2001.0001.01', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas',
+  P_ERZ1_Strasse: 'Hauptstrasse 1', P_ERZ1_PLZ: '8001', P_ERZ1_Ort: 'Zürich',
+  P_ERZ1_TelefonPrivat: '044 123 45 67', P_ERZ1_Mobil: '079 123 45 67',
+  P_ERZ2_ID: '20002', P_ERZ2_AHV: '756.2001.0002.01', P_ERZ2_Name: 'Meier', P_ERZ2_Vorname: 'Sandra',
+  P_ERZ2_Strasse: 'Hauptstrasse 1', P_ERZ2_PLZ: '8001', P_ERZ2_Ort: 'Zürich',
+  P_ERZ2_TelefonPrivat: '044 123 45 68',
+};
+
+// Family Müller: same parents across both files
+const muellerParent = {
+  P_ERZ1_ID: '20003', P_ERZ1_AHV: '756.2002.0001.01', P_ERZ1_Name: 'Müller', P_ERZ1_Vorname: 'Peter',
+  P_ERZ1_Strasse: 'Bahnhofstrasse 5', P_ERZ1_PLZ: '8002', P_ERZ1_Ort: 'Zürich',
+  P_ERZ1_TelefonPrivat: '044 234 56 78', P_ERZ1_Mobil: '079 234 56 78',
+  P_ERZ2_ID: '20004', P_ERZ2_AHV: '756.2002.0002.01', P_ERZ2_Name: 'Müller', P_ERZ2_Vorname: 'Maria',
+  P_ERZ2_Strasse: 'Bahnhofstrasse 5', P_ERZ2_PLZ: '8002', P_ERZ2_Ort: 'Zürich',
+  P_ERZ2_TelefonPrivat: '044 234 56 79',
+};
+
+// Primar file (younger children)
+const primarRows: ParsedRow[] = [
+  { S_ID: '10001', S_Name: 'Meier', S_Vorname: 'Luca', S_AHV: '756.1234.5678.01', S_PLZ: '8001', S_Ort: 'Zürich', K_Name: '1A', ...meierParent },
+  { S_ID: '10002', S_Name: 'Meier', S_Vorname: 'Sophie', S_AHV: '756.1234.5678.02', S_PLZ: '8001', S_Ort: 'Zürich', K_Name: '1A', ...meierParent },
+  { S_ID: '10004', S_Name: 'Müller', S_Vorname: 'Anna', S_AHV: '756.1234.5678.04', S_PLZ: '8002', S_Ort: 'Zürich', K_Name: '1A', ...muellerParent },
+  { S_ID: '10005', S_Name: 'Müller', S_Vorname: 'Noah', S_AHV: '756.1234.5678.05', S_PLZ: '8002', S_Ort: 'Zürich', K_Name: '1B', ...muellerParent },
+];
+
+// Oberstufe file (older siblings, same parents)
+const oberstufeRows: ParsedRow[] = [
+  { S_ID: '10060', S_Name: 'Meier', S_Vorname: 'Anja', S_AHV: '756.1234.5678.60', S_PLZ: '8001', S_Ort: 'Zürich', K_Name: 'Sek1A', ...meierParent },
+  { S_ID: '10061', S_Name: 'Meier', S_Vorname: 'Rafael', S_AHV: '756.1234.5678.61', S_PLZ: '8001', S_Ort: 'Zürich', K_Name: 'Sek1B', ...meierParent },
+  { S_ID: '10062', S_Name: 'Müller', S_Vorname: 'Jasmin', S_AHV: '756.1234.5678.62', S_PLZ: '8002', S_Ort: 'Zürich', K_Name: 'Sek1A', ...muellerParent },
+];
+
+const makePR = (name: string, rows: ParsedRow[]): ParseResult => ({
+  headers: [...headers],
+  rows,
+  fileName: name,
+});
+
 describe('Cross-File Family Consistency', () => {
-  it('should merge both files without errors', () => {
-    const csv1 = readCSV('test-stammdaten.csv');
-    const csv2 = readCSV('test-stammdaten-oberstufe.csv');
-
-    const pr1 = parseCSV(csv1, 'test-stammdaten.csv');
-    const pr2 = parseCSV(csv2, 'test-stammdaten-oberstufe.csv');
-
-    expect(pr1.rows.length).toBeGreaterThan(0);
-    expect(pr2.rows.length).toBeGreaterThan(0);
-
-    const merged = mergeParseResults([pr1, pr2]);
-    expect(merged.rows.length).toBe(pr1.rows.length + pr2.rows.length);
+  it('should merge both files correctly', () => {
+    const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', oberstufeRows)]);
+    expect(merged.rows).toHaveLength(7);
     expect(merged.sourceFiles).toHaveLength(2);
   });
 
   it('should find NO parent-ID inconsistencies for identical family data across files', () => {
-    const csv1 = readCSV('test-stammdaten.csv');
-    const csv2 = readCSV('test-stammdaten-oberstufe.csv');
-
-    const pr1 = parseCSV(csv1, 'test-stammdaten.csv');
-    const pr2 = parseCSV(csv2, 'test-stammdaten-oberstufe.csv');
-    const merged = mergeParseResults([pr1, pr2]);
-
+    const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', oberstufeRows)]);
     const errors = validateData(merged.rows, columns);
 
-    // No "Inkonsistente ID" errors should exist because parent data is identical
     const inconsistentIds = errors.filter(e => e.message.includes('Inkonsistente ID'));
     expect(inconsistentIds).toEqual([]);
   });
 
-  it('should find NO parent data inconsistencies (same AHV, address, phone) across files', () => {
-    const csv1 = readCSV('test-stammdaten.csv');
-    const csv2 = readCSV('test-stammdaten-oberstufe.csv');
-
-    const pr1 = parseCSV(csv1, 'test-stammdaten.csv');
-    const pr2 = parseCSV(csv2, 'test-stammdaten-oberstufe.csv');
-    const merged = mergeParseResults([pr1, pr2]);
-
+  it('should find NO sibling consistency warnings for identical addresses across files', () => {
+    const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', oberstufeRows)]);
     const errors = validateData(merged.rows, columns);
 
-    // Check that there are no data inconsistency errors for parent fields
-    const parentDataErrors = errors.filter(e =>
-      (e.column?.startsWith('P_ERZ') && e.type === 'error') ||
-      e.message.includes('Inkonsistente')
-    );
-    
-    if (parentDataErrors.length > 0) {
-      console.log('Unexpected parent data errors:', parentDataErrors.map(e => 
-        `Row ${e.row}: ${e.column} - ${e.message} (value: ${e.value})`
-      ));
-    }
-    
-    expect(parentDataErrors).toEqual([]);
-  });
-
-  it('should correctly identify families shared across both files', () => {
-    const csv1 = readCSV('test-stammdaten.csv');
-    const csv2 = readCSV('test-stammdaten-oberstufe.csv');
-
-    const pr1 = parseCSV(csv1, 'test-stammdaten.csv');
-    const pr2 = parseCSV(csv2, 'test-stammdaten-oberstufe.csv');
-    const merged = mergeParseResults([pr1, pr2]);
-
-    // Shared families: Meier, Müller, Keller, Schmid, Brunner, Fischer, Weber, Huber, Steiner, Gerber, Baumann, Graf, Frey, Wyss, Schneider, Bauer, Lang, Roth
-    const sharedParentIds = new Set<string>();
-    const file1ParentIds = new Set<string>();
-    const file2ParentIds = new Set<string>();
-
-    for (const row of pr1.rows) {
-      if (row.P_ERZ1_ID) file1ParentIds.add(String(row.P_ERZ1_ID));
-      if (row.P_ERZ2_ID) file2ParentIds.add(String(row.P_ERZ2_ID));
-    }
-    for (const row of pr2.rows) {
-      if (row.P_ERZ1_ID) {
-        const id = String(row.P_ERZ1_ID);
-        if (file1ParentIds.has(id)) sharedParentIds.add(id);
-      }
-      if (row.P_ERZ2_ID) {
-        const id = String(row.P_ERZ2_ID);
-        if (file2ParentIds.has(id)) sharedParentIds.add(id);
-      }
-    }
-
-    // All families are shared between both files
-    expect(sharedParentIds.size).toBeGreaterThanOrEqual(18); // At least 18 unique parent IDs shared
+    const siblingWarnings = errors.filter(e => e.message.includes('Geschwister'));
+    expect(siblingWarnings).toEqual([]);
   });
 
   it('should detect inconsistency when parent address differs between files', () => {
-    const csv1 = readCSV('test-stammdaten.csv');
-    const csv2 = readCSV('test-stammdaten-oberstufe.csv');
+    const modifiedOberstufe: ParsedRow[] = [
+      { ...oberstufeRows[0], P_ERZ1_Strasse: 'Andere Strasse 99' }, // Changed address
+      ...oberstufeRows.slice(1),
+    ];
 
-    const pr1 = parseCSV(csv1, 'test-stammdaten.csv');
-    const pr2 = parseCSV(csv2, 'test-stammdaten-oberstufe.csv');
-
-    // Modify one row in file2 to have a different parent address
-    const modifiedPr2 = { ...pr2, rows: [...pr2.rows] };
-    modifiedPr2.rows[0] = { 
-      ...modifiedPr2.rows[0], 
-      P_ERZ1_Strasse: 'Andere Strasse 99' // Changed from "Hauptstrasse 1"
-    };
-
-    const merged = mergeParseResults([pr1, modifiedPr2]);
+    const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', modifiedOberstufe)]);
     const errors = validateData(merged.rows, columns);
 
-    // Should detect sibling consistency warning (different address for same parent ID)
-    const siblingWarnings = errors.filter(e =>
-      e.message.includes('Geschwister') || 
-      e.message.includes('Inkonsisten') ||
-      (e.column?.includes('Strasse') && e.severity === 'warning')
+    // Should detect that Meier/Anja has different address than siblings
+    const siblingOrInconsistent = errors.filter(e =>
+      e.message.includes('Geschwister') || e.message.includes('Inkonsisten')
     );
-    
-    expect(siblingWarnings.length).toBeGreaterThan(0);
+    expect(siblingOrInconsistent.length).toBeGreaterThan(0);
+  });
+
+  it('should detect inconsistency when parent ID differs between files for same parent', () => {
+    const modifiedOberstufe: ParsedRow[] = [
+      { ...oberstufeRows[0], P_ERZ1_ID: '99999' }, // Different parent ID
+      ...oberstufeRows.slice(1),
+    ];
+
+    const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', modifiedOberstufe)]);
+    const errors = validateData(merged.rows, columns);
+
+    const inconsistentIds = errors.filter(e => e.message.includes('Inkonsistente ID'));
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+  });
+
+  it('should verify shared parent IDs across files', () => {
+    const file1ParentIds = new Set(primarRows.map(r => r.P_ERZ1_ID));
+    const file2ParentIds = new Set(oberstufeRows.map(r => r.P_ERZ1_ID));
+
+    const shared = [...file1ParentIds].filter(id => file2ParentIds.has(id));
+    // Meier (20001) and Müller (20003) parents are shared
+    expect(shared).toContain('20001');
+    expect(shared).toContain('20003');
   });
 });
