@@ -1,4 +1,4 @@
-import { Download, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Download, CheckCircle, ArrowLeft, SplitSquareVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus, ChangeLogEntry } from '@/types/importTypes';
 import type { CorrectionRule } from '@/types/correctionTypes';
-import { exportToCSV, exportToExcel } from '@/lib/fileParser';
+import { exportToCSV, exportToExcel, type SourceFileInfo } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { ChangeLog } from './ChangeLog';
