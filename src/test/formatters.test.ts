@@ -128,12 +128,11 @@ describe('Shared Formatters', () => {
     it('capitalizes ALL CAPS street', () => {
       expect(formatStreet('HAUPTSTRASSE 1')).toBe('Hauptstrasse 1');
     });
-    it('expands str. at end of word', () => {
-      // str. only matches at end of string, not mid-word with dot+space
-      expect(formatStreet('bahnhofstr')).toBe('Bahnhofstrasse');
+    it('expands str. abbreviation with dot', () => {
+      expect(formatStreet('bahnhofstr.')).toBe('Bahnhofstrasse');
     });
-    it('expands pl. at end of word', () => {
-      expect(formatStreet('dorfpl')).toBe('Dorfplatz');
+    it('expands pl. abbreviation with dot', () => {
+      expect(formatStreet('dorfpl.')).toBe('Dorfplatz');
     });
     it('expands weg abbreviation', () => {
       expect(formatStreet('bergweg 8')).toBe('Bergweg 8');
