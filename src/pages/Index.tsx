@@ -399,6 +399,7 @@ export default function Index() {
               importTypeName={getImportTypeName()}
               changeLog={changeLog}
               fileName={parseResult.fileName}
+              sourceFiles={parseResult.sourceFiles}
               onBack={handleBack}
               onReset={handleReset}
               correctionRules={correctionMemory.rules}

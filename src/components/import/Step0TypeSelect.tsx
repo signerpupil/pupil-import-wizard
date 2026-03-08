@@ -229,7 +229,7 @@ export function Step0TypeSelect({
                   <div>
                     <p className="font-semibold text-lg">Weitere Datenaufbereitung</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Datei mit gespeicherten Korrekturen abgleichen. Bekannte Fehler werden automatisch korrigiert.
+                      Datei mit gespeicherten Korrekturen abgleichen. Bekannte Fehler werden automatisch korrigiert. Unterstützt auch mehrere Dateien (z.B. Primar + Oberstufe).
                     </p>
                     {localStorageRulesCount > 0 && (
                       <Badge variant="secondary" className="mt-2">

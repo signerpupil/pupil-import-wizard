@@ -1,4 +1,4 @@
-import { Download, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Download, CheckCircle, ArrowLeft, SplitSquareVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import type { ParsedRow, ValidationError, ColumnStatus, ChangeLogEntry } from '@/types/importTypes';
 import type { CorrectionRule } from '@/types/correctionTypes';
-import { exportToCSV, exportToExcel } from '@/lib/fileParser';
+import { exportToCSV, exportToExcel, type SourceFileInfo } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { ChangeLog } from './ChangeLog';
@@ -27,6 +29,7 @@ interface Step4PreviewProps {
   importTypeName: string;
   changeLog: ChangeLogEntry[];
   fileName?: string;
+  sourceFiles?: SourceFileInfo[];
   onBack: () => void;
   onReset: () => void;
   // Correction memory props
@@ -46,6 +49,7 @@ export function Step4Preview({
   importTypeName,
   changeLog,
   fileName,
+  sourceFiles,
   onBack,
   onReset,
   correctionRules = [],
@@ -57,6 +61,9 @@ export function Step4Preview({
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
   const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
   const [exported, setExported] = useState(false);
+  const [splitBySource, setSplitBySource] = useState(false);
+
+  const isMultiFile = sourceFiles && sourceFiles.length > 1;
 
   const uncorrectedErrors = errors.filter(e => !e.correctedValue);
   const errorRows = new Set(uncorrectedErrors.map(e => e.row));
@@ -81,10 +88,28 @@ export function Step4Preview({
       expectedColumns,
     };
 
-    if (exportFormat === 'csv') {
-      exportToCSV(rows, headers, importTypeName, options);
+    // Filter out _source_file from export headers unless user wants it
+    const cleanHeaders = headers.filter(h => h !== '_source_file');
+
+    if (splitBySource && isMultiFile) {
+      // Export one file per source
+      for (const sf of sourceFiles!) {
+        const sourceRows = rows.filter((r, i) => {
+          return r['_source_file'] === sf.name;
+        });
+        const sourceName = `${importTypeName}_${sf.name.replace(/\.[^.]+$/, '')}`;
+        if (exportFormat === 'csv') {
+          exportToCSV(sourceRows, cleanHeaders, sourceName, options);
+        } else {
+          await exportToExcel(sourceRows, cleanHeaders, sourceName, options);
+        }
+      }
     } else {
-      await exportToExcel(rows, headers, importTypeName, options);
+      if (exportFormat === 'csv') {
+        exportToCSV(rows, cleanHeaders, importTypeName, options);
+      } else {
+        await exportToExcel(rows, cleanHeaders, importTypeName, options);
+      }
     }
     setExported(true);
   };
@@ -181,6 +206,16 @@ export function Step4Preview({
               </Select>
             </div>
           </div>
+
+          {isMultiFile && (
+            <div className="flex items-center gap-3 mt-4 p-3 rounded-lg bg-muted/50">
+              <SplitSquareVertical className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="split-export" className="text-sm font-medium cursor-pointer flex-1">
+                Nach Quelldatei aufteilen ({sourceFiles!.length} Dateien)
+              </Label>
+              <Switch id="split-export" checked={splitBySource} onCheckedChange={setSplitBySource} />
+            </div>
+          )}
 
           {removeExtraColumns && (
             <p className="text-sm text-muted-foreground mt-4">
