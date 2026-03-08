@@ -174,7 +174,7 @@ describe('Shared Formatters', () => {
 
   describe('convertExcelDate', () => {
     it('converts Excel serial number', () => {
-      expect(convertExcelDate('44123')).toBe('16.10.2020');
+      expect(convertExcelDate('44123')).toBe('19.10.2020');
     });
     it('returns null for non-serial', () => {
       expect(convertExcelDate('abc')).toBeNull();
