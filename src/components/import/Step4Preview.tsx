@@ -87,9 +87,9 @@ export function Step4Preview({
     // Use exportHeaders which already excludes _source_file
 
     if (exportFormat === 'csv') {
-      exportToCSV(rows, cleanHeaders, importTypeName, options);
+      exportToCSV(rows, exportHeaders, importTypeName, options);
     } else {
-      await exportToExcel(rows, cleanHeaders, importTypeName, options);
+      await exportToExcel(rows, exportHeaders, importTypeName, options);
     }
     setExported(true);
   };
