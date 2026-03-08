@@ -304,3 +304,51 @@ describe('Shared Formatters', () => {
     });
   });
 });
+
+// ===== Sibling Consistency Check =====
+import { validateData } from '../lib/fileParser';
+import { schuelerColumns } from '../types/importTypes';
+
+describe('Sibling Consistency Check', () => {
+  it('flags children with same parent ID but different PLZ', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Müller', S_Vorname: 'Anna', S_Geschlecht: 'W', S_Geburtsdatum: '01.01.2015', S_AHV: '756.1234.5678.04', K_Name: '1a', P_ERZ1_ID: 'E1', S_PLZ: '8001', S_Ort: 'Zürich' },
+      { S_ID: '2', S_Name: 'Müller', S_Vorname: 'Max', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2017', S_AHV: '756.9876.5432.10', K_Name: '1a', P_ERZ1_ID: 'E1', S_PLZ: '8002', S_Ort: 'Zürich' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const siblingErrors = errors.filter(e => e.message.includes('Geschwister-Inkonsistenz'));
+    expect(siblingErrors.length).toBeGreaterThanOrEqual(1);
+    expect(siblingErrors.some(e => e.column === 'S_PLZ')).toBe(true);
+    expect(siblingErrors[0].severity).toBe('warning');
+  });
+
+  it('flags children with same parent ID but different Ort', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Meier', S_Vorname: 'Lisa', S_Geschlecht: 'W', S_Geburtsdatum: '01.01.2015', S_AHV: '756.1111.2222.33', K_Name: '2a', P_ERZ2_ID: 'E5', S_PLZ: '3000', S_Ort: 'Bern' },
+      { S_ID: '2', S_Name: 'Meier', S_Vorname: 'Tom', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2017', S_AHV: '756.4444.5555.66', K_Name: '2a', P_ERZ2_ID: 'E5', S_PLZ: '3000', S_Ort: 'Berne' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const siblingErrors = errors.filter(e => e.message.includes('Geschwister-Inkonsistenz'));
+    expect(siblingErrors.length).toBeGreaterThanOrEqual(1);
+    expect(siblingErrors.some(e => e.column === 'S_Ort')).toBe(true);
+  });
+
+  it('does not flag siblings with identical PLZ and Ort', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Weber', S_Vorname: 'Eva', S_Geschlecht: 'W', S_Geburtsdatum: '01.01.2015', S_AHV: '756.7777.8888.99', K_Name: '3a', P_ERZ1_ID: 'E9', S_PLZ: '6000', S_Ort: 'Luzern' },
+      { S_ID: '2', S_Name: 'Weber', S_Vorname: 'Jan', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2017', S_AHV: '756.0000.1111.22', K_Name: '3a', P_ERZ1_ID: 'E9', S_PLZ: '6000', S_Ort: 'Luzern' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const siblingErrors = errors.filter(e => e.message.includes('Geschwister-Inkonsistenz'));
+    expect(siblingErrors.length).toBe(0);
+  });
+
+  it('does not flag single children (no siblings)', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Solo', S_Vorname: 'Kind', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2015', S_AHV: '756.3333.4444.55', K_Name: '4a', P_ERZ1_ID: 'E99', S_PLZ: '9000', S_Ort: 'St. Gallen' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const siblingErrors = errors.filter(e => e.message.includes('Geschwister-Inkonsistenz'));
+    expect(siblingErrors.length).toBe(0);
+  });
+});

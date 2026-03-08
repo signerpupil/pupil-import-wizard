@@ -1038,6 +1038,72 @@ export function validateData(
   const nameChangeErrors = checkParentNameChanges(rows);
   errors.push(...nameChangeErrors);
 
+  // Check sibling consistency (same parent ID but different PLZ/Ort)
+  const siblingErrors = checkSiblingConsistency(rows);
+  errors.push(...siblingErrors);
+
+  return errors;
+}
+
+// Sibling consistency check: children sharing a parent ID must have the same PLZ/Ort
+function checkSiblingConsistency(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const parentIdFields = ['P_ERZ1_ID', 'P_ERZ2_ID'];
+  const checkFields = ['S_PLZ', 'S_Ort'];
+
+  for (const idField of parentIdFields) {
+    // Group row indices by parent ID
+    const groups = new Map<string, number[]>();
+    for (let i = 0; i < rows.length; i++) {
+      const id = String(rows[i][idField] ?? '').trim();
+      if (id === '') continue;
+      const existing = groups.get(id);
+      if (existing) existing.push(i);
+      else groups.set(id, [i]);
+    }
+
+    // Check each group with 2+ children
+    groups.forEach((indices, parentId) => {
+      if (indices.length < 2) return;
+
+      for (const field of checkFields) {
+        // Collect distinct non-empty values
+        const valueMap = new Map<string, number[]>();
+        for (const idx of indices) {
+          const val = String(rows[idx][field] ?? '').trim();
+          if (val === '') continue;
+          const existing = valueMap.get(val);
+          if (existing) existing.push(idx);
+          else valueMap.set(val, [idx]);
+        }
+
+        if (valueMap.size > 1) {
+          // Inconsistency found – warn on all rows except the most common value
+          let maxCount = 0;
+          let majorityValue = '';
+          valueMap.forEach((idxs, val) => {
+            if (idxs.length > maxCount) { maxCount = idxs.length; majorityValue = val; }
+          });
+
+          valueMap.forEach((idxs, val) => {
+            if (val === majorityValue) return;
+            for (const idx of idxs) {
+              const studentName = `${rows[idx]['S_Vorname'] ?? ''} ${rows[idx]['S_Name'] ?? ''}`.trim();
+              errors.push({
+                row: idx + 1,
+                column: field,
+                value: val,
+                message: `Geschwister-Inkonsistenz: ${field} ist "${val}", aber andere Kinder von ${idField}="${parentId}" haben "${majorityValue}"${studentName ? ` (${studentName})` : ''}`,
+                type: 'business',
+                severity: 'warning',
+              });
+            }
+          });
+        }
+      }
+    });
+  }
+
   return errors;
 }
 
