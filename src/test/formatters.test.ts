@@ -40,10 +40,25 @@ describe('Shared Formatters', () => {
   });
 
   describe('isValidAHVChecksum', () => {
-    it('validates correct checksum (EAN-13)', () => {
-      // 756.1234.5678.97 → checksum: sum of weighted digits mod 10
-      // This is a synthetic test; real AHV numbers need proper checksums
-      expect(typeof isValidAHVChecksum('756.1234.5678.01')).toBe('boolean');
+    it('validates correct checksum (EAN-13): 756.1234.5678.04', () => {
+      // Sum of weighted digits (1,3,1,3,...) for 756123456780 = 96
+      // Check = (10 - 96%10) % 10 = 4
+      expect(isValidAHVChecksum('756.1234.5678.04')).toBe(true);
+    });
+    it('rejects invalid checksum: 756.1234.5678.01', () => {
+      expect(isValidAHVChecksum('756.1234.5678.01')).toBe(false);
+    });
+    it('rejects invalid checksum: 756.1234.5678.99', () => {
+      expect(isValidAHVChecksum('756.1234.5678.99')).toBe(false);
+    });
+    it('validates correct checksum without dots: 7561234567804', () => {
+      expect(isValidAHVChecksum('7561234567804')).toBe(true);
+    });
+    it('rejects non-756 prefix', () => {
+      expect(isValidAHVChecksum('123.4567.8901.23')).toBe(false);
+    });
+    it('rejects wrong length', () => {
+      expect(isValidAHVChecksum('756.1234.5678')).toBe(false);
     });
   });
 
