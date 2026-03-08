@@ -126,13 +126,16 @@ describe('Edge Cases', () => {
       expect(merged.rows[1].PLZ).toBe('8000');
     });
 
-    it('handles undefined values as null', () => {
-      const pr = makePR('test.csv', ['A', 'B'], [
+    it('handles undefined values as null in multi-file merge', () => {
+      const a = makePR('a.csv', ['A', 'B'], [
         { A: 'x', B: undefined },
+      ]);
+      const b = makePR('b.csv', ['A', 'B'], [
         { A: undefined, B: 'y' },
       ]);
-      const merged = mergeParseResults([pr]);
+      const merged = mergeParseResults([a, b]);
 
+      // mergeParseResults uses ?? null for missing values
       expect(merged.rows[0].B).toBeNull();
       expect(merged.rows[1].A).toBeNull();
     });
