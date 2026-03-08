@@ -162,6 +162,9 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
               <Input id="schuleinheiten" placeholder="z.B. Schuleinheit A" value={schuleinheiten} onChange={(e) => setSchuleinheiten(e.target.value)} />
             </div>
           </div>
+          {!schuljahr && (
+            <p className="text-sm text-destructive mt-2">Bitte Schuljahr eingeben, bevor Sie exportieren.</p>
+          )}
         </CardContent>
       </Card>
 
