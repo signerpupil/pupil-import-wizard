@@ -187,16 +187,6 @@ export function Step4Preview({
             </div>
           </div>
 
-          {isMultiFile && (
-            <div className="flex items-center gap-3 mt-4 p-3 rounded-lg bg-muted/50">
-              <SplitSquareVertical className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="split-export" className="text-sm font-medium cursor-pointer flex-1">
-                Nach Quelldatei aufteilen ({sourceFiles!.length} Dateien)
-              </Label>
-              <Switch id="split-export" checked={splitBySource} onCheckedChange={setSplitBySource} />
-            </div>
-          )}
-
           {removeExtraColumns && (
             <p className="text-sm text-muted-foreground mt-4">
               ℹ️ Zusätzliche Spalten werden beim Export entfernt ({headers.length - exportHeaders.length} Spalte(n))
