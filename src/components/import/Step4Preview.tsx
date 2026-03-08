@@ -228,12 +228,6 @@ export function Step4Preview({
         importTypeName={importTypeName}
       />
 
-      {/* Navigation buttons above table */}
-      <NavigationButtons
-        onBack={onBack}
-        showNext={false}
-      />
-
       {/* Data Preview */}
       <ColumnPaginatedPreview
         headers={exportHeaders}

@@ -45,7 +45,6 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     suggestedAction?: string;
   }>;
 } {
-  const errorIndex = buildErrorIndex(errors);
   const patterns: Array<{
     type: string;
     column: string;
