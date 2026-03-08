@@ -49,6 +49,7 @@ export function Step4Preview({
   importTypeName,
   changeLog,
   fileName,
+  sourceFiles,
   onBack,
   onReset,
   correctionRules = [],
@@ -57,6 +58,12 @@ export function Step4Preview({
   onClearCorrectionRulesFromLocalStorage,
   localStorageCorrectionRulesCount = 0,
 }: Step4PreviewProps) {
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
+  const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
+  const [exported, setExported] = useState(false);
+  const [splitBySource, setSplitBySource] = useState(false);
+
+  const isMultiFile = sourceFiles && sourceFiles.length > 1;
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
   const [exportFilter, setExportFilter] = useState<'all' | 'errorFree'>('all');
   const [exported, setExported] = useState(false);
