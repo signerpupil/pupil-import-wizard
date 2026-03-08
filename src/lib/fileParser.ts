@@ -1038,6 +1038,10 @@ export function validateData(
   const nameChangeErrors = checkParentNameChanges(rows);
   errors.push(...nameChangeErrors);
 
+  // Check sibling consistency (same parent ID but different PLZ/Ort)
+  const siblingErrors = checkSiblingConsistency(rows);
+  errors.push(...siblingErrors);
+
   return errors;
 }
 
