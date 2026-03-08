@@ -1,15 +1,22 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2 } from 'lucide-react';
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
 import { PUPILInstructionGuide } from './PUPILInstructionGuide';
 import { PUPILClassesInstructionGuide } from './PUPILClassesInstructionGuide';
+import { SearchableSelect } from './SearchableSelect';
+import {
+  buildPersonLookup,
+  findPersonByName,
+  matchClassName,
+  normalizeName,
+  levenshtein,
+} from '@/lib/nameUtils';
 
 interface LPStep2TeachersProps {
   classData: ClassTeacherData[];
@@ -21,62 +28,6 @@ interface LPStep2TeachersProps {
   onAssignmentsChange: (assignments: TeacherAssignment[]) => void;
   onBack: () => void;
   onNext: () => void;
-}
-
-function normalizeName(name: string): string {
-  return name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function buildLookupMap(persons: PupilPerson[]): Map<string, PupilPerson> {
-  const map = new Map<string, PupilPerson>();
-  for (const p of persons) {
-    const key1 = normalizeName(`${p.nachname} ${p.vorname}`);
-    map.set(key1, p);
-    const key2 = normalizeName(`${p.vorname} ${p.nachname}`);
-    if (!map.has(key2)) map.set(key2, p);
-  }
-  return map;
-}
-
-function matchTeacher(
-  name: string,
-  lookupMap: Map<string, PupilPerson>,
-  manualOverrides: Map<string, string>,
-  persons: PupilPerson[]
-): PupilPerson | null {
-  const override = manualOverrides.get(name);
-  if (override) {
-    return persons.find(p => p.schluessel === override) || null;
-  }
-
-  const normalized = normalizeName(name);
-  
-  const direct = lookupMap.get(normalized);
-  if (direct) return direct;
-
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    const reversed = normalizeName(`${parts[parts.length - 1]} ${parts.slice(0, -1).join(' ')}`);
-    const rev = lookupMap.get(reversed);
-    if (rev) return rev;
-  }
-
-  return null;
-}
-
-function matchClassToPupil(loKlasse: string, pupilClasses: PupilClass[]): string | null {
-  const loNorm = loKlasse.trim().toLowerCase();
-  for (const pc of pupilClasses) {
-    const pupilNorm = pc.klassenname.trim().toLowerCase();
-    if (pupilNorm.startsWith(loNorm)) {
-      return pc.klassenname;
-    }
-  }
-  return null;
 }
 
 export function LPStep2Teachers({
@@ -96,19 +47,27 @@ export function LPStep2Teachers({
     return Array.from(names).sort();
   }, [classData]);
 
-  const lookupMap = useMemo(() => buildLookupMap(persons), [persons]);
+  const lookupMap = useMemo(() => buildPersonLookup(persons), [persons]);
 
   const matchResults = useMemo(() => {
-    return uniqueTeacherNames.map(name => ({
-      name,
-      person: matchTeacher(name, lookupMap, manualOverrides, persons),
-    }));
+    return uniqueTeacherNames.map(name => {
+      // Check manual override first
+      const override = manualOverrides.get(name);
+      if (override) {
+        const person = persons.find(p => p.schluessel === override) || null;
+        return { name, person };
+      }
+      return {
+        name,
+        person: findPersonByName(name, lookupMap, persons),
+      };
+    });
   }, [uniqueTeacherNames, lookupMap, manualOverrides, persons]);
 
   const matched = matchResults.filter(r => r.person);
   const unmatched = matchResults.filter(r => !r.person);
 
-  // Class matching results (includes manual overrides)
+  // Class matching results using improved matching
   const classMatchResults = useMemo(() => {
     if (pupilClasses.length === 0) return [];
     const uniqueClasses = [...new Set(classData.map(cd => cd.klasse))];
@@ -120,7 +79,7 @@ export function LPStep2Teachers({
       }
       return {
         loKlasse: klasse,
-        pupilKlasse: matchClassToPupil(klasse, pupilClasses),
+        pupilKlasse: matchClassName(klasse, pupilClasses),
       };
     });
   }, [classData, pupilClasses, manualClassOverrides]);
@@ -148,7 +107,7 @@ export function LPStep2Teachers({
     return map;
   }, [classMatchResults]);
 
-  const handleManualClassOverride = (loKlasse: string, pupilKlasse: string) => {
+  const handleManualClassOverride = useCallback((loKlasse: string, pupilKlasse: string) => {
     setManualClassOverrides(prev => {
       const next = new Map(prev);
       if (pupilKlasse === '__none__') {
@@ -158,9 +117,9 @@ export function LPStep2Teachers({
       }
       return next;
     });
-  };
+  }, []);
 
-  // Pattern detection: try fuzzy strategies on unmatched classes against free PUPIL classes
+  // Pattern detection for unmatched classes
   const classPatternSuggestions = useMemo(() => {
     if (classesUnmatched.length === 0 || freePupilClasses.length === 0) return [];
 
@@ -168,27 +127,37 @@ export function LPStep2Teachers({
     const usedPupil = new Set<string>();
 
     for (const um of classesUnmatched) {
-      // Already manually overridden — skip
       if (manualClassOverrides.has(um.loKlasse)) continue;
 
-      const loNorm = um.loKlasse.trim().toLowerCase().replace(/\s+/g, '');
+      const loCompact = um.loKlasse.trim().toLowerCase().replace(/\s+/g, '');
 
       for (const pc of freePupilClasses) {
         if (usedPupil.has(pc.klassenname)) continue;
-        const pupilNorm = pc.klassenname.trim().toLowerCase().replace(/\s+/g, '');
+        const pupilCompact = pc.klassenname.trim().toLowerCase().replace(/\s+/g, '');
 
-        // Strategy 1: whitespace-insensitive startsWith
-        if (pupilNorm.startsWith(loNorm)) {
+        // Whitespace-insensitive startsWith
+        if (pupilCompact.startsWith(loCompact)) {
           suggestions.push({ loKlasse: um.loKlasse, pupilKlasse: pc.klassenname, pattern: 'Leerzeichen-tolerant' });
           usedPupil.add(pc.klassenname);
           break;
         }
 
-        // Strategy 2: PUPIL name contains the LO name (substring)
-        if (pupilNorm.includes(loNorm) && loNorm.length >= 3) {
+        // Substring match
+        if (pupilCompact.includes(loCompact) && loCompact.length >= 3) {
           suggestions.push({ loKlasse: um.loKlasse, pupilKlasse: pc.klassenname, pattern: 'Enthält LO-Name' });
           usedPupil.add(pc.klassenname);
           break;
+        }
+
+        // Levenshtein on core identifier
+        const compareLen = Math.min(loCompact.length, pupilCompact.length);
+        if (compareLen >= 3) {
+          const dist = levenshtein(loCompact.slice(0, compareLen), pupilCompact.slice(0, compareLen));
+          if (dist <= 1) {
+            suggestions.push({ loKlasse: um.loKlasse, pupilKlasse: pc.klassenname, pattern: 'Ähnlicher Name' });
+            usedPupil.add(pc.klassenname);
+            break;
+          }
         }
       }
     }
@@ -196,7 +165,7 @@ export function LPStep2Teachers({
     return suggestions;
   }, [classesUnmatched, freePupilClasses, manualClassOverrides]);
 
-  const handleApplyPatternSuggestions = () => {
+  const handleApplyPatternSuggestions = useCallback(() => {
     setManualClassOverrides(prev => {
       const next = new Map(prev);
       for (const s of classPatternSuggestions) {
@@ -204,11 +173,12 @@ export function LPStep2Teachers({
       }
       return next;
     });
-  };
+  }, [classPatternSuggestions]);
 
+  // Build assignments when matching changes
   useEffect(() => {
     if (persons.length === 0) return;
-    
+
     const matchMap = new Map(matchResults.map(r => [r.name, r.person]));
     const newAssignments: TeacherAssignment[] = [];
 
@@ -288,7 +258,6 @@ export function LPStep2Teachers({
         return;
       }
 
-      // Also find Klassenlehrpersonen column
       const klpIdx = headers.findIndex(h => h.includes('klassenlehrpersonen'));
 
       const parsed: PupilClass[] = result.rows
@@ -312,7 +281,7 @@ export function LPStep2Teachers({
     }
   };
 
-  const handleManualOverride = (teacherName: string, schluessel: string) => {
+  const handleManualOverride = useCallback((teacherName: string, schluessel: string) => {
     setManualOverrides(prev => {
       const next = new Map(prev);
       if (schluessel === '__none__') {
@@ -322,7 +291,24 @@ export function LPStep2Teachers({
       }
       return next;
     });
-  };
+  }, []);
+
+  // Prepare person options for searchable select
+  const personOptions = useMemo(() => {
+    return persons.map(p => ({
+      value: p.schluessel,
+      label: `${p.nachname} ${p.vorname}`,
+      sublabel: p.schluessel,
+    }));
+  }, [persons]);
+
+  // Prepare free class options for searchable select
+  const freeClassOptions = useMemo(() => {
+    return freePupilClasses.map(pc => ({
+      value: pc.klassenname,
+      label: pc.klassenname,
+    }));
+  }, [freePupilClasses]);
 
   return (
     <div className="space-y-6">
@@ -479,22 +465,14 @@ export function LPStep2Teachers({
                         </TableCell>
                         {freePupilClasses.length > 0 && (
                           <TableCell>
-                            <Select
+                            <SearchableSelect
                               value={manualClassOverrides.get(r.loKlasse) || '__none__'}
                               onValueChange={(val) => handleManualClassOverride(r.loKlasse, val)}
-                            >
-                              <SelectTrigger className="w-[280px] h-8 text-sm">
-                                <SelectValue placeholder="PUPIL-Klasse wählen…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">— Keine Zuordnung —</SelectItem>
-                                {freePupilClasses.map(pc => (
-                                  <SelectItem key={pc.klassenname} value={pc.klassenname}>
-                                    {pc.klassenname}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              options={freeClassOptions}
+                              placeholder="PUPIL-Klasse wählen…"
+                              searchPlaceholder="Klasse suchen…"
+                              className="w-[280px] h-8 text-sm"
+                            />
                           </TableCell>
                         )}
                       </TableRow>
@@ -532,19 +510,8 @@ export function LPStep2Teachers({
         </CardContent>
       </Card>
 
+      {/* Matching Results */}
       {persons.length > 0 && (
-        <>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} className="shadow-sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Zurück
-          </Button>
-          <Button onClick={onNext} disabled={persons.length === 0} className="shadow-sm">
-            Weiter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -590,22 +557,15 @@ export function LPStep2Teachers({
                         <TableRow key={r.name}>
                           <TableCell className="font-medium">{r.name}</TableCell>
                           <TableCell>
-                            <Select
+                            <SearchableSelect
                               value={manualOverrides.get(r.name) || '__none__'}
                               onValueChange={(v) => handleManualOverride(r.name, v)}
-                            >
-                              <SelectTrigger className="w-[280px]">
-                                <SelectValue placeholder="Person auswählen..." />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover z-50">
-                                <SelectItem value="__none__">— Nicht zuordnen —</SelectItem>
-                                {persons.map((p) => (
-                                  <SelectItem key={p.schluessel} value={p.schluessel}>
-                                    {p.nachname} {p.vorname} ({p.schluessel})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              options={personOptions}
+                              placeholder="Person auswählen..."
+                              searchPlaceholder="Name oder Schlüssel suchen…"
+                              noneLabel="— Nicht zuordnen —"
+                              className="w-[280px]"
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -646,9 +606,9 @@ export function LPStep2Teachers({
             )}
           </CardContent>
         </Card>
-        </>
       )}
 
+      {/* Single navigation row */}
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack} className="shadow-sm">
           <ArrowLeft className="h-4 w-4 mr-2" />
