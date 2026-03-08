@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,12 @@ interface GroupStep2StudentsProps {
   onNext: () => void;
 }
 
+/** Case-insensitive header lookup: finds the actual header key matching a target name */
+function findHeader(headers: string[], target: string): string | null {
+  const t = target.toLowerCase();
+  return headers.find(h => h.toLowerCase() === t) ?? null;
+}
+
 export function GroupStep2Students({ groups, assignments, onAssignmentsChange, onBack, onNext }: GroupStep2StudentsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -26,8 +32,8 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
   const [stats, setStats] = useState<{ total: number; matched: number; unmatched: number } | null>(null);
   const { toast } = useToast();
 
-  const groupKeySet = new Set(groups.map(g => g.schluessel));
-  const groupKeyToName = new Map(groups.map(g => [g.schluessel, g.name]));
+  const groupKeySet = useMemo(() => new Set(groups.map(g => g.schluessel)), [groups]);
+  const groupKeyToName = useMemo(() => new Map(groups.map(g => [g.schluessel, g.name])), [groups]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,17 +44,33 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
       const result = await parseFile(file);
       setFileName(file.name);
 
+      // Case-insensitive column detection
+      const colSId = findHeader(result.headers, 'S_ID');
+      const colSName = findHeader(result.headers, 'S_Name');
+      const colSVorname = findHeader(result.headers, 'S_Vorname');
+      const colSGruppen = findHeader(result.headers, 'S_Gruppen');
+
+      if (!colSId || !colSGruppen) {
+        toast({
+          title: 'Spalten nicht gefunden',
+          description: `Benötigte Spalten: S_ID und S_Gruppen. Gefunden: ${result.headers.join(', ')}`,
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const newAssignments: StudentGroupAssignment[] = [];
       let matched = 0;
       let unmatched = 0;
 
       for (const row of result.rows) {
-        const sId = String(row['S_ID'] ?? '').trim();
+        const sId = String(row[colSId] ?? '').trim();
         if (!sId) continue;
 
-        const sName = String(row['S_Name'] ?? '').trim();
-        const sVorname = String(row['S_Vorname'] ?? '').trim();
-        const gruppenRaw = String(row['S_Gruppen'] ?? '').trim();
+        const sName = colSName ? String(row[colSName] ?? '').trim() : '';
+        const sVorname = colSVorname ? String(row[colSVorname] ?? '').trim() : '';
+        const gruppenRaw = String(row[colSGruppen] ?? '').trim();
 
         if (!gruppenRaw) continue;
 
@@ -85,7 +107,7 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
     } finally {
       setIsLoading(false);
     }
-  }, [groups, groupKeySet, idMapping, onAssignmentsChange, toast]);
+  }, [groupKeySet, idMapping, onAssignmentsChange, toast]);
 
   const handleMappingUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -207,17 +229,8 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
       )}
 
       {assignments.length > 0 && (
-        <>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} className="shadow-sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Zurück
-          </Button>
-          <Button onClick={onNext} className="shadow-sm">
-            Weiter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+
+
 
         <Card>
           <CardHeader>
@@ -267,7 +280,7 @@ export function GroupStep2Students({ groups, assignments, onAssignmentsChange, o
             </div>
           </CardContent>
         </Card>
-        </>
+
       )}
 
       <div className="flex justify-between pt-4">

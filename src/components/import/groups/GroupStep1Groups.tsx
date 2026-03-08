@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '../lp-zuweisung/SearchableSelect';
 import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
@@ -475,25 +475,23 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
                         Betrifft {affectedGroups.length} Gruppe{affectedGroups.length !== 1 ? 'n' : ''}: {affectedGroups.map(g => g.name).join(', ')}
                       </div>
                     </div>
-                    <Select onValueChange={(val) => {
-                      if (val !== '__skip__') {
-                        handleReassignSubject(subject, val);
-                      }
-                    }}>
-                      <SelectTrigger className="w-[220px] h-9 text-sm">
-                        <SelectValue placeholder="Anderes Fach zuweisen..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        <SelectItem value="__skip__" className="text-muted-foreground italic">
-                          In PUPIL erfassen (nicht ändern)
-                        </SelectItem>
-                        {pupilSubjects.map((ps) => (
-                          <SelectItem key={ps.name} value={ps.name}>
-                            {ps.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value="__none__"
+                      onValueChange={(val) => {
+                        if (val !== '__none__') {
+                          handleReassignSubject(subject, val);
+                        }
+                      }}
+                      options={pupilSubjects.map(ps => ({
+                        value: ps.name,
+                        label: ps.name,
+                        sublabel: ps.schluessel || undefined,
+                      }))}
+                      placeholder="Anderes Fach zuweisen..."
+                      searchPlaceholder="Fach suchen…"
+                      noneLabel="In PUPIL erfassen (nicht ändern)"
+                      className="w-[250px]"
+                    />
                   </div>
                 );
               })}
@@ -513,17 +511,8 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       )}
 
       {groups.length > 0 && (
-        <>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} className="shadow-sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Zurück
-          </Button>
-          <Button onClick={onNext} disabled={groups.length === 0} className="shadow-sm">
-            Weiter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+
+
 
         <Card className="transition-all duration-200">
           <CardHeader>
@@ -603,7 +592,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             </div>
           </CardContent>
         </Card>
-        </>
+
       )}
 
       <div className="flex justify-between pt-4">

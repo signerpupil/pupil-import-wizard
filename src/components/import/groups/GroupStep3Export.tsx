@@ -162,19 +162,12 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
               <Input id="schuleinheiten" placeholder="z.B. Schuleinheit A" value={schuleinheiten} onChange={(e) => setSchuleinheiten(e.target.value)} />
             </div>
           </div>
+          {!schuljahr && (
+            <p className="text-sm text-destructive mt-2">Bitte Schuljahr eingeben, bevor Sie exportieren.</p>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack} className="shadow-sm">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Zurück
-        </Button>
-        <Button variant="outline" onClick={onReset} className="shadow-sm">
-          <RotateCcw className="mr-2 h-4 w-4" />
-          Neuer Import
-        </Button>
-      </div>
 
       {/* Preview & Export: Groups */}
       <Card className="transition-all duration-200">
@@ -192,7 +185,7 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
                 <CardDescription>Erstellt die Gruppen in PUPIL</CardDescription>
               </div>
             </div>
-            <Button onClick={handleExportGroups} disabled={groups.length === 0} className="shadow-sm">
+            <Button onClick={handleExportGroups} disabled={groups.length === 0 || !schuljahr.trim()} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
@@ -242,7 +235,7 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
                 <CardDescription>Weist die Schüler den Gruppen zu</CardDescription>
               </div>
             </div>
-            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0} className="shadow-sm">
+            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0 || !schuljahr.trim()} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
