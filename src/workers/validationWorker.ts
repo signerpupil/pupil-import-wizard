@@ -2,6 +2,11 @@
 // Läuft im Hintergrund ohne UI-Blockierung
 
 import type { ValidationError, ImportRow, ColumnDefinition, FormatRule, BusinessRule } from '../types/importTypes';
+import {
+  formatAHV, formatSwissPhone, formatSwissPLZ, formatEmail, formatGender,
+  formatName, formatStreet, formatOrt, formatIBAN, convertExcelDate, formatDateDE,
+  trimWhitespace, SWISS_PATTERNS,
+} from '../lib/formatters';
 
 interface WorkerMessage {
   type: 'validate' | 'analyze' | 'apply-correction';
@@ -25,183 +30,6 @@ interface ApplyCorrectionPayload {
   correctionType: string;
   targetRows: number[];
   newValue?: string;
-}
-
-// Format patterns for Swiss data
-const SWISS_PATTERNS = {
-  ahv: /^756\.\d{4}\.\d{4}\.\d{2}$/,
-  ahvDigits: /^756\d{10}$/,
-  phoneMobile: /^\+41\s?7[5-9]\s?\d{3}\s?\d{2}\s?\d{2}$/,
-  phoneFixed: /^\+41\s?[1-6]\d\s?\d{3}\s?\d{2}\s?\d{2}$/,
-  plz: /^\d{4}$/,
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  iban: /^CH\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{1}$/i,
-  date: /^\d{1,2}\.\d{1,2}\.\d{4}$/,
-};
-
-// Format AHV number
-function formatAHV(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 13 && digits.startsWith('756')) {
-    return `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
-  }
-  return null;
-}
-
-// Format phone number
-function formatPhone(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  
-  // Handle different input formats
-  let normalizedDigits = digits;
-  if (digits.startsWith('41') && digits.length === 11) {
-    normalizedDigits = digits;
-  } else if (digits.startsWith('0') && digits.length === 10) {
-    normalizedDigits = '41' + digits.slice(1);
-  } else if (digits.length === 9 && !digits.startsWith('0')) {
-    normalizedDigits = '41' + digits;
-  }
-  
-  if (normalizedDigits.length !== 11 || !normalizedDigits.startsWith('41')) {
-    return null;
-  }
-  
-  const areaCode = normalizedDigits.slice(2, 4);
-  return `+41 ${areaCode} ${normalizedDigits.slice(4, 7)} ${normalizedDigits.slice(7, 9)} ${normalizedDigits.slice(9, 11)}`;
-}
-
-// Format PLZ
-function formatPLZ(value: string): string | null {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 4) {
-    return digits;
-  }
-  return null;
-}
-
-// Format email - comprehensive cleanup
-function formatEmail(value: string): string | null {
-  let cleaned = value.toLowerCase().trim();
-  // Remove extra spaces
-  cleaned = cleaned.replace(/\s+/g, '');
-  // Remove accents
-  cleaned = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  // Fix common typos
-  cleaned = cleaned.replace(/,/g, '.');
-  cleaned = cleaned.replace(/\.+/g, '.');
-  cleaned = cleaned.replace(/@+/g, '@');
-  // Fix common domain typos
-  cleaned = cleaned.replace(/@gmial\./, '@gmail.');
-  cleaned = cleaned.replace(/@gmai\./, '@gmail.');
-  cleaned = cleaned.replace(/@gamil\./, '@gmail.');
-  cleaned = cleaned.replace(/@hotmal\./, '@hotmail.');
-  cleaned = cleaned.replace(/@outllok\./, '@outlook.');
-  cleaned = cleaned.replace(/@outlok\./, '@outlook.');
-  
-  if (SWISS_PATTERNS.email.test(cleaned)) {
-    return cleaned;
-  }
-  return null;
-}
-
-// Format gender
-function formatGender(value: string): string | null {
-  const normalized = value.toUpperCase().trim();
-  const maleValues = ['MÄNNLICH', 'MALE', 'MANN', 'M', 'MAENNLICH', 'HERR', 'H'];
-  const femaleValues = ['WEIBLICH', 'FEMALE', 'FRAU', 'W', 'F'];
-  const diverseValues = ['DIVERS', 'DIVERSE', 'D', 'X', 'ANDERES'];
-  
-  if (maleValues.includes(normalized)) return 'M';
-  if (femaleValues.includes(normalized)) return 'W';
-  if (diverseValues.includes(normalized)) return 'D';
-  
-  return null;
-}
-
-// Format name - capitalize properly
-function formatName(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  
-  // Check if it needs formatting (all caps, all lower, or mixed weird)
-  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
-  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
-  
-  if (!isAllCaps && !isAllLower) return null;
-  
-  // Capitalize each word, handle hyphenated names
-  return trimmed
-    .toLowerCase()
-    .split(/(\s+|-)/g)
-    .map(part => {
-      if (part === '-' || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
-}
-
-// Format street address - capitalize and fix abbreviations
-function formatStreet(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  
-  // Check if needs formatting
-  const isAllCaps = trimmed === trimmed.toUpperCase() && trimmed !== trimmed.toLowerCase();
-  const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
-  
-  if (!isAllCaps && !isAllLower) return null;
-  
-  // Fix common abbreviations
-  let formatted = trimmed.toLowerCase();
-  formatted = formatted.replace(/^str\.?\s*/i, 'Strasse ');
-  formatted = formatted.replace(/\bstr\.?$/i, 'strasse');
-  formatted = formatted.replace(/\bweg\.?$/i, 'weg');
-  formatted = formatted.replace(/\bpl\.?$/i, 'platz');
-  
-  // Capitalize each word
-  return formatted
-    .split(/(\s+)/g)
-    .map(part => {
-      if (/^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join('');
-}
-
-// Format IBAN
-function formatIBAN(value: string): string | null {
-  const cleaned = value.replace(/\s/g, '').toUpperCase();
-  if (cleaned.startsWith('CH') && cleaned.length === 21) {
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)} ${cleaned.slice(12, 16)} ${cleaned.slice(16, 20)} ${cleaned.slice(20)}`;
-  }
-  return null;
-}
-
-// Convert Excel serial date to Swiss format
-function formatExcelDate(value: string): string | null {
-  const serialNum = parseInt(value);
-  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 100000) {
-    const date = new Date((serialNum - 25569) * 86400 * 1000);
-    if (!isNaN(date.getTime())) {
-      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
-    }
-  }
-  return null;
-}
-
-// Convert date formats: DD-MM-YYYY or YYYY-MM-DD → DD.MM.YYYY
-function formatDateDE(value: string): string | null {
-  const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (dashMatch) return `${dashMatch[1].padStart(2, '0')}.${dashMatch[2].padStart(2, '0')}.${dashMatch[3]}`;
-  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
-  return null;
-}
-
-// Trim leading/trailing whitespace and normalize multiple spaces
-function trimWhitespace(value: string): string | null {
-  const trimmed = value.trim().replace(/\s{2,}/g, ' ');
-  return trimmed !== value ? trimmed : null;
 }
 
 // Build error index for O(1) lookups
@@ -283,7 +111,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     }
     
     // Check for phone format issues
-    if (colLower.includes('tel') || colLower.includes('phone') || colLower.includes('mobile') || colLower.includes('fax')) {
+    if (colLower.includes('tel') || colLower.includes('phone') || colLower.includes('mobil') || colLower.includes('fax')) {
       const phoneErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
@@ -310,7 +138,6 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       const emailErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
-        // Check if it can be fixed (has @ and ., even if malformed)
         return value.includes('@') || value.includes('.com') || value.includes('.ch');
       });
       
@@ -334,7 +161,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string' && typeof value !== 'number') return false;
         const digits = String(value).replace(/\D/g, '');
-        return digits.length === 4;
+        return digits.length === 4 || digits.length === 5;
       });
       
       if (plzErrors.length > 0) {
@@ -342,7 +169,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           type: 'plz_format',
           column,
           count: plzErrors.length,
-          description: `${plzErrors.length} PLZ können formatiert werden (4 Ziffern)`,
+          description: `${plzErrors.length} PLZ können formatiert werden (4-5 Ziffern)`,
           canAutoFix: true,
           affectedRows: plzErrors.map(e => e.row),
           suggestedAction: 'Format: XXXX',
@@ -352,7 +179,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     }
     
     // Check for gender issues
-    if (colLower.includes('geschlecht') || colLower.includes('gender') || colLower === 'sex') {
+    if (colLower.includes('geschlecht') || colLower.includes('geschl') || colLower.includes('gender') || colLower === 'sex') {
       const genderErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
@@ -416,6 +243,28 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
         continue;
       }
     }
+
+    // Check for Ort/location issues
+    if (colLower === 'ort' || colLower.endsWith('_ort')) {
+      const ortErrors = groupErrors.filter(e => {
+        const value = data[e.row]?.[e.column];
+        if (typeof value !== 'string') return false;
+        return formatOrt(value) !== null;
+      });
+
+      if (ortErrors.length > 0) {
+        patterns.push({
+          type: 'ort_format',
+          column,
+          count: ortErrors.length,
+          description: `${ortErrors.length} Ortsangaben können normalisiert werden (Gross-/Kleinschreibung)`,
+          canAutoFix: true,
+          affectedRows: ortErrors.map(e => e.row),
+          suggestedAction: 'Ort normalisieren',
+        });
+        continue;
+      }
+    }
     
     // Check for IBAN issues
     if (colLower.includes('iban') || colLower.includes('konto')) {
@@ -439,7 +288,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       }
     }
     
-    // Check for Excel date serial numbers AND date format variants (DD-MM-YYYY, ISO)
+    // Check for Excel date serial numbers AND date format variants
     if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
       const excelDateErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
@@ -461,7 +310,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
         continue;
       }
 
-      // DD-MM-YYYY or YYYY-MM-DD variants
+      // DD-MM-YYYY, YYYY-MM-DD, or DD/MM/YYYY variants
       const dateFormatErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
@@ -473,7 +322,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           type: 'date_de_format',
           column,
           count: dateFormatErrors.length,
-          description: `${dateFormatErrors.length} Datumsangaben im falschen Format (Bindestriche/ISO) → DD.MM.YYYY`,
+          description: `${dateFormatErrors.length} Datumsangaben im falschen Format → DD.MM.YYYY`,
           canAutoFix: true,
           affectedRows: dateFormatErrors.map(e => e.row),
           suggestedAction: 'Format: DD.MM.YYYY',
@@ -483,7 +332,9 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     }
 
     // Check for whitespace issues in text columns
-    if (colLower.includes('name') || colLower.includes('strasse') || colLower.includes('ort') || colLower.includes('vorname')) {
+    if (colLower.includes('name') || colLower.includes('strasse') || colLower.includes('ort') || 
+        colLower.includes('vorname') || colLower.includes('heimatort') || colLower.includes('konfession') ||
+        colLower.includes('schulhaus')) {
       const wsErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
@@ -544,6 +395,24 @@ function applyCorrection(
   const updatedData = [...data];
   const targetSet = new Set(targetRows);
   
+  // Use the shared getFixFunction from formatters
+  const fixFnMap: Record<string, (value: string) => string | null> = {
+    'ahv_format': formatAHV,
+    'phone_format': formatSwissPhone,
+    'email_format': formatEmail,
+    'plz_format': formatSwissPLZ,
+    'gender_format': formatGender,
+    'name_format': formatName,
+    'street_format': formatStreet,
+    'ort_format': formatOrt,
+    'iban_format': formatIBAN,
+    'date_format': convertExcelDate,
+    'date_de_format': formatDateDE,
+    'whitespace_trim': trimWhitespace,
+  };
+  
+  const fixFn = fixFnMap[correctionType];
+  
   for (let i = 0; i < updatedData.length; i++) {
     if (!targetSet.has(i)) continue;
     
@@ -552,43 +421,7 @@ function applyCorrection(
     
     if (value === undefined || value === null) continue;
     
-    let newValue: string | null = null;
-    
-    switch (correctionType) {
-      case 'ahv_format':
-        newValue = formatAHV(String(value));
-        break;
-      case 'phone_format':
-        newValue = formatPhone(String(value));
-        break;
-      case 'email_format':
-        newValue = formatEmail(String(value));
-        break;
-      case 'plz_format':
-        newValue = formatPLZ(String(value));
-        break;
-      case 'gender_format':
-        newValue = formatGender(String(value));
-        break;
-      case 'name_format':
-        newValue = formatName(String(value));
-        break;
-      case 'street_format':
-        newValue = formatStreet(String(value));
-        break;
-      case 'iban_format':
-        newValue = formatIBAN(String(value));
-        break;
-      case 'date_format':
-        newValue = formatExcelDate(String(value));
-        break;
-      case 'date_de_format':
-        newValue = formatDateDE(String(value));
-        break;
-      case 'whitespace_trim':
-        newValue = trimWhitespace(String(value));
-        break;
-    }
+    const newValue = fixFn ? fixFn(String(value)) : null;
     
     if (newValue !== null) {
       row[column] = newValue;
