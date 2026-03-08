@@ -4,10 +4,75 @@ import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from 
 import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES, isValidAHVChecksum } from '@/lib/formatters';
 import { validatePlzOrt } from '@/lib/swissPlzData';
 
+export interface SourceFileInfo {
+  name: string;
+  rowCount: number;
+}
+
 export interface ParseResult {
   headers: string[];
   rows: ParsedRow[];
   fileName: string;
+  sourceFiles?: SourceFileInfo[];
+}
+
+// Merge multiple ParseResults into one, adding a _source_file column
+export function mergeParseResults(results: ParseResult[]): ParseResult {
+  if (results.length === 0) {
+    return { headers: [], rows: [], fileName: '' };
+  }
+  if (results.length === 1) {
+    return {
+      ...results[0],
+      sourceFiles: [{ name: results[0].fileName, rowCount: results[0].rows.length }],
+    };
+  }
+
+  // Use first file's headers as reference
+  const referenceHeaders = results[0].headers;
+
+  // Validate header compatibility: all files must have the same headers (order-independent)
+  const refSet = new Set(referenceHeaders);
+  for (let i = 1; i < results.length; i++) {
+    const otherSet = new Set(results[i].headers);
+    const missing = referenceHeaders.filter(h => !otherSet.has(h));
+    const extra = results[i].headers.filter(h => !refSet.has(h));
+    if (missing.length > 0) {
+      throw new Error(
+        `Datei "${results[i].fileName}" fehlen Spalten: ${missing.join(', ')}. Alle Dateien müssen dieselben Spalten haben.`
+      );
+    }
+    // Extra columns in subsequent files are ignored (only reference headers used)
+    if (extra.length > 0) {
+      console.warn(`Datei "${results[i].fileName}" hat zusätzliche Spalten die ignoriert werden: ${extra.join(', ')}`);
+    }
+  }
+
+  // Merge rows, adding _source_file
+  const mergedRows: ParsedRow[] = [];
+  const sourceFiles: SourceFileInfo[] = [];
+
+  for (const result of results) {
+    sourceFiles.push({ name: result.fileName, rowCount: result.rows.length });
+    for (const row of result.rows) {
+      const newRow: ParsedRow = { _source_file: result.fileName };
+      for (const header of referenceHeaders) {
+        newRow[header] = row[header] ?? null;
+      }
+      mergedRows.push(newRow);
+    }
+  }
+
+  // Add _source_file to headers
+  const mergedHeaders = ['_source_file', ...referenceHeaders];
+  const fileNames = results.map(r => r.fileName).join(' + ');
+
+  return {
+    headers: mergedHeaders,
+    rows: mergedRows,
+    fileName: fileNames,
+    sourceFiles,
+  };
 }
 
 // Parse CSV or Excel file

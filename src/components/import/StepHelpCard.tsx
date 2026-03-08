@@ -27,6 +27,7 @@ const stepHelpContent: Record<number, StepHelpContent> = {
     tips: [
       'Unterstützte Formate: CSV, Excel (.xlsx, .xls)',
       'Die Datei wird nur lokal in Ihrem Browser verarbeitet - keine Daten werden hochgeladen.',
+      'Mehrere Schulträger? Sie können Dateien von Primar und Oberstufe gleichzeitig hochladen – die Daten werden automatisch zusammengeführt.',
     ],
   },
   2: {
