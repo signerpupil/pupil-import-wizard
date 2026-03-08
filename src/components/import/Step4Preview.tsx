@@ -29,6 +29,7 @@ interface Step4PreviewProps {
   importTypeName: string;
   changeLog: ChangeLogEntry[];
   fileName?: string;
+  sourceFiles?: SourceFileInfo[];
   onBack: () => void;
   onReset: () => void;
   // Correction memory props
