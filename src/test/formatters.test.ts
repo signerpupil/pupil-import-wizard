@@ -352,3 +352,53 @@ describe('Sibling Consistency Check', () => {
     expect(siblingErrors.length).toBe(0);
   });
 });
+
+// ===== PLZ↔Ort Validation =====
+import { validatePlzOrt } from '../lib/swissPlzData';
+
+describe('PLZ↔Ort Validation', () => {
+  it('returns true for valid PLZ-Ort pair', () => {
+    expect(validatePlzOrt('8001', 'Zürich')).toBe(true);
+    expect(validatePlzOrt('3000', 'Bern')).toBe(true);
+    expect(validatePlzOrt('6000', 'Luzern')).toBe(true);
+    expect(validatePlzOrt('9000', 'St. Gallen')).toBe(true);
+    expect(validatePlzOrt('9000', 'St.Gallen')).toBe(true);
+  });
+
+  it('returns expected Orte for mismatch', () => {
+    const result = validatePlzOrt('8001', 'Bern');
+    expect(result).not.toBe(true);
+    expect(result).not.toBeNull();
+    expect(Array.isArray(result)).toBe(true);
+    expect((result as string[])).toContain('Zürich');
+  });
+
+  it('returns null for unknown PLZ', () => {
+    expect(validatePlzOrt('9999', 'Nirgendwo')).toBeNull();
+  });
+
+  it('matches case-insensitively', () => {
+    expect(validatePlzOrt('8001', 'zürich')).toBe(true);
+    expect(validatePlzOrt('8001', 'ZÜRICH')).toBe(true);
+  });
+
+  it('flags PLZ↔Ort mismatch in validateData', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Test', S_Vorname: 'Kind', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2015', S_AHV: '756.1234.5678.04', K_Name: '1a', S_PLZ: '8001', S_Ort: 'Bern' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const plzErrors = errors.filter(e => e.message.includes('PLZ'));
+    expect(plzErrors.length).toBeGreaterThanOrEqual(1);
+    expect(plzErrors[0].severity).toBe('warning');
+    expect(plzErrors[0].column).toBe('S_Ort');
+  });
+
+  it('does not flag correct PLZ↔Ort in validateData', () => {
+    const rows = [
+      { S_ID: '1', S_Name: 'Test', S_Vorname: 'Kind', S_Geschlecht: 'M', S_Geburtsdatum: '01.01.2015', S_AHV: '756.1234.5678.04', K_Name: '1a', S_PLZ: '8001', S_Ort: 'Zürich' },
+    ];
+    const errors = validateData(rows, schuelerColumns);
+    const plzErrors = errors.filter(e => e.message.includes('PLZ'));
+    expect(plzErrors.length).toBe(0);
+  });
+});
