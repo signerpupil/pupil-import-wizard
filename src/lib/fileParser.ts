@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
-import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES } from '@/lib/formatters';
+import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES, isValidAHVChecksum } from '@/lib/formatters';
 
 export interface ParseResult {
   headers: string[];
