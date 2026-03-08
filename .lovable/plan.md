@@ -1,42 +1,64 @@
 
 
-## PUPIL-Klassen-Export Anleitung fuer LPStep2Teachers
+## Analyse: Multi-Schulträger-Unterstützung bei "Weitere Datenaufbereitung"
 
-Neue aufklappbare Anleitung fuer den PUPIL-Klassen-Export, analog zu `PUPILInstructionGuide` und `LOInstructionGuide`.
+### Ist-Zustand
 
-### Aenderungen
+Der aktuelle Stammdaten-Import unterstützt nur **eine einzelne Datei** pro Durchgang. Für Schulträger mit Primar + Oberstufe (gleiche Familien, verschiedene Daten) gibt es folgende Einschränkungen:
 
-**1. Screenshots kopieren**
-- `user-uploads://2026-03-03-06-52-16.png` → `src/assets/pupil-anleitung-klassen.png` (PUPIL Klassen-Ansicht)
-- `user-uploads://2026-03-03-06-54-50.png` → `src/assets/pupil-anleitung-klassen-excel.png` (Excel-Ergebnis)
+1. **Step1 (Datei-Upload)**: Nur 1 Datei → Benutzer muss Primar und Oberstufe separat verarbeiten
+2. **Korrektur-Regeln**: Basieren auf `column` + `originalValue` (exact match) → funktionieren bereits Schulträger-übergreifend, sofern die gleichen Fehlermuster vorkommen
+3. **Eltern-ID-Konsolidierung**: Funktioniert nur innerhalb einer Datei → kann keine Cross-File-Inkonsistenzen erkennen (z.B. selbe Familie, verschiedene ERZ-IDs in Primar vs. Oberstufe)
+4. **Geschwister-Konsistenz**: Nur innerhalb einer Datei, nicht über Schulträger hinweg
 
-**2. Neue Komponente `src/components/import/lp-zuweisung/PUPILClassesInstructionGuide.tsx`**
+### Was bereits funktioniert
 
-Gleiche Struktur wie `PUPILInstructionGuide`, mit zwei Phasen:
+- Korrektur-Regeln (Speichern/Laden) sind **nicht datei-spezifisch** → werden korrekt auf Dateien beider Schulträger angewendet
+- Alle Format-Validierungen (AHV, PLZ↔Ort, Telefon etc.) sind identisch und funktionieren
 
-**Phase A — Navigieren:**
-1. Im linken Menü **Master Data** öffnen
-2. **Schulen/Klassen/Gruppen** anklicken
-3. **Klassen** auswählen
+### Verbesserungsplan
 
-Screenshot `pupil-anleitung-klassen.png` mit Lightbox
+**Kernänderung: Multi-File-Upload in Step1 ermöglichen**
 
-**Phase B — Tabelle kopieren:**
-4. Gesamte Klassentabelle mit Kopfzeile bis ganz nach unten markieren
-5. Mit Rechtsklick oder **Ctrl+C** kopieren
-6. In leere Excel-Tabelle einfügen und **Excel speichern**
+Statt nur einer Datei soll Step1 optional mehrere CSV/Excel-Dateien akzeptieren. Die Zeilen werden zusammengeführt (concatenated), bevor sie validiert werden. Dadurch funktionieren Eltern-ID-Konsolidierung und Geschwister-Checks automatisch über Schulträger-Grenzen hinweg.
 
-Screenshot `pupil-anleitung-klassen-excel.png` mit Lightbox
+#### Technische Umsetzung
 
-- localStorage-Key: `pupil-classes-guide-open`, standardmässig eingeklappt
-- Nummern-Badges 1-6, identisches Pattern
+1. **Step1FileUpload.tsx erweitern**
+   - `<input>` auf `multiple` setzen
+   - Jede Datei einzeln parsen, Header abgleichen (müssen identisch sein oder kompatibel)
+   - Zeilen zusammenführen, `ParseResult` enthält kombinierte Daten
+   - Eine Quelldatei-Spalte (`_source_file`) optional hinzufügen, um im Export die Herkunft zu tracken
+   - UI: Liste der geladenen Dateien mit Zeilenanzahl + Entfernen-Button pro Datei
 
-**3. `LPStep2Teachers.tsx` anpassen**
+2. **ParseResult erweitern** (`fileParser.ts`)
+   - Neues optionales Feld `sourceFiles?: { name: string; rowCount: number }[]`
+   - Merge-Funktion: `mergeParseResults(results: ParseResult[]): ParseResult` die Header-Kompatibilität prüft und Zeilen zusammenführt
 
-`<PUPILClassesInstructionGuide />` in die zweite Card ("PUPIL-Klassen Datei hochladen") einbauen, zwischen der Beschreibung und dem File-Upload-Input (Zeile ~386, nach dem `<p>` Tag).
+3. **Index.tsx anpassen**
+   - `onFileLoaded` akzeptiert weiterhin ein `ParseResult` (das intern bereits gemerged ist)
+   - Keine Änderungen an Step2-4 nötig, da sie nur mit `rows[]` und `headers[]` arbeiten
 
-### Technische Details
+4. **Export (Step4Preview.tsx)**
+   - Option "Nach Quelldatei aufteilen" beim Export, falls mehrere Dateien geladen wurden
+   - Oder einfach alles als eine Datei exportieren (Standard)
 
-- Identisches Pattern wie `PUPILInstructionGuide`: Collapsible, Dialog-Lightbox, localStorage-Persistenz
-- Zwei Screenshots statt einem (je einer pro Phase)
+5. **UI-Hinweis in Step0**
+   - Bei "Weitere Datenaufbereitung" einen Tipp ergänzen: "Sie können auch Dateien mehrerer Schulträger gleichzeitig hochladen"
+
+#### Nicht nötig zu ändern
+
+- Korrektur-Regeln-Logik (funktioniert bereits generisch)
+- Validierungs-Engine (arbeitet auf der kombinierten Zeilenmenge)
+- Eltern-ID-Konsolidierung (findet automatisch Cross-File-Matches)
+
+#### Dateien die geändert werden
+
+| Datei | Änderung |
+|---|---|
+| `src/lib/fileParser.ts` | `mergeParseResults()` Funktion hinzufügen |
+| `src/components/import/Step1FileUpload.tsx` | Multi-File-Upload UI + Merge-Logik |
+| `src/pages/Index.tsx` | Minimale Anpassung an `parseResult.sourceFiles` |
+| `src/components/import/Step4Preview.tsx` | Optional: Export-Split nach Quelldatei |
+| `src/components/import/StepHelpCard.tsx` | Tipp für Multi-Schulträger ergänzen |
 
