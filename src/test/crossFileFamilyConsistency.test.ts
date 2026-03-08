@@ -95,20 +95,18 @@ describe('Cross-File Family Consistency', () => {
     expect(siblingWarnings).toEqual([]);
   });
 
-  it('should detect inconsistency when parent address differs between files', () => {
+  it('should detect sibling inconsistency when student PLZ/Ort differs between files', () => {
     const modifiedOberstufe: ParsedRow[] = [
-      { ...oberstufeRows[0], P_ERZ1_Strasse: 'Andere Strasse 99' }, // Changed address
+      { ...oberstufeRows[0], S_PLZ: '3000', S_Ort: 'Bern' }, // Different student address
       ...oberstufeRows.slice(1),
     ];
 
     const merged = mergeParseResults([makePR('primar.csv', primarRows), makePR('oberstufe.csv', modifiedOberstufe)]);
     const errors = validateData(merged.rows, columns);
 
-    // Should detect that Meier/Anja has different address than siblings
-    const siblingOrInconsistent = errors.filter(e =>
-      e.message.includes('Geschwister') || e.message.includes('Inkonsisten')
-    );
-    expect(siblingOrInconsistent.length).toBeGreaterThan(0);
+    // Should detect that Meier/Anja has different S_PLZ/S_Ort than siblings with same parent ID
+    const siblingWarnings = errors.filter(e => e.message.includes('Geschwister'));
+    expect(siblingWarnings.length).toBeGreaterThan(0);
   });
 
   it('should detect inconsistency when parent ID differs between files for same parent', () => {
