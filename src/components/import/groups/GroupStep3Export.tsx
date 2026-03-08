@@ -235,7 +235,7 @@ export function GroupStep3Export({ groups, assignments, subjectMap, onBack, onRe
                 <CardDescription>Weist die Schüler den Gruppen zu</CardDescription>
               </div>
             </div>
-            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0} className="shadow-sm">
+            <Button onClick={handleExportAssignments} disabled={flatAssignments.length === 0 || !schuljahr.trim()} className="shadow-sm">
               <Download className="h-4 w-4 mr-2" />
               Herunterladen
             </Button>
