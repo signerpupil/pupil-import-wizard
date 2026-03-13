@@ -295,6 +295,12 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Holländisch': 'Niederländisch',
   'Susu': 'Afrikanische Sprachen',
   'Indonesisch': 'Ostasiatische Sprachen',
+  'Flämisch': 'Niederländisch',
+  'Singalesisch': 'Indoarische und drawidische Sprachen',
+  'Tigrigna': 'Afrikanische Sprachen',
+  'Brasilianisch': 'Portugiesisch',
+  'Usbekisch': 'Westasiatische Sprachen',
+  'Tunesisch': 'Arabisch',
 };
 
 // Case-insensitive lookup for language auto-corrections
