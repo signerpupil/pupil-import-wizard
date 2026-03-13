@@ -1477,6 +1477,11 @@ export async function exportToExcel(
   // Add header row
   worksheet.addRow(exportHeaders);
 
+  // Set all columns to text format to prevent Excel from auto-converting dates
+  worksheet.columns.forEach(col => {
+    col.numFmt = '@'; // Text format
+  });
+
   // Add data rows with corrections applied
   exportRowsWithIndex.forEach(({ row, rowNum }) => {
     const values = exportHeaders.map(header => {
@@ -1485,7 +1490,14 @@ export async function exportToExcel(
       const value = row[header];
       return value !== null && value !== undefined ? String(value) : '';
     });
-    worksheet.addRow(values);
+    const addedRow = worksheet.addRow(values);
+    // Ensure each cell is explicitly typed as string to prevent date auto-detection
+    addedRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.numFmt = '@';
+      if (cell.value !== null && cell.value !== undefined) {
+        cell.value = String(cell.value);
+      }
+    });
   });
 
   // Generate filename
