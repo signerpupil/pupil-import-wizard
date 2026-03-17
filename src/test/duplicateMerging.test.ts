@@ -547,3 +547,56 @@ describe("Bulk Correction Application", () => {
     expect(updatedRows[1].S_Vorname).toBe("Anna");
   });
 });
+
+describe("ID Conflict Detection (same ID, different person)", () => {
+  it("should detect ID conflict when same S_ID has different names", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+      { S_ID: "STUDENT-001", S_Name: "Schmidt", S_Vorname: "Anna", S_AHV: "756.9876.5432.10" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(idConflicts[0].column).toBe("S_ID");
+    expect(idConflicts[0].severity).toBe("error");
+    expect(idConflicts[0].message).toContain("ID-Konflikt");
+  });
+
+  it("should NOT flag ID conflict when same S_ID has same person (normal duplicate)", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict');
+    expect(idConflicts.length).toBe(0);
+    const duplicates = errors.filter(e => e.type === 'duplicate' && e.column === 'S_ID');
+    expect(duplicates.length).toBe(1);
+  });
+
+  it("should detect ID conflict for P_ERZ1_ID with different parent names", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "1", S_Name: "Kind1", S_Vorname: "A", P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Hans" },
+      { S_ID: "2", S_Name: "Kind2", S_Vorname: "B", P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Petra" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'P_ERZ1_ID');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(idConflicts[0].severity).toBe("error");
+  });
+
+  it("should detect ID conflict when same S_AHV has different persons", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.97", S_Geburtsdatum: "01.01.2010" },
+      { S_ID: "2", S_Name: "Schmidt", S_Vorname: "Anna", S_AHV: "756.1234.5678.97", S_Geburtsdatum: "15.06.2012" },
+    ];
+
+    const cols = [...testColumns, { name: "S_Geburtsdatum", required: false, category: "Schüler", validationType: "date" as const }];
+    const errors = validateData(rows, cols);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'S_AHV');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+  });
+});
