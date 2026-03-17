@@ -37,11 +37,11 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    // Should find duplicate AHV
-    const ahvDuplicates = errors.filter(e => e.column === "S_AHV" && e.message.includes("Duplikat"));
-    expect(ahvDuplicates.length).toBe(1);
-    expect(ahvDuplicates[0].row).toBe(2); // Second occurrence is flagged
-    expect(ahvDuplicates[0].value).toBe("756.1234.5678.90");
+    // Same AHV but different names → id_conflict
+    const ahvConflicts = errors.filter(e => e.column === "S_AHV" && (e.type === 'id_conflict' || e.message.includes("Duplikat") || e.message.includes("ID-Konflikt")));
+    expect(ahvConflicts.length).toBe(1);
+    expect(ahvConflicts[0].row).toBe(2); // Second occurrence is flagged
+    expect(ahvConflicts[0].value).toBe("756.1234.5678.90");
   });
 
   it("should detect duplicate S_ID values", () => {
