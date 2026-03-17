@@ -373,7 +373,7 @@ export default function Documentation() {
                       <p className="text-xs font-medium text-destructive">⚠ ID-Konflikte blockieren die Zusammenführung</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Solange ungelöste ID-Konflikte bestehen, können betroffene Zeilen nicht automatisch zusammengeführt werden.
-                        Geleerte IDs werden von PUPIL beim Import automatisch neu vergeben.
+                        Neue IDs im Format <code className="bg-muted px-1 rounded text-xs">{'{OriginalID}_D01'}</code> werden generiert und von PUPIL beim Import übernommen.
                       </p>
                     </div>
                   </div>
