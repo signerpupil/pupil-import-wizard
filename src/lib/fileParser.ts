@@ -1080,19 +1080,38 @@ export function validateData(
     }
   }
 
-  // Process duplicates
+  // Process duplicates with ID conflict detection
   for (const field of DUPLICATE_CHECK_FIELDS) {
     const fieldMap = valueOccurrences.get(field)!;
     fieldMap.forEach((rowNumbers, value) => {
       if (rowNumbers.length > 1) {
-        // Add error for each occurrence except the first
-        for (let i = 1; i < rowNumbers.length; i++) {
-          errors.push({
-            row: rowNumbers[i],
-            column: field,
-            value: value,
-            message: `Duplikat: "${value}" kommt auch in Zeile ${rowNumbers[0]} vor`,
-          });
+        // Check if this is an ID conflict (same ID, different person)
+        const isIdConflict = checkSameIdDifferentPerson(rows, field, rowNumbers);
+        
+        if (isIdConflict) {
+          // ID Conflict: different persons with same ID - serious error
+          for (let i = 1; i < rowNumbers.length; i++) {
+            errors.push({
+              row: rowNumbers[i],
+              column: field,
+              value: value,
+              message: `ID-Konflikt: "${value}" wird in Zeile ${rowNumbers[0]} von einer anderen Person verwendet`,
+              type: 'id_conflict',
+              severity: 'error',
+            });
+          }
+        } else {
+          // Normal duplicate: same person, duplicate entry
+          for (let i = 1; i < rowNumbers.length; i++) {
+            errors.push({
+              row: rowNumbers[i],
+              column: field,
+              value: value,
+              message: `Duplikat: "${value}" kommt auch in Zeile ${rowNumbers[0]} vor`,
+              type: 'duplicate',
+              severity: 'warning',
+            });
+          }
         }
       }
     });

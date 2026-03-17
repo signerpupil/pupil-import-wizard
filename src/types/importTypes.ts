@@ -33,7 +33,7 @@ export interface ValidationError {
   column: string;
   value: string;
   message: string;
-  type?: 'format' | 'duplicate' | 'required' | 'business';
+  type?: 'format' | 'duplicate' | 'required' | 'business' | 'id_conflict';
   severity?: 'error' | 'warning';
   correctedValue?: string;
 }
