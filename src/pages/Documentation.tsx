@@ -362,7 +362,7 @@ export default function Documentation() {
                       </li>
                       <li>
                         <strong>Mehrheitsregel</strong> <Badge variant="secondary" className="ml-1 text-[10px] py-0">Auto-lösbar</Badge>
-                        <br /><span className="text-xs">Wenn eine Person die ID in deutlich mehr Zeilen nutzt als andere (z.B. 5 vs. 1), wird die ID nur bei der Minderheit geleert.</span>
+                        <br /><span className="text-xs">Wenn eine Person die ID in deutlich mehr Zeilen nutzt als andere (z.B. 5 vs. 1), behält sie die Original-ID. Die Minderheit erhält eine neue ID im Format <code className="bg-muted px-1 rounded text-xs">{'{ID}_D01'}</code>.</span>
                       </li>
                       <li>
                         <strong>Manuell</strong> <Badge variant="outline" className="ml-1 text-[10px] py-0">Manuelle Prüfung</Badge>
