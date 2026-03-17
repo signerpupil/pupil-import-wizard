@@ -328,7 +328,11 @@ function ConflictGroupCard({
         <div className="space-y-1.5">
           {group.persons.map((person, pIdx) => {
             const isOwner = group.ownerPerson === person;
-            const willClear = !isOwner && canResolve && group.pattern !== 'manual';
+            const willReplace = !isOwner && canResolve && group.pattern !== 'manual';
+            // Get the replacement ID for the first row of this person
+            const replacementId = willReplace
+              ? group.suggestedReplacements.get(person.rowNumbers[0])
+              : undefined;
 
             return (
               <div
@@ -336,8 +340,8 @@ function ConflictGroupCard({
                 className={`flex items-center justify-between gap-3 text-sm rounded-md px-2.5 py-1.5 ${
                   isOwner
                     ? 'bg-pupil-success/10 border border-pupil-success/20'
-                    : willClear
-                      ? 'bg-destructive/5 border border-destructive/10'
+                    : willReplace
+                      ? 'bg-blue-50 border border-blue-200 dark:bg-blue-950/30 dark:border-blue-800'
                       : 'bg-muted/50 border border-transparent'
                 }`}
               >
@@ -367,10 +371,10 @@ function ConflictGroupCard({
                       Behält ID
                     </Badge>
                   )}
-                  {willClear && (
-                    <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">
-                      <Eraser className="h-3 w-3 mr-1" />
-                      ID wird geleert
+                  {willReplace && replacementId && (
+                    <Badge variant="outline" className="text-blue-600 border-blue-400/50 text-xs font-mono">
+                      <Hash className="h-3 w-3 mr-1" />
+                      → {replacementId}
                     </Badge>
                   )}
                   {group.pattern === 'manual' && (
