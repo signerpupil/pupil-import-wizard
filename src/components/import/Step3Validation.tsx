@@ -2019,8 +2019,20 @@ export function Step3Validation({
                   </Badge>
                 </div>
                 
+                {/* ID Conflict warning */}
+                {duplicateInfo.isIdConflict && (
+                  <Alert variant="destructive" className="border-destructive bg-destructive/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-sm">ID-Konflikt: Verschiedene Personen</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Verschiedene Personen verwenden die gleiche ID. Dies ist ein schwerwiegender Datenfehler.
+                      <strong className="block mt-1">Eine der IDs muss manuell korrigiert werden. Eine Zusammenführung ist nicht möglich.</strong>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Info for parent inconsistency - explain that student data stays unchanged */}
-                {duplicateInfo.isParentInconsistency && (
+                {!duplicateInfo.isIdConflict && duplicateInfo.isParentInconsistency && (
                   <Alert className="border-blue-500/30 bg-blue-500/5">
                     <AlertCircle className="h-4 w-4 text-blue-500" />
                     <AlertTitle className="text-sm">Eltern-ID Inkonsistenz</AlertTitle>
