@@ -164,6 +164,14 @@ export function analyzeIdConflicts(
 }
 
 /**
+ * Generate a replacement ID by appending a suffix like _D01, _D02, etc.
+ */
+function generateReplacementId(originalId: string, index: number): string {
+  const suffix = `_D${String(index).padStart(2, '0')}`;
+  return `${originalId}${suffix}`;
+}
+
+/**
  * Classify a conflict into a pattern type.
  */
 function classifyConflict(idValue: string, persons: ConflictPerson[]): IdConflictPattern {
