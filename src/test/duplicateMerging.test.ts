@@ -69,10 +69,11 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    const ahvDuplicates = errors.filter(e => e.column === "S_AHV" && e.message.includes("Duplikat"));
-    // Rows 2 and 3 are duplicates of row 1
-    expect(ahvDuplicates.length).toBe(2);
-    expect(ahvDuplicates.map(e => e.row).sort()).toEqual([2, 3]);
+    // Same AHV, different first names → id_conflict
+    const ahvErrors = errors.filter(e => e.column === "S_AHV" && (e.type === 'id_conflict' || e.type === 'duplicate'));
+    // Rows 2 and 3 are flagged
+    expect(ahvErrors.length).toBe(2);
+    expect(ahvErrors.map(e => e.row).sort()).toEqual([2, 3]);
   });
 });
 
