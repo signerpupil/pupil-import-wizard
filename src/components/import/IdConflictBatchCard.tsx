@@ -135,7 +135,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
               className="gap-2 bg-destructive hover:bg-destructive/90"
               size="lg"
             >
-              <Eraser className="h-4 w-4" />
+              <Hash className="h-4 w-4" />
               Alle {resolvableCount} auflösen
             </Button>
           )}
