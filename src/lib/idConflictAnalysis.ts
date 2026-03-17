@@ -213,18 +213,18 @@ function getIdentityFields(idField: string): {
       ahvField: idField === 'S_ID' ? 'S_AHV' : 'S_ID',
       gebField: 'S_Geburtsdatum',
     };
-  } else if (idField === 'P_ERZ1_ID') {
+  } else if (idField === 'P_ERZ1_ID' || idField === 'P_ERZ1_AHV') {
     return {
       nameField: 'P_ERZ1_Name',
       vornameField: 'P_ERZ1_Vorname',
-      ahvField: 'P_ERZ1_AHV',
+      ahvField: idField === 'P_ERZ1_ID' ? 'P_ERZ1_AHV' : 'P_ERZ1_ID',
       gebField: null,
     };
-  } else if (idField === 'P_ERZ2_ID') {
+  } else if (idField === 'P_ERZ2_ID' || idField === 'P_ERZ2_AHV') {
     return {
       nameField: 'P_ERZ2_Name',
       vornameField: 'P_ERZ2_Vorname',
-      ahvField: 'P_ERZ2_AHV',
+      ahvField: idField === 'P_ERZ2_ID' ? 'P_ERZ2_AHV' : 'P_ERZ2_ID',
       gebField: null,
     };
   } else if (idField === 'L_KL1_AHV') {
