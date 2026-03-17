@@ -29,6 +29,7 @@ import {
   formatGender
 } from '@/lib/localBulkCorrections';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -1155,6 +1156,13 @@ export function Step3Validation({
           </div>
         );
       })()}
+
+      {/* ID Conflict Batch Resolution Card */}
+      <IdConflictBatchCard
+        errors={errors}
+        rows={rows}
+        onBulkCorrect={onBulkCorrect}
+      />
 
       {/* Bulk Parent ID Consolidation Card - Optimized for 800+ entries */}
       {parentIdInconsistencyGroups.length > 0 && (
