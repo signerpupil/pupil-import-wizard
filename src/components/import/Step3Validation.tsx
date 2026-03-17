@@ -2071,8 +2071,8 @@ export function Step3Validation({
                   </AlertDescription>
                 </Alert>
 
-                {/* Master Record Selection - only for parent fields or non-parent inconsistencies */}
-                {(duplicateInfo.hasDifferences || duplicateInfo.isParentInconsistency) && (
+                {/* Master Record Selection - only for parent fields or non-parent inconsistencies, NOT for ID conflicts */}
+                {!duplicateInfo.isIdConflict && (duplicateInfo.hasDifferences || duplicateInfo.isParentInconsistency) && (
                   <div className="p-3 bg-muted/50 rounded-lg border space-y-3">
                     <div className="flex items-center gap-2">
                       <Copy className="h-4 w-4 text-primary" />
