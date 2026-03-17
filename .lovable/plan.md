@@ -1,42 +1,46 @@
 
 
-## PUPIL-Klassen-Export Anleitung fuer LPStep2Teachers
+## Problem: Gleiche ID, unterschiedliche Personen
 
-Neue aufklappbare Anleitung fuer den PUPIL-Klassen-Export, analog zu `PUPILInstructionGuide` und `LOInstructionGuide`.
+Aktuell erkennt das System Duplikate bei gleichen IDs (S_ID, S_AHV, etc.) und bietet eine "Master Record"-Zusammenführung an. Das funktioniert für den Fall, dass dieselbe Person doppelt vorkommt. Es gibt aber den umgekehrten Fall: **Zwei verschiedene Personen haben versehentlich dieselbe ID.** Das ist ein schwerwiegender Datenfehler, der anders behandelt werden muss als ein normales Duplikat.
 
-### Aenderungen
+## Betroffene Stellen
 
-**1. Screenshots kopieren**
-- `user-uploads://2026-03-03-06-52-16.png` → `src/assets/pupil-anleitung-klassen.png` (PUPIL Klassen-Ansicht)
-- `user-uploads://2026-03-03-06-54-50.png` → `src/assets/pupil-anleitung-klassen-excel.png` (Excel-Ergebnis)
+### 1. Erkennung in `src/lib/fileParser.ts` (validateData)
+Die Duplikat-Erkennung (Zeilen 1030-1099) prüft nur, ob ein Wert mehrfach vorkommt. Sie unterscheidet nicht zwischen:
+- **Echtes Duplikat**: Gleiche ID, gleicher Name/AHV → selbe Person, doppelt erfasst
+- **ID-Konflikt**: Gleiche ID, aber verschiedene Namen/AHV/Geburtsdatum → verschiedene Personen
 
-**2. Neue Komponente `src/components/import/lp-zuweisung/PUPILClassesInstructionGuide.tsx`**
+**Änderung**: Nach der Duplikat-Erkennung für S_ID einen Vergleich der zugehörigen Personendaten (Name, Vorname, Geburtsdatum, AHV) durchführen. Wenn diese abweichen, wird ein separater Fehlertyp `id_conflict` mit Severity `error` statt `warning` erzeugt.
 
-Gleiche Struktur wie `PUPILInstructionGuide`, mit zwei Phasen:
+### 2. Erkennung bei Eltern-IDs
+Analog für P_ERZ1_ID / P_ERZ2_ID: Gleiche Eltern-ID aber verschiedene Eltern-Namen/-AHV. Dies unterscheidet sich von der bestehenden "Eltern-ID Konsolidierung" (die den umgekehrten Fall behandelt: gleiche Person, verschiedene IDs).
 
-**Phase A — Navigieren:**
-1. Im linken Menü **Master Data** öffnen
-2. **Schulen/Klassen/Gruppen** anklicken
-3. **Klassen** auswählen
+**Änderung**: Neue Prüfung `checkSameIdDifferentPerson` die bei gleicher ID prüft, ob Name+Vorname oder AHV abweichen.
 
-Screenshot `pupil-anleitung-klassen.png` mit Lightbox
+### 3. UI-Anzeige in `src/components/import/Step3Validation.tsx`
+Die `getDuplicateInfo`-Funktion (ab Zeile 630) und die Master-Record-UI müssen den neuen Fehlertyp erkennen:
+- Bei `id_conflict`: Klare Warnung "Verschiedene Personen mit gleicher ID", rot markiert
+- Keine automatische Zusammenführung anbieten – stattdessen muss der User eine ID manuell ändern
+- Vorschlag: "Eine der IDs muss korrigiert werden"
 
-**Phase B — Tabelle kopieren:**
-4. Gesamte Klassentabelle mit Kopfzeile bis ganz nach unten markieren
-5. Mit Rechtsklick oder **Ctrl+C** kopieren
-6. In leere Excel-Tabelle einfügen und **Excel speichern**
+### 4. Worker (`src/workers/validationWorker.ts`)
+Der `analyzeErrors`-Abschnitt für Duplikate (Zeile 347) muss den neuen Typ `id_conflict` als nicht auto-fixbar mit spezieller Beschreibung erkennen.
 
-Screenshot `pupil-anleitung-klassen-excel.png` mit Lightbox
+### 5. Tests
+Neue Tests in `src/test/duplicateMerging.test.ts`:
+- Gleiche S_ID, verschiedene Namen → `id_conflict`-Fehler
+- Gleiche S_ID, gleiche Namen → normales `duplicate`
+- Gleiche P_ERZ1_ID, verschiedene Eltern-Namen → `id_conflict`
+- Gleiche S_AHV, verschiedene Personen → `id_conflict`
 
-- localStorage-Key: `pupil-classes-guide-open`, standardmässig eingeklappt
-- Nummern-Badges 1-6, identisches Pattern
+## Zusammenfassung der Änderungen
 
-**3. `LPStep2Teachers.tsx` anpassen**
-
-`<PUPILClassesInstructionGuide />` in die zweite Card ("PUPIL-Klassen Datei hochladen") einbauen, zwischen der Beschreibung und dem File-Upload-Input (Zeile ~386, nach dem `<p>` Tag).
-
-### Technische Details
-
-- Identisches Pattern wie `PUPILInstructionGuide`: Collapsible, Dialog-Lightbox, localStorage-Persistenz
-- Zwei Screenshots statt einem (je einer pro Phase)
+| Datei | Änderung |
+|-------|----------|
+| `src/lib/fileParser.ts` | Neue Funktion `checkSameIdDifferentPerson()`, Integration in `validateData` |
+| `src/components/import/Step3Validation.tsx` | UI-Differenzierung für `id_conflict` vs. `duplicate`, angepasste Lösungsvorschläge |
+| `src/workers/validationWorker.ts` | Neuer Pattern-Typ `id_conflict` in `analyzeErrors` |
+| `src/types/importTypes.ts` | Neuer Fehlertyp `id_conflict` im ValidationError-Type |
+| `src/test/duplicateMerging.test.ts` | Neue Tests für ID-Konflikt-Szenarien |
 
