@@ -324,6 +324,60 @@ export default function Documentation() {
                     <p className="text-xs text-muted-foreground">Duplikate werden als Fehler markiert und zeigen die erste Zeile an, in der der Wert vorkommt.</p>
                   </div>
 
+                  {/* 3b. ID-Konflikt-Erkennung */}
+                  <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-sm">3b. ID-Konflikt-Erkennung</h5>
+                    <p className="text-xs text-muted-foreground">
+                      Im Gegensatz zur Duplikat-Erkennung (gleiche Person doppelt) prüft die ID-Konflikt-Erkennung, ob <strong>verschiedene Personen dieselbe ID</strong> besitzen.
+                      Personen werden anhand von <strong>Name + Vorname</strong> unterschieden.
+                    </p>
+                    <p className="text-xs text-muted-foreground font-medium mt-2">Geprüfte ID-Felder:</p>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">S_ID</Badge>
+                        <span className="text-xs text-muted-foreground">Schüler-ID — Identifikation über S_Name + S_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">S_AHV</Badge>
+                        <span className="text-xs text-muted-foreground">Schüler-AHV — Identifikation über S_Name + S_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ1_ID</Badge>
+                        <span className="text-xs text-muted-foreground">Erziehungsberechtigter 1 — Identifikation über P_ERZ1_Name + P_ERZ1_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ2_ID</Badge>
+                        <span className="text-xs text-muted-foreground">Erziehungsberechtigter 2 — Identifikation über P_ERZ2_Name + P_ERZ2_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">L_KL1_AHV</Badge>
+                        <span className="text-xs text-muted-foreground">Lehrperson Klassenlehrperson — Identifikation über L_KL1_Name + L_KL1_Vorname</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium mt-2">Automatische Auflösungsmuster (Batch):</p>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>
+                        <strong>Platzhalter-IDs</strong> <Badge variant="default" className="ml-1 text-[10px] py-0">Auto-lösbar</Badge>
+                        <br /><span className="text-xs">Bekannte Platzhalter wie «0», «999», «-1», «test», «neu» werden erkannt. Die ID wird bei allen betroffenen Personen geleert.</span>
+                      </li>
+                      <li>
+                        <strong>Mehrheitsregel</strong> <Badge variant="secondary" className="ml-1 text-[10px] py-0">Auto-lösbar</Badge>
+                        <br /><span className="text-xs">Wenn eine Person die ID in deutlich mehr Zeilen nutzt als andere (z.B. 5 vs. 1), wird die ID nur bei der Minderheit geleert.</span>
+                      </li>
+                      <li>
+                        <strong>Manuell</strong> <Badge variant="outline" className="ml-1 text-[10px] py-0">Manuelle Prüfung</Badge>
+                        <br /><span className="text-xs">Keine automatische Zuordnung möglich (z.B. 2 Personen mit je 1 Zeile). Erfordert manuelle Entscheidung.</span>
+                      </li>
+                    </ul>
+                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                      <p className="text-xs font-medium text-destructive">⚠ ID-Konflikte blockieren die Zusammenführung</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Solange ungelöste ID-Konflikte bestehen, können betroffene Zeilen nicht automatisch zusammengeführt werden.
+                        Geleerte IDs werden von PUPIL beim Import automatisch neu vergeben.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* 4. Eltern-ID Konsistenz */}
                   <div className="bg-muted/30 rounded-xl p-4 space-y-3">
                     <h5 className="font-semibold text-sm">4. Eltern-ID Konsolidierung</h5>
