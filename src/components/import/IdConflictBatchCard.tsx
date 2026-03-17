@@ -157,8 +157,8 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
         {/* Pattern explanation */}
         <div className="text-xs text-muted-foreground bg-background rounded-lg border p-3 space-y-1.5">
           <p className="font-medium text-foreground text-sm">Erkannte Muster:</p>
-          <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → ID bei allen Betroffenen leeren</p>
-          <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → ID der Minderheit leeren</p>
+          <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → Jede Person erhält eine neue eindeutige ID</p>
+          <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → Minderheit erhält neue ID</p>
           <p><span className="font-medium text-pupil-warning">Manuelle Prüfung:</span> Kein klares Muster → muss manuell entschieden werden</p>
         </div>
 
