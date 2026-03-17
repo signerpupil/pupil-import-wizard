@@ -754,11 +754,17 @@ export function Step3Validation({
     const hasDifferences = columnsWithDifferences.length > 0;
     const hasCriticalDifferences = criticalDifferences.length > 0;
 
+    // Check if this is an ID conflict (different persons with same ID)
+    const isIdConflict = relatedErrors.some(e => e.type === 'id_conflict');
+
     // Suggest a solution based on the type of duplicate and differences
     let suggestedSolution = '';
     let warningMessage = '';
     
-    if (isParentInconsistency) {
+    if (isIdConflict) {
+      warningMessage = `Schwerwiegender Fehler: Verschiedene Personen verwenden die gleiche ID "${currentValue}" in Spalte "${currentError.column}".`;
+      suggestedSolution = 'Die ID muss bei einer der Personen manuell korrigiert werden. Eine automatische Zusammenführung ist nicht möglich, da es sich um verschiedene Personen handelt.';
+    } else if (isParentInconsistency) {
       warningMessage = hasDifferences 
         ? `${columnsWithDifferences.length} Eltern-Feld(er) haben unterschiedliche Werte.`
         : '';

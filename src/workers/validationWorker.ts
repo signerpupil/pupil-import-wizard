@@ -340,6 +340,20 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       }
     }
     
+    // Check for ID conflicts (different persons with same ID)
+    if (type === 'id_conflict') {
+      patterns.push({
+        type: 'id_conflict',
+        column,
+        count: groupErrors.length,
+        description: `${groupErrors.length} ID-Konflikt(e) in "${column}" - Verschiedene Personen mit gleicher ID`,
+        canAutoFix: false,
+        affectedRows,
+        suggestedAction: 'IDs müssen manuell korrigiert werden',
+      });
+      continue;
+    }
+
     // Check for duplicates
     if (type === 'duplicate') {
       patterns.push({
