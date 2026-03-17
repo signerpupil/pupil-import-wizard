@@ -346,8 +346,16 @@ export default function Documentation() {
                         <span className="text-xs text-muted-foreground">Erziehungsberechtigter 1 — Identifikation über P_ERZ1_Name + P_ERZ1_Vorname</span>
                       </div>
                       <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ1_AHV</Badge>
+                        <span className="text-xs text-muted-foreground">AHV Erziehungsberechtigter 1 — Identifikation über P_ERZ1_Name + P_ERZ1_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
                         <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ2_ID</Badge>
                         <span className="text-xs text-muted-foreground">Erziehungsberechtigter 2 — Identifikation über P_ERZ2_Name + P_ERZ2_Vorname</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ2_AHV</Badge>
+                        <span className="text-xs text-muted-foreground">AHV Erziehungsberechtigter 2 — Identifikation über P_ERZ2_Name + P_ERZ2_Vorname</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Badge variant="outline" className="font-mono text-xs shrink-0">L_KL1_AHV</Badge>
