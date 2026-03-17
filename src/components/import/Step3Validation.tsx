@@ -798,7 +798,8 @@ export function Step3Validation({
       otherDifferences,
       totalOccurrences: rowsWithData.length,
       allColumns: Array.from(allColumns),
-      isParentInconsistency
+      isParentInconsistency,
+      isIdConflict
     };
   }, [currentError, errors, rows, getStudentNameForRow]);
 
