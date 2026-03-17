@@ -74,14 +74,14 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
     const corrections = group.resolvableRows.map(rowNum => ({
       row: rowNum,
       column: group.idField,
-      value: '', // Clear the conflicting ID
+      value: group.suggestedReplacements.get(rowNum) ?? '',
     }));
 
     onBulkCorrect(corrections, 'bulk');
 
     toast({
       title: 'ID-Konflikte aufgelöst',
-      description: `${corrections.length} IDs in "${group.idField}" geleert (Wert "${group.idValue}").`,
+      description: `${corrections.length} IDs in "${group.idField}" ersetzt (Wert "${group.idValue}").`,
     });
   }, [onBulkCorrect, toast]);
 
