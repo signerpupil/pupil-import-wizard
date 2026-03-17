@@ -1013,6 +1013,73 @@ function checkParentNameChanges(rows: ParsedRow[]): ValidationError[] {
   return errors;
 }
 
+// Check if rows with the same ID belong to different persons
+function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers: number[]): boolean {
+  // Determine which identity fields to compare based on the ID field
+  let nameField: string;
+  let vornameField: string;
+  let ahvField: string | null;
+  let geburtsdatumField: string | null;
+
+  if (field === 'S_ID' || field === 'S_AHV') {
+    nameField = 'S_Name';
+    vornameField = 'S_Vorname';
+    ahvField = field === 'S_ID' ? 'S_AHV' : 'S_ID';
+    geburtsdatumField = 'S_Geburtsdatum';
+  } else if (field === 'L_KL1_AHV') {
+    nameField = 'L_KL1_Name';
+    vornameField = 'L_KL1_Vorname';
+    ahvField = null;
+    geburtsdatumField = null;
+  } else if (field.startsWith('P_ERZ1_')) {
+    nameField = 'P_ERZ1_Name';
+    vornameField = 'P_ERZ1_Vorname';
+    ahvField = field === 'P_ERZ1_ID' ? 'P_ERZ1_AHV' : 'P_ERZ1_ID';
+    geburtsdatumField = null;
+  } else if (field.startsWith('P_ERZ2_')) {
+    nameField = 'P_ERZ2_Name';
+    vornameField = 'P_ERZ2_Vorname';
+    ahvField = field === 'P_ERZ2_ID' ? 'P_ERZ2_AHV' : 'P_ERZ2_ID';
+    geburtsdatumField = null;
+  } else {
+    return false;
+  }
+
+  // Get identity data from the first row as reference
+  const refRow = rows[rowNumbers[0] - 1];
+  if (!refRow) return false;
+
+  const refName = String(refRow[nameField] ?? '').trim().toLowerCase();
+  const refVorname = String(refRow[vornameField] ?? '').trim().toLowerCase();
+  const refAhv = ahvField ? String(refRow[ahvField] ?? '').trim() : '';
+  const refGeb = geburtsdatumField ? String(refRow[geburtsdatumField] ?? '').trim() : '';
+
+  // Compare each other row against the reference
+  for (let i = 1; i < rowNumbers.length; i++) {
+    const row = rows[rowNumbers[i] - 1];
+    if (!row) continue;
+
+    const name = String(row[nameField] ?? '').trim().toLowerCase();
+    const vorname = String(row[vornameField] ?? '').trim().toLowerCase();
+    const ahv = ahvField ? String(row[ahvField] ?? '').trim() : '';
+    const geb = geburtsdatumField ? String(row[geburtsdatumField] ?? '').trim() : '';
+
+    // If names are empty, we can't determine conflict
+    if (!refName && !name) continue;
+
+    // Check for differences: name+vorname differ, OR AHV differs (when both present), OR DOB differs (when both present)
+    const namesDiffer = (refName && name && (refName !== name || refVorname !== vorname));
+    const ahvDiffers = (refAhv && ahv && refAhv !== ahv);
+    const gebDiffers = (refGeb && geb && refGeb !== geb);
+
+    if (namesDiffer || ahvDiffers || gebDiffers) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Validate data - Optimized for large datasets (4000+ rows)
 export function validateData(
   rows: ParsedRow[],
