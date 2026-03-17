@@ -358,7 +358,7 @@ export default function Documentation() {
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li>
                         <strong>Platzhalter-IDs</strong> <Badge variant="default" className="ml-1 text-[10px] py-0">Auto-lösbar</Badge>
-                        <br /><span className="text-xs">Bekannte Platzhalter wie «0», «999», «-1», «test», «neu» werden erkannt. Die ID wird bei allen betroffenen Personen geleert.</span>
+                        <br /><span className="text-xs">Bekannte Platzhalter wie «0», «999», «-1», «test», «neu» werden erkannt. Jede Person erhält eine neue eindeutige ID im Format <code className="bg-muted px-1 rounded text-xs">{'{ID}_D01'}</code>.</span>
                       </li>
                       <li>
                         <strong>Mehrheitsregel</strong> <Badge variant="secondary" className="ml-1 text-[10px] py-0">Auto-lösbar</Badge>
