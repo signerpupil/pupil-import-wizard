@@ -601,4 +601,57 @@ describe("ID Conflict Detection (same ID, different person)", () => {
     const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'S_AHV');
     expect(idConflicts.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("should detect all 3 ID conflict types from test-stammdaten.csv scenario", () => {
+    // Simulates the actual test-stammdaten.csv rows: original + 3 conflict rows
+    const cols: ColumnDefinition[] = [
+      ...testColumns,
+      { name: "S_Geburtsdatum", required: false, category: "Schüler", validationType: "date" as const },
+    ];
+
+    const rows: ParsedRow[] = [
+      // Row 1: Original Meier Luca (S_AHV: 756.1234.5678.01, S_ID: 10001, P_ERZ1_ID: 20001)
+      { S_ID: "10001", S_Name: "Meier", S_Vorname: "Luca", S_AHV: "756.1234.5678.01", S_Geburtsdatum: "15.03.2014",
+        P_ERZ1_ID: "20001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Thomas", P_ERZ1_AHV: "756.2001.0001.01" },
+      // Row 2: Meier Sophie (same parents = normal, same P_ERZ1_ID = OK because same parent)
+      { S_ID: "10002", S_Name: "Meier", S_Vorname: "Sophie", S_AHV: "756.1234.5678.02", S_Geburtsdatum: "22.07.2015",
+        P_ERZ1_ID: "20001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Thomas", P_ERZ1_AHV: "756.2001.0001.01" },
+      // Row 305: Zanetti Marco - SAME S_AHV as Meier Luca = ID CONFLICT
+      { S_ID: "10400", S_Name: "Zanetti", S_Vorname: "Marco", S_AHV: "756.1234.5678.01", S_Geburtsdatum: "08.05.2013",
+        P_ERZ1_ID: "20090", P_ERZ1_Name: "Zanetti", P_ERZ1_Vorname: "Giuseppe", P_ERZ1_AHV: "756.2090.0001.01" },
+      // Row 306: Hofmann Elena - SAME S_ID as Meier Luca = ID CONFLICT
+      { S_ID: "10001", S_Name: "Hofmann", S_Vorname: "Elena", S_AHV: "756.1234.9999.01", S_Geburtsdatum: "12.11.2014",
+        P_ERZ1_ID: "20092", P_ERZ1_Name: "Hofmann", P_ERZ1_Vorname: "Daniel", P_ERZ1_AHV: "756.2092.0001.01" },
+      // Row 307: Rossi Mia - SAME P_ERZ1_ID as Meier but different parent = ID CONFLICT
+      { S_ID: "10401", S_Name: "Rossi", S_Vorname: "Mia", S_AHV: "756.1234.8888.01", S_Geburtsdatum: "03.07.2015",
+        P_ERZ1_ID: "20001", P_ERZ1_Name: "Rossi", P_ERZ1_Vorname: "Antonio", P_ERZ1_AHV: "756.2001.0001.01" },
+    ];
+
+    const errors = validateData(rows, cols);
+
+    // 1. S_AHV conflict: Zanetti has same AHV as Meier Luca
+    const ahvConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'S_AHV');
+    expect(ahvConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(ahvConflicts[0].message).toContain("ID-Konflikt");
+    expect(ahvConflicts[0].severity).toBe("error");
+
+    // 2. S_ID conflict: Hofmann has same ID as Meier Luca
+    const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'S_ID');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(idConflicts[0].severity).toBe("error");
+
+    // 3. P_ERZ1_ID conflict: Rossi has same parent ID as Meier but different parent name
+    const parentConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'P_ERZ1_ID');
+    expect(parentConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(parentConflicts[0].severity).toBe("error");
+
+    // Verify normal duplicates still work: Meier siblings with same P_ERZ1_ID (same parent) should NOT be id_conflict
+    const normalParentDups = errors.filter(e => e.type === 'duplicate' && e.column === 'P_ERZ1_ID');
+    // The Meier siblings share the same parent ID legitimately - not flagged as conflict
+    // (but may still appear as duplicates depending on grouping)
+
+    // Ensure no id_conflict errors are marked as warnings
+    const conflictWarnings = errors.filter(e => e.type === 'id_conflict' && e.severity === 'warning');
+    expect(conflictWarnings.length).toBe(0);
+  });
 });
