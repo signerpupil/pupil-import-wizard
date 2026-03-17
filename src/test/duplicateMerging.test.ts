@@ -53,9 +53,10 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    const idDuplicates = errors.filter(e => e.column === "S_ID" && e.message.includes("Duplikat"));
-    expect(idDuplicates.length).toBe(1);
-    expect(idDuplicates[0].row).toBe(2);
+    // Same ID, same name but different AHV → id_conflict (different AHV means different person)
+    const idErrors = errors.filter(e => e.column === "S_ID" && (e.type === 'id_conflict' || e.type === 'duplicate'));
+    expect(idErrors.length).toBe(1);
+    expect(idErrors[0].row).toBe(2);
   });
 
   it("should detect multiple duplicates of the same value", () => {
