@@ -94,7 +94,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
         allCorrections.push({
           row: rowNum,
           column: group.idField,
-          value: '',
+          value: group.suggestedReplacements.get(rowNum) ?? '',
         });
       }
     }
@@ -105,7 +105,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
 
     toast({
       title: 'Alle auflösbaren ID-Konflikte behoben',
-      description: `${allCorrections.length} IDs in ${resolvableGroups.length} Gruppen geleert.`,
+      description: `${allCorrections.length} IDs in ${resolvableGroups.length} Gruppen ersetzt.`,
     });
   }, [conflictGroups, onBulkCorrect, toast]);
 
