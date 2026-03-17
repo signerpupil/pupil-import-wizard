@@ -141,7 +141,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
           )}
         </div>
         <CardDescription>
-          Verschiedene Personen verwenden dieselbe ID. Die IDs der fälschlich zugeordneten Personen werden geleert.
+          Verschiedene Personen verwenden dieselbe ID. Neue IDs im Format <code className="text-xs font-mono bg-muted px-1 rounded">{'{ID}_D01'}</code> werden generiert.
         </CardDescription>
       </CardHeader>
 
