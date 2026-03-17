@@ -107,19 +107,37 @@ export function analyzeIdConflicts(
     // Classify pattern
     const pattern = classifyConflict(value, persons);
 
-    // Determine resolvable rows
+    // Determine resolvable rows and generate replacement IDs
     let resolvableRows: number[] = [];
     let ownerPerson: ConflictPerson | undefined;
+    const suggestedReplacements = new Map<number, string>();
 
     if (pattern === 'placeholder') {
-      // All rows have a placeholder ID → clear all of them
+      // All rows have a placeholder ID → generate new IDs for each person
       resolvableRows = errorRows;
+      // Group rows by person, assign each person a unique suffix
+      let suffixCounter = 1;
+      for (const person of persons) {
+        const newId = generateReplacementId(value, suffixCounter);
+        for (const rowNum of person.rowNumbers) {
+          suggestedReplacements.set(rowNum, newId);
+        }
+        suffixCounter++;
+      }
     } else if (pattern === 'majority') {
       // Sort by occurrence count descending
       const sorted = [...persons].sort((a, b) => b.rowNumbers.length - a.rowNumbers.length);
       ownerPerson = sorted[0];
-      // Clear ID for all non-majority persons
+      // Generate new IDs for all non-majority persons
       resolvableRows = sorted.slice(1).flatMap(p => p.rowNumbers);
+      let suffixCounter = 1;
+      for (const person of sorted.slice(1)) {
+        const newId = generateReplacementId(value, suffixCounter);
+        for (const rowNum of person.rowNumbers) {
+          suggestedReplacements.set(rowNum, newId);
+        }
+        suffixCounter++;
+      }
     }
     // 'manual' → resolvableRows stays empty
 
@@ -130,6 +148,7 @@ export function analyzeIdConflicts(
       pattern,
       resolvableRows,
       ownerPerson,
+      suggestedReplacements,
     });
   }
 
