@@ -20,10 +20,12 @@ export interface IdConflictGroup {
   idValue: string;       // the conflicting value
   persons: ConflictPerson[];
   pattern: IdConflictPattern;
-  /** Rows where the ID should be cleared (minority/placeholder) */
+  /** Rows where the ID should be replaced (minority/placeholder) */
   resolvableRows: number[];
   /** The person who likely "owns" the ID (majority) */
   ownerPerson?: ConflictPerson;
+  /** Map of row number → replacement ID for resolvable rows */
+  suggestedReplacements: Map<number, string>;
 }
 
 export type IdConflictPattern =
