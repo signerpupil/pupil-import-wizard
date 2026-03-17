@@ -318,8 +318,8 @@ function ConflictGroupCard({
           </div>
           {canResolve && (
             <Button size="sm" variant="outline" onClick={onResolve} className="gap-1.5 shrink-0">
-              <Eraser className="h-3.5 w-3.5" />
-              {group.resolvableRows.length} IDs leeren
+              <Hash className="h-3.5 w-3.5" />
+              {group.resolvableRows.length} neue IDs vergeben
             </Button>
           )}
         </div>
