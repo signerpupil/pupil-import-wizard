@@ -44,6 +44,7 @@ describe('ID Conflict Analysis', () => {
     for (const id of replacements) {
       expect(id).toMatch(/^0_D\d{2}$/);
     }
+  });
 
   it('detects majority pattern', () => {
     // Meier appears in 5 rows, Müller in 1
