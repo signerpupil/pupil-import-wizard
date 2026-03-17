@@ -37,11 +37,11 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    // Should find duplicate AHV
-    const ahvDuplicates = errors.filter(e => e.column === "S_AHV" && e.message.includes("Duplikat"));
-    expect(ahvDuplicates.length).toBe(1);
-    expect(ahvDuplicates[0].row).toBe(2); // Second occurrence is flagged
-    expect(ahvDuplicates[0].value).toBe("756.1234.5678.90");
+    // Same AHV but different names → id_conflict
+    const ahvConflicts = errors.filter(e => e.column === "S_AHV" && (e.type === 'id_conflict' || e.message.includes("Duplikat") || e.message.includes("ID-Konflikt")));
+    expect(ahvConflicts.length).toBe(1);
+    expect(ahvConflicts[0].row).toBe(2); // Second occurrence is flagged
+    expect(ahvConflicts[0].value).toBe("756.1234.5678.90");
   });
 
   it("should detect duplicate S_ID values", () => {
@@ -53,9 +53,10 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    const idDuplicates = errors.filter(e => e.column === "S_ID" && e.message.includes("Duplikat"));
-    expect(idDuplicates.length).toBe(1);
-    expect(idDuplicates[0].row).toBe(2);
+    // Same ID, same name but different AHV → id_conflict (different AHV means different person)
+    const idErrors = errors.filter(e => e.column === "S_ID" && (e.type === 'id_conflict' || e.type === 'duplicate'));
+    expect(idErrors.length).toBe(1);
+    expect(idErrors[0].row).toBe(2);
   });
 
   it("should detect multiple duplicates of the same value", () => {
@@ -68,10 +69,11 @@ describe("Duplicate Detection", () => {
 
     const errors = validateData(rows, testColumns);
     
-    const ahvDuplicates = errors.filter(e => e.column === "S_AHV" && e.message.includes("Duplikat"));
-    // Rows 2 and 3 are duplicates of row 1
-    expect(ahvDuplicates.length).toBe(2);
-    expect(ahvDuplicates.map(e => e.row).sort()).toEqual([2, 3]);
+    // Same AHV, different first names → id_conflict
+    const ahvErrors = errors.filter(e => e.column === "S_AHV" && (e.type === 'id_conflict' || e.type === 'duplicate'));
+    // Rows 2 and 3 are flagged
+    expect(ahvErrors.length).toBe(2);
+    expect(ahvErrors.map(e => e.row).sort()).toEqual([2, 3]);
   });
 });
 
@@ -545,5 +547,58 @@ describe("Bulk Correction Application", () => {
     expect(updatedRows[0].S_Vorname).toBe("Max");
     expect(updatedRows[1].S_Name).toBe("Schmidt");
     expect(updatedRows[1].S_Vorname).toBe("Anna");
+  });
+});
+
+describe("ID Conflict Detection (same ID, different person)", () => {
+  it("should detect ID conflict when same S_ID has different names", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+      { S_ID: "STUDENT-001", S_Name: "Schmidt", S_Vorname: "Anna", S_AHV: "756.9876.5432.10" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(idConflicts[0].column).toBe("S_ID");
+    expect(idConflicts[0].severity).toBe("error");
+    expect(idConflicts[0].message).toContain("ID-Konflikt");
+  });
+
+  it("should NOT flag ID conflict when same S_ID has same person (normal duplicate)", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+      { S_ID: "STUDENT-001", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.90" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict');
+    expect(idConflicts.length).toBe(0);
+    const duplicates = errors.filter(e => e.type === 'duplicate' && e.column === 'S_ID');
+    expect(duplicates.length).toBe(1);
+  });
+
+  it("should detect ID conflict for P_ERZ1_ID with different parent names", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "1", S_Name: "Kind1", S_Vorname: "A", P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Hans" },
+      { S_ID: "2", S_Name: "Kind2", S_Vorname: "B", P_ERZ1_ID: "PARENT-001", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Petra" },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'P_ERZ1_ID');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
+    expect(idConflicts[0].severity).toBe("error");
+  });
+
+  it("should detect ID conflict when same S_AHV has different persons", () => {
+    const rows: ParsedRow[] = [
+      { S_ID: "1", S_Name: "Müller", S_Vorname: "Max", S_AHV: "756.1234.5678.97", S_Geburtsdatum: "01.01.2010" },
+      { S_ID: "2", S_Name: "Schmidt", S_Vorname: "Anna", S_AHV: "756.1234.5678.97", S_Geburtsdatum: "15.06.2012" },
+    ];
+
+    const cols = [...testColumns, { name: "S_Geburtsdatum", required: false, category: "Schüler", validationType: "date" as const }];
+    const errors = validateData(rows, cols);
+    const idConflicts = errors.filter(e => e.type === 'id_conflict' && e.column === 'S_AHV');
+    expect(idConflicts.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -754,11 +754,17 @@ export function Step3Validation({
     const hasDifferences = columnsWithDifferences.length > 0;
     const hasCriticalDifferences = criticalDifferences.length > 0;
 
+    // Check if this is an ID conflict (different persons with same ID)
+    const isIdConflict = relatedErrors.some(e => e.type === 'id_conflict');
+
     // Suggest a solution based on the type of duplicate and differences
     let suggestedSolution = '';
     let warningMessage = '';
     
-    if (isParentInconsistency) {
+    if (isIdConflict) {
+      warningMessage = `Schwerwiegender Fehler: Verschiedene Personen verwenden die gleiche ID "${currentValue}" in Spalte "${currentError.column}".`;
+      suggestedSolution = 'Die ID muss bei einer der Personen manuell korrigiert werden. Eine automatische Zusammenführung ist nicht möglich, da es sich um verschiedene Personen handelt.';
+    } else if (isParentInconsistency) {
       warningMessage = hasDifferences 
         ? `${columnsWithDifferences.length} Eltern-Feld(er) haben unterschiedliche Werte.`
         : '';
@@ -792,7 +798,8 @@ export function Step3Validation({
       otherDifferences,
       totalOccurrences: rowsWithData.length,
       allColumns: Array.from(allColumns),
-      isParentInconsistency
+      isParentInconsistency,
+      isIdConflict
     };
   }, [currentError, errors, rows, getStudentNameForRow]);
 
@@ -2012,8 +2019,20 @@ export function Step3Validation({
                   </Badge>
                 </div>
                 
+                {/* ID Conflict warning */}
+                {duplicateInfo.isIdConflict && (
+                  <Alert variant="destructive" className="border-destructive bg-destructive/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-sm">ID-Konflikt: Verschiedene Personen</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Verschiedene Personen verwenden die gleiche ID. Dies ist ein schwerwiegender Datenfehler.
+                      <strong className="block mt-1">Eine der IDs muss manuell korrigiert werden. Eine Zusammenführung ist nicht möglich.</strong>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Info for parent inconsistency - explain that student data stays unchanged */}
-                {duplicateInfo.isParentInconsistency && (
+                {!duplicateInfo.isIdConflict && duplicateInfo.isParentInconsistency && (
                   <Alert className="border-blue-500/30 bg-blue-500/5">
                     <AlertCircle className="h-4 w-4 text-blue-500" />
                     <AlertTitle className="text-sm">Eltern-ID Inkonsistenz</AlertTitle>
@@ -2052,8 +2071,8 @@ export function Step3Validation({
                   </AlertDescription>
                 </Alert>
 
-                {/* Master Record Selection - only for parent fields or non-parent inconsistencies */}
-                {(duplicateInfo.hasDifferences || duplicateInfo.isParentInconsistency) && (
+                {/* Master Record Selection - only for parent fields or non-parent inconsistencies, NOT for ID conflicts */}
+                {!duplicateInfo.isIdConflict && (duplicateInfo.hasDifferences || duplicateInfo.isParentInconsistency) && (
                   <div className="p-3 bg-muted/50 rounded-lg border space-y-3">
                     <div className="flex items-center gap-2">
                       <Copy className="h-4 w-4 text-primary" />
