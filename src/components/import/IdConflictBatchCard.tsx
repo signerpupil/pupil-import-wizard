@@ -74,14 +74,14 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
     const corrections = group.resolvableRows.map(rowNum => ({
       row: rowNum,
       column: group.idField,
-      value: '', // Clear the conflicting ID
+      value: group.suggestedReplacements.get(rowNum) ?? '',
     }));
 
     onBulkCorrect(corrections, 'bulk');
 
     toast({
       title: 'ID-Konflikte aufgelöst',
-      description: `${corrections.length} IDs in "${group.idField}" geleert (Wert "${group.idValue}").`,
+      description: `${corrections.length} IDs in "${group.idField}" ersetzt (Wert "${group.idValue}").`,
     });
   }, [onBulkCorrect, toast]);
 
@@ -94,7 +94,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
         allCorrections.push({
           row: rowNum,
           column: group.idField,
-          value: '',
+          value: group.suggestedReplacements.get(rowNum) ?? '',
         });
       }
     }
@@ -105,7 +105,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
 
     toast({
       title: 'Alle auflösbaren ID-Konflikte behoben',
-      description: `${allCorrections.length} IDs in ${resolvableGroups.length} Gruppen geleert.`,
+      description: `${allCorrections.length} IDs in ${resolvableGroups.length} Gruppen ersetzt.`,
     });
   }, [conflictGroups, onBulkCorrect, toast]);
 
@@ -135,13 +135,13 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
               className="gap-2 bg-destructive hover:bg-destructive/90"
               size="lg"
             >
-              <Eraser className="h-4 w-4" />
+              <Hash className="h-4 w-4" />
               Alle {resolvableCount} auflösen
             </Button>
           )}
         </div>
         <CardDescription>
-          Verschiedene Personen verwenden dieselbe ID. Die IDs der fälschlich zugeordneten Personen werden geleert.
+          Verschiedene Personen verwenden dieselbe ID. Neue IDs im Format <code className="text-xs font-mono bg-muted px-1 rounded">{'{ID}_D01'}</code> werden generiert.
         </CardDescription>
       </CardHeader>
 
@@ -157,8 +157,8 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
         {/* Pattern explanation */}
         <div className="text-xs text-muted-foreground bg-background rounded-lg border p-3 space-y-1.5">
           <p className="font-medium text-foreground text-sm">Erkannte Muster:</p>
-          <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → ID bei allen Betroffenen leeren</p>
-          <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → ID der Minderheit leeren</p>
+          <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → Jede Person erhält eine neue eindeutige ID</p>
+          <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → Minderheit erhält neue ID</p>
           <p><span className="font-medium text-pupil-warning">Manuelle Prüfung:</span> Kein klares Muster → muss manuell entschieden werden</p>
         </div>
 
@@ -318,8 +318,8 @@ function ConflictGroupCard({
           </div>
           {canResolve && (
             <Button size="sm" variant="outline" onClick={onResolve} className="gap-1.5 shrink-0">
-              <Eraser className="h-3.5 w-3.5" />
-              {group.resolvableRows.length} IDs leeren
+              <Hash className="h-3.5 w-3.5" />
+              {group.resolvableRows.length} neue IDs vergeben
             </Button>
           )}
         </div>
@@ -328,7 +328,11 @@ function ConflictGroupCard({
         <div className="space-y-1.5">
           {group.persons.map((person, pIdx) => {
             const isOwner = group.ownerPerson === person;
-            const willClear = !isOwner && canResolve && group.pattern !== 'manual';
+            const willReplace = !isOwner && canResolve && group.pattern !== 'manual';
+            // Get the replacement ID for the first row of this person
+            const replacementId = willReplace
+              ? group.suggestedReplacements.get(person.rowNumbers[0])
+              : undefined;
 
             return (
               <div
@@ -336,8 +340,8 @@ function ConflictGroupCard({
                 className={`flex items-center justify-between gap-3 text-sm rounded-md px-2.5 py-1.5 ${
                   isOwner
                     ? 'bg-pupil-success/10 border border-pupil-success/20'
-                    : willClear
-                      ? 'bg-destructive/5 border border-destructive/10'
+                    : willReplace
+                      ? 'bg-blue-50 border border-blue-200 dark:bg-blue-950/30 dark:border-blue-800'
                       : 'bg-muted/50 border border-transparent'
                 }`}
               >
@@ -367,10 +371,10 @@ function ConflictGroupCard({
                       Behält ID
                     </Badge>
                   )}
-                  {willClear && (
-                    <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">
-                      <Eraser className="h-3 w-3 mr-1" />
-                      ID wird geleert
+                  {willReplace && replacementId && (
+                    <Badge variant="outline" className="text-blue-600 border-blue-400/50 text-xs font-mono">
+                      <Hash className="h-3 w-3 mr-1" />
+                      → {replacementId}
                     </Badge>
                   )}
                   {group.pattern === 'manual' && (

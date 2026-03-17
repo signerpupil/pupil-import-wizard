@@ -37,6 +37,13 @@ describe('ID Conflict Analysis', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].pattern).toBe('placeholder');
     expect(groups[0].resolvableRows.length).toBeGreaterThan(0);
+    // Each person should get a unique replacement ID
+    const replacements = new Set(groups[0].suggestedReplacements.values());
+    expect(replacements.size).toBeGreaterThanOrEqual(2); // At least 2 different new IDs
+    // Replacement IDs should follow the _D01 format
+    for (const id of replacements) {
+      expect(id).toMatch(/^0_D\d{2}$/);
+    }
   });
 
   it('detects majority pattern', () => {
@@ -61,8 +68,10 @@ describe('ID Conflict Analysis', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].pattern).toBe('majority');
     expect(groups[0].ownerPerson?.name).toBe('Meier');
-    // Only Müller's row should be cleared
+    // Only Müller's row should get a new ID
     expect(groups[0].resolvableRows).toEqual([6]);
+    // The replacement should be 123_D01
+    expect(groups[0].suggestedReplacements.get(6)).toBe('123_D01');
   });
 
   it('falls back to manual when no clear pattern', () => {
