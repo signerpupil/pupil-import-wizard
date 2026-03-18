@@ -127,9 +127,9 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
             <Badge variant="outline" className="text-destructive border-destructive/30">
               {isFiltered ? `${filteredGroups.length} / ${summary.totalGroups}` : summary.totalGroups} Konflikte
             </Badge>
-            {filteredResolvableRows > 0 && (
+            {filteredResolvableCount > 0 && (
               <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
-                {filteredResolvableRows} automatisch lösbar
+                {filteredResolvableCount} automatisch lösbar
               </Badge>
             )}
           </div>
@@ -153,7 +153,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
         {/* Quick stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatBox value={isFiltered ? filteredGroups.length : summary.totalGroups} label="ID-Konflikte" color="text-destructive" />
-          <StatBox value={filteredResolvableRows} label="Auto-lösbar" color="text-pupil-success" />
+          <StatBox value={filteredResolvableCount} label="Auto-lösbar" color="text-pupil-success" />
           <StatBox value={filteredPlaceholderCount} label="Platzhalter" color="text-pupil-success" />
         </div>
 
