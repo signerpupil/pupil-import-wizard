@@ -1328,6 +1328,16 @@ export function Step3Validation({
                       >
                         Alle ({parentIdInconsistencyGroups.length})
                       </Button>
+                      {(countHigh + countMedium) > 0 && (
+                        <Button
+                          size="sm"
+                          variant={parentReliabilityFilter === 'medium_high' ? 'default' : 'outline'}
+                          onClick={() => setParentReliabilityFilter('medium_high')}
+                          className={`gap-1.5 ${parentReliabilityFilter !== 'medium_high' ? 'border-primary/50 text-primary hover:bg-primary/5' : ''}`}
+                        >
+                          Mittel + Hoch ({countHigh + countMedium})
+                        </Button>
+                      )}
                       {countHigh > 0 && (
                         <Button
                           size="sm"
