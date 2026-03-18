@@ -30,6 +30,7 @@ import {
 } from '@/lib/localBulkCorrections';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IdConflictBatchCard } from './IdConflictBatchCard';
+import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
