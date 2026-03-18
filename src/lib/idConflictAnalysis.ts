@@ -252,7 +252,6 @@ export function getConflictSummary(groups: IdConflictGroup[]) {
   return {
     totalGroups: groups.length,
     totalResolvable,
-    totalManual,
     byPattern,
   };
 }

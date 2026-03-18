@@ -377,12 +377,6 @@ function ConflictGroupCard({
                       → {replacementId}
                     </Badge>
                   )}
-                  {group.pattern === 'manual' && (
-                    <Badge variant="outline" className="text-pupil-warning border-pupil-warning/30 text-xs">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      Manuell
-                    </Badge>
-                  )}
                 </div>
               </div>
             );
