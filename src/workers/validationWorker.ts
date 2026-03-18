@@ -121,7 +121,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for email issues - enhanced detection
     if (colLower.includes('email') || colLower.includes('mail') || colLower.includes('e-mail')) {
       const emailErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return value.includes('@') || value.includes('.com') || value.includes('.ch');
       });
