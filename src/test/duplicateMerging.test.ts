@@ -296,14 +296,14 @@ describe("Name-only Address Disambiguation", () => {
 });
 
 describe("Parent Name Change Detection", () => {
-  it("should detect hyphen addition (Marina Ianuzi → Marina Ianuzi-Tadic)", () => {
+  it("should detect hyphen addition (Marina Ianuzi → Marina Ianuzi-Tadic) for same-surname students", () => {
     const rows: ParsedRow[] = [
       {
         S_ID: "1", S_Name: "Ianuzi", S_Vorname: "Luca", S_AHV: "756.1111.1111.11",
         P_ERZ1_Name: "Ianuzi", P_ERZ1_Vorname: "Marina",
       },
       {
-        S_ID: "2", S_Name: "Tadic", S_Vorname: "Mia", S_AHV: "756.2222.2222.22",
+        S_ID: "2", S_Name: "Ianuzi", S_Vorname: "Mia", S_AHV: "756.2222.2222.22",
         P_ERZ1_Name: "Ianuzi-Tadic", P_ERZ1_Vorname: "Marina",
       },
     ];
