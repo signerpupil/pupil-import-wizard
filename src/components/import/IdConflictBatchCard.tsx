@@ -328,7 +328,7 @@ function ConflictGroupCard({
         <div className="space-y-1.5">
           {group.persons.map((person, pIdx) => {
             const isOwner = group.ownerPerson === person;
-            const willReplace = !isOwner && canResolve && group.pattern !== 'manual';
+            const willReplace = !isOwner && canResolve;
             // Get the replacement ID for the first row of this person
             const replacementId = willReplace
               ? group.suggestedReplacements.get(person.rowNumbers[0])
