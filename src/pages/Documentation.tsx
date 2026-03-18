@@ -317,7 +317,7 @@ export default function Documentation() {
                     <h5 className="font-semibold text-sm">3. Duplikat-Erkennung</h5>
                     <p className="text-xs text-muted-foreground">Folgende Felder werden auf doppelte Werte geprüft:</p>
                     <div className="flex flex-wrap gap-2">
-                      {['S_AHV', 'S_ID', 'L_KL1_AHV'].map(f => (
+                      {['S_AHV', 'S_ID'].map(f => (
                         <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
                       ))}
                     </div>
@@ -361,10 +361,6 @@ export default function Documentation() {
                       <div className="flex items-start gap-2">
                         <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ2_AHV</Badge>
                         <span className="text-xs text-muted-foreground">AHV Erziehungsberechtigter 2 — Identifikation über P_ERZ2_Name + P_ERZ2_Vorname</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Badge variant="outline" className="font-mono text-xs shrink-0">L_KL1_AHV</Badge>
-                        <span className="text-xs text-muted-foreground">Lehrperson Klassenlehrperson — Identifikation über L_KL1_Name + L_KL1_Vorname</span>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground font-medium mt-2">Automatische Auflösungsmuster (Batch):</p>

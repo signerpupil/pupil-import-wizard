@@ -153,7 +153,7 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'K_Schulhaus_Name', required: false, category: 'Klasse' },
   
   // Klassenlehrperson (L_KL1_)
-  { name: 'L_KL1_AHV', required: false, category: 'Klassenlehrperson', validationType: 'ahv' },
+  { name: 'L_KL1_AHV', required: false, category: 'Klassenlehrperson' },
   { name: 'L_KL1_ID', required: false, category: 'Klassenlehrperson' },
   { name: 'L_KL1_Name', required: false, category: 'Klassenlehrperson' },
   { name: 'L_KL1_Vorname', required: false, category: 'Klassenlehrperson' },

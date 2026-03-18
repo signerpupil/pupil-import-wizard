@@ -19,7 +19,7 @@ export const EMAIL_COLUMNS = [
   'P_ERZ2_EMail',
 ];
 
-export const AHV_COLUMNS = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV', 'L_KL1_AHV'];
+export const AHV_COLUMNS = ['S_AHV', 'P_ERZ1_AHV', 'P_ERZ2_AHV'];
 
 export const DATE_COLUMNS = [
   'S_Geburtsdatum', 'S_Eintritt_Kiga_Datum', 'S_Eintritt_Primar_Datum',

@@ -226,13 +226,6 @@ function getIdentityFields(idField: string): {
       ahvField: idField === 'P_ERZ2_ID' ? 'P_ERZ2_AHV' : 'P_ERZ2_ID',
       gebField: null,
     };
-  } else if (idField === 'L_KL1_AHV') {
-    return {
-      nameField: 'L_KL1_Name',
-      vornameField: 'L_KL1_Vorname',
-      ahvField: null,
-      gebField: null,
-    };
   }
   return { nameField: '', vornameField: '', ahvField: null, gebField: null };
 }
