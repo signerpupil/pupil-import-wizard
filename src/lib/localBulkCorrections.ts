@@ -188,7 +188,11 @@ function detectDatePattern(index: ErrorIndex): PatternGroup[] {
       const e = columnErrors[i];
       if (!e.message.includes('Datum')) continue;
       
-      const num = parseInt(e.value);
+      // Only treat as Excel serial if the value is purely numeric (no dots, dashes, slashes)
+      const trimmed = e.value.trim();
+      if (/[.\-\/]/.test(trimmed)) continue;
+      
+      const num = parseInt(trimmed);
       if (!isNaN(num) && num > 1 && num < 100000) {
         excelDateRows.push(e.row);
         excelDateValues.push(e.value);
