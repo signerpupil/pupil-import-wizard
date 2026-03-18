@@ -210,7 +210,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for street/address issues
     if (colLower.includes('strasse') || colLower.includes('street') || colLower.includes('adresse') || colLower.includes('address')) {
       const streetErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatStreet(value) !== null;
       });
