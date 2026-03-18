@@ -152,7 +152,7 @@ export function analyzeIdConflicts(
   }
 
   // Sort: placeholder first, then majority, then manual. Within each, by count descending.
-  const patternOrder: Record<IdConflictPattern, number> = { placeholder: 0, majority: 1, manual: 2 };
+  const patternOrder: Record<IdConflictPattern, number> = { placeholder: 0, majority: 1, auto_second: 2 };
   result.sort((a, b) => {
     const po = patternOrder[a.pattern] - patternOrder[b.pattern];
     if (po !== 0) return po;
