@@ -254,7 +254,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for IBAN issues
     if (colLower.includes('iban') || colLower.includes('konto')) {
       const ibanErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatIBAN(value) !== null;
       });
