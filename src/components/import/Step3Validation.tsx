@@ -84,6 +84,7 @@ export function Step3Validation({
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
   const [hasRunAnalysis, setHasRunAnalysis] = useState(false);
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
+  const isAutoFixingRef = useRef(false);
   
   // Parent ID consolidation UI state
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
@@ -1034,27 +1035,33 @@ export function Step3Validation({
   // Auto-apply all fixable patterns whenever new suggestions appear
   useEffect(() => {
     if (!hasRunAnalysis || localSuggestions.length === 0) return;
+    if (isAutoFixingRef.current) return;
 
     const fixable = localSuggestions.filter(s => s.autoFix);
     if (fixable.length === 0) return;
 
-    // Apply all auto-fixable suggestions
-    let totalApplied = 0;
+    isAutoFixingRef.current = true;
+
+    // Collect all corrections first, then apply once
+    const allCorrections: { row: number; column: string; value: string }[] = [];
     for (const suggestion of fixable) {
       const corrections = applyLocalCorrection(suggestion, errors);
-      if (corrections.length > 0) {
-        onBulkCorrect(corrections, 'auto');
-        totalApplied += corrections.length;
-      }
+      allCorrections.push(...corrections);
     }
+    
+    // Remove auto-fix suggestions immediately
     setLocalSuggestions(prev => prev.filter(s => !s.autoFix));
 
-    if (totalApplied > 0) {
+    if (allCorrections.length > 0) {
+      onBulkCorrect(allCorrections, 'auto');
       toast({
         title: 'Auto-Fixes automatisch angewendet',
-        description: `${totalApplied} Formatierungen wurden automatisch korrigiert`,
+        description: `${allCorrections.length} Formatierungen wurden automatisch korrigiert`,
       });
     }
+
+    // Reset guard after a tick to allow future auto-fixes from re-analysis
+    setTimeout(() => { isAutoFixingRef.current = false; }, 500);
   }, [hasRunAnalysis, localSuggestions, errors, onBulkCorrect, toast]);
 
 
