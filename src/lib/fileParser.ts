@@ -1147,9 +1147,14 @@ export function validateData(
     }
   }
 
+  // Fields where duplicates are expected (parent fields repeat across siblings)
+  const PARENT_FIELDS = new Set(['P_ERZ1_ID', 'P_ERZ2_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV']);
+
   // Process duplicates with ID conflict detection
   for (const field of DUPLICATE_CHECK_FIELDS) {
     const fieldMap = valueOccurrences.get(field)!;
+    const isParentField = PARENT_FIELDS.has(field);
+
     fieldMap.forEach((rowNumbers, value) => {
       if (rowNumbers.length > 1) {
         // Check if this is an ID conflict (same ID, different person)
@@ -1167,8 +1172,9 @@ export function validateData(
               severity: 'error',
             });
           }
-        } else {
+        } else if (!isParentField) {
           // Normal duplicate: same person, duplicate entry
+          // Skip for parent fields – parents naturally appear in multiple rows (one per child)
           for (let i = 1; i < rowNumbers.length; i++) {
             errors.push({
               row: rowNumbers[i],
