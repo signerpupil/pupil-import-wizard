@@ -75,7 +75,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for AHV format issues
     if (colLower.includes('ahv')) {
       const ahvErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         const digits = value.replace(/\D/g, '');
         return digits.length === 13 && digits.startsWith('756');
