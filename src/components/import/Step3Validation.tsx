@@ -1032,16 +1032,14 @@ export function Step3Validation({
       });
   }, [localSuggestions, errors, uncorrectedErrors]);
 
-  // Auto-apply all fixable patterns after initial analysis
+  // Auto-apply all fixable patterns whenever new suggestions appear
   useEffect(() => {
-    if (autoFixAppliedRef.current) return;
     if (!hasRunAnalysis || localSuggestions.length === 0) return;
 
     const fixable = localSuggestions.filter(s => s.autoFix);
     if (fixable.length === 0) return;
 
-    autoFixAppliedRef.current = true;
-
+    // Apply all auto-fixable suggestions
     let totalApplied = 0;
     for (const suggestion of fixable) {
       const corrections = applyLocalCorrection(suggestion, errors);
