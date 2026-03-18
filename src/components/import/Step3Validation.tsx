@@ -133,47 +133,74 @@ export function Step3Validation({
   // Web Worker for background processing
   const { analyze, isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
 
-  const isSiblingInconsistencyStillOpen = useCallback((error: ValidationError) => {
-    if (!error.message.includes('Geschwister-Inkonsistenz')) return true;
-
-    const match = error.message.match(/von\s+(P_ERZ\d_ID)="([^"]+)"/);
-    if (!match) return false;
-
-    const [, idField, parentId] = match;
+  /**
+   * Generic staleness check: hides errors whose underlying data has changed
+   * since the initial validation. Covers ID conflicts, duplicates, parent
+   * consolidation, PLZ↔Ort mismatches and sibling inconsistencies.
+   */
+  const isErrorStillValid = useCallback((error: ValidationError): boolean => {
     const currentRow = rows[error.row - 1];
     if (!currentRow) return false;
 
-    // If the parent ID on this row changed, the original sibling warning is stale.
-    if (String(currentRow[idField] ?? '').trim() !== parentId) return false;
-
-    const familyRows = rows.filter(row => String(row[idField] ?? '').trim() === parentId);
-    if (familyRows.length < 2) return false;
-
-    const valueCounts = new Map<string, number>();
-    for (const row of familyRows) {
-      const value = String(row[error.column] ?? '').trim();
-      if (!value) continue;
-      valueCounts.set(value, (valueCounts.get(value) ?? 0) + 1);
+    // --- 1. Generic value-changed check (covers ID conflicts, duplicates, format errors) ---
+    // If the cell value changed since the error was recorded, the error is stale.
+    if (error.column && error.value !== undefined) {
+      const currentValue = String(currentRow[error.column] ?? '').trim();
+      const errorValue = String(error.value).trim();
+      if (currentValue !== errorValue) return false;
     }
 
-    if (valueCounts.size <= 1) return false;
+    // --- 2. Geschwister-Inkonsistenz: live re-check against current rows ---
+    if (error.message.includes('Geschwister-Inkonsistenz')) {
+      const match = error.message.match(/von\s+(P_ERZ\d_ID)="([^"]+)"/);
+      if (!match) return false;
+      const [, idField, parentId] = match;
+      if (String(currentRow[idField] ?? '').trim() !== parentId) return false;
 
-    let majorityValue = '';
-    let maxCount = 0;
-    for (const [value, count] of valueCounts.entries()) {
-      if (count > maxCount) {
-        majorityValue = value;
-        maxCount = count;
+      const familyRows = rows.filter(row => String(row[idField] ?? '').trim() === parentId);
+      if (familyRows.length < 2) return false;
+
+      const valueCounts = new Map<string, number>();
+      for (const row of familyRows) {
+        const value = String(row[error.column] ?? '').trim();
+        if (!value) continue;
+        valueCounts.set(value, (valueCounts.get(value) ?? 0) + 1);
+      }
+      if (valueCounts.size <= 1) return false;
+
+      let majorityValue = '';
+      let maxCount = 0;
+      for (const [value, count] of valueCounts.entries()) {
+        if (count > maxCount) { majorityValue = value; maxCount = count; }
+      }
+      const currentValue = String(currentRow[error.column] ?? '').trim();
+      return currentValue !== '' && currentValue !== majorityValue;
+    }
+
+    // --- 3. Inkonsistente ID (parent consolidation): check if the two IDs still differ ---
+    if (error.message.includes('Inkonsistente ID:')) {
+      // The error reports that row X has a different ID than an earlier row for the same parent.
+      // If the current value now matches the "correct" ID mentioned in the message, it's resolved.
+      const idMatch = error.message.match(/Inkonsistente ID:\s*"([^"]+)"/);
+      if (idMatch) {
+        const reportedConflictId = idMatch[1];
+        const currentValue = String(currentRow[error.column] ?? '').trim();
+        // Error was: this row has a different ID. If it changed away from the conflict value, it's resolved.
+        if (currentValue !== reportedConflictId) return false;
       }
     }
 
-    const currentValue = String(currentRow[error.column] ?? '').trim();
-    return currentValue !== '' && currentValue !== majorityValue;
+    // --- 4. PLZ↔Ort mismatch: check if PLZ or Ort changed ---
+    if (error.message.includes('PLZ') && error.message.includes('Ort') && error.column === 'S_PLZ') {
+      // Already covered by generic value-changed check above
+    }
+
+    return true;
   }, [rows]);
 
   const uncorrectedErrors = useMemo(
-    () => errors.filter(e => e.correctedValue === undefined && isSiblingInconsistencyStillOpen(e)),
-    [errors, isSiblingInconsistencyStillOpen]
+    () => errors.filter(e => e.correctedValue === undefined && isErrorStillValid(e)),
+    [errors, isErrorStillValid]
   );
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
 
