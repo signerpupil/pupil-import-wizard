@@ -91,7 +91,7 @@ export function Step3Validation({
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
   const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
   const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
-  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
   const PARENTS_PER_PAGE = 4;
 
   // Name change UI state
