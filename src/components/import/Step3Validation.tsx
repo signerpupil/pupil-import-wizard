@@ -1032,7 +1032,35 @@ export function Step3Validation({
       });
   }, [localSuggestions, errors, uncorrectedErrors]);
 
-  // Group errors by column for grouped display
+  // Auto-apply all fixable patterns after initial analysis
+  useEffect(() => {
+    if (autoFixAppliedRef.current) return;
+    if (!hasRunAnalysis || localSuggestions.length === 0) return;
+
+    const fixable = localSuggestions.filter(s => s.autoFix);
+    if (fixable.length === 0) return;
+
+    autoFixAppliedRef.current = true;
+
+    let totalApplied = 0;
+    for (const suggestion of fixable) {
+      const corrections = applyLocalCorrection(suggestion, errors);
+      if (corrections.length > 0) {
+        onBulkCorrect(corrections, 'auto');
+        totalApplied += corrections.length;
+      }
+    }
+    setLocalSuggestions(prev => prev.filter(s => !s.autoFix));
+
+    if (totalApplied > 0) {
+      toast({
+        title: 'Auto-Fixes automatisch angewendet',
+        description: `${totalApplied} Formatierungen wurden automatisch korrigiert`,
+      });
+    }
+  }, [hasRunAnalysis, localSuggestions, errors, onBulkCorrect, toast]);
+
+
   const errorsByColumn = useMemo(() => {
     const map = new Map<string, ValidationError[]>();
     for (const e of errors) {
