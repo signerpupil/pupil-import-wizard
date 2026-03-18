@@ -188,7 +188,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for name capitalization issues
     if (colLower.includes('name') || colLower.includes('vorname') || colLower.includes('nachname')) {
       const nameErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatName(value) !== null;
       });
