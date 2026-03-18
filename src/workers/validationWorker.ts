@@ -98,7 +98,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for phone format issues
     if (colLower.includes('tel') || colLower.includes('phone') || colLower.includes('mobil') || colLower.includes('fax')) {
       const phoneErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         const digits = value.replace(/\D/g, '');
         return (digits.length >= 9 && digits.length <= 13);
