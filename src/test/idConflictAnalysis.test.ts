@@ -120,7 +120,7 @@ describe('ID Conflict Analysis', () => {
     const summary = getConflictSummary(groups);
     expect(summary.totalGroups).toBe(2);
     expect(summary.byPattern.placeholder).toHaveLength(1);
-    expect(summary.byPattern.manual).toHaveLength(1);
+    expect(summary.byPattern.auto_second).toHaveLength(1);
   });
 
   it('handles parent ID conflicts', () => {

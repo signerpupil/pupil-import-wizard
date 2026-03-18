@@ -147,11 +147,10 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
 
       <CardContent className="space-y-4">
         {/* Quick stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatBox value={summary.totalGroups} label="ID-Konflikte" color="text-destructive" />
           <StatBox value={summary.totalResolvable} label="Auto-lösbar" color="text-pupil-success" />
           <StatBox value={summary.byPattern.placeholder.length} label="Platzhalter" color="text-pupil-success" />
-          <StatBox value={summary.totalManual} label="Manuell" color="text-pupil-warning" />
         </div>
 
         {/* Pattern explanation */}
@@ -159,7 +158,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
           <p className="font-medium text-foreground text-sm">Erkannte Muster:</p>
           <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → Jede Person erhält eine neue eindeutige ID</p>
           <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → Minderheit erhält neue ID</p>
-          <p><span className="font-medium text-pupil-warning">Manuelle Prüfung:</span> Kein klares Muster → muss manuell entschieden werden</p>
+          <p><span className="font-medium text-blue-600">Automatische Zuweisung:</span> Kein klares Mehrheitsmuster → Die erste Person behält die ID, die zweite erhält eine neue</p>
         </div>
 
         <Collapsible open={expanded} onOpenChange={setExpanded}>
