@@ -305,6 +305,7 @@ export function Step3Validation({
     if (parentReliabilityFilter !== 'all') {
       result = result.filter(group => {
         const r = group.matchReason.toLowerCase();
+        if (parentReliabilityFilter === 'medium_high') return r.includes('hohe') || r.includes('mittlere');
         if (parentReliabilityFilter === 'high') return r.includes('hohe');
         if (parentReliabilityFilter === 'medium') return r.includes('mittlere');
         if (parentReliabilityFilter === 'low') return r.includes('tiefe');
