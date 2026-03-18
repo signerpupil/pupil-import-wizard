@@ -406,7 +406,7 @@ function findNationalityCorrection(value: string): string | null {
 }
 
 // Fields that should be checked for duplicates
-const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'L_KL1_AHV', 'P_ERZ1_ID', 'P_ERZ2_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV'];
+const DUPLICATE_CHECK_FIELDS = ['S_AHV', 'S_ID', 'P_ERZ1_ID', 'P_ERZ2_ID', 'P_ERZ1_AHV', 'P_ERZ2_AHV'];
 
 // Configuration for parent ID consistency checks (Eltern-ID Konsistenzprüfung)
 const PARENT_CONSISTENCY_CHECKS = [
