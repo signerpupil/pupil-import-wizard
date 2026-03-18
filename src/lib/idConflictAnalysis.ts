@@ -244,12 +244,10 @@ export function getConflictSummary(groups: IdConflictGroup[]) {
   const byPattern = {
     placeholder: groups.filter(g => g.pattern === 'placeholder'),
     majority: groups.filter(g => g.pattern === 'majority'),
-    manual: groups.filter(g => g.pattern === 'manual'),
+    auto_second: groups.filter(g => g.pattern === 'auto_second'),
   };
 
   const totalResolvable = groups.reduce((sum, g) => sum + g.resolvableRows.length, 0);
-  const totalManual = groups.filter(g => g.pattern === 'manual')
-    .reduce((sum, g) => sum + g.persons.flatMap(p => p.rowNumbers).length, 0);
 
   return {
     totalGroups: groups.length,
