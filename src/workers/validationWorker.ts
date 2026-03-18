@@ -277,7 +277,9 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
       const excelDateErrors = groupErrors.filter(e => {
         const value = data[e.row]?.[e.column];
-        const strVal = String(value);
+        const strVal = String(value).trim();
+        // Only treat as Excel serial if purely numeric (no dots, dashes, slashes)
+        if (/[.\-\/]/.test(strVal)) return false;
         const num = parseInt(strVal);
         return !isNaN(num) && num > 1000 && num < 100000;
       });
@@ -292,11 +294,12 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           affectedRows: excelDateErrors.map(e => e.row),
           suggestedAction: 'Format: DD.MM.YYYY',
         });
-        continue;
       }
 
-      // DD-MM-YYYY, YYYY-MM-DD, or DD/MM/YYYY variants
+      // DD-MM-YYYY, YYYY-MM-DD, DD/MM/YYYY, DD.MM.YY variants
+      const excelRowSet = new Set(excelDateErrors.map(e => e.row));
       const dateFormatErrors = groupErrors.filter(e => {
+        if (excelRowSet.has(e.row)) return false;
         const value = data[e.row]?.[e.column];
         if (typeof value !== 'string') return false;
         return formatDateDE(value) !== null;
@@ -312,6 +315,9 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
           affectedRows: dateFormatErrors.map(e => e.row),
           suggestedAction: 'Format: DD.MM.YYYY',
         });
+      }
+
+      if (excelDateErrors.length > 0 || dateFormatErrors.length > 0) {
         continue;
       }
     }
