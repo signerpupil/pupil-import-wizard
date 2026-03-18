@@ -1263,22 +1263,22 @@ export function Step3Validation({
             {parentIdInconsistencyGroups.length > 10 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{parentIdInconsistencyGroups.length}</p>
+                  <p className="text-2xl font-bold text-blue-600">{isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length}</p>
                   <p className="text-xs text-muted-foreground">Eltern zu konsolidieren</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{totalParentIdInconsistencies}</p>
+                  <p className="text-2xl font-bold text-blue-600">{isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies}</p>
                   <p className="text-xs text-muted-foreground">Betroffene Kinder</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-600">
-                    {new Set(parentIdInconsistencyGroups.map(g => g.column)).size}
+                    {new Set((isParentFiltered ? filteredParentGroups : parentIdInconsistencyGroups).map(g => g.column)).size}
                   </p>
                   <p className="text-xs text-muted-foreground">Spalten betroffen</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-600">
-                    {Math.round((parentIdInconsistencyGroups.length / rows.length) * 100)}%
+                    {Math.round(((isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length) / rows.length) * 100)}%
                   </p>
                   <p className="text-xs text-muted-foreground">Betroffene Zeilen</p>
                 </div>
