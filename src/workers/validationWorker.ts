@@ -143,7 +143,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for PLZ issues
     if (colLower.includes('plz') || colLower.includes('postleitzahl') || colLower === 'zip') {
       const plzErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string' && typeof value !== 'number') return false;
         const digits = String(value).replace(/\D/g, '');
         return digits.length === 4 || digits.length === 5;
