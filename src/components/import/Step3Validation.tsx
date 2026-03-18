@@ -91,7 +91,7 @@ export function Step3Validation({
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
   const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
   const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
-  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
   const PARENTS_PER_PAGE = 4;
 
   // Name change UI state
@@ -305,6 +305,7 @@ export function Step3Validation({
     if (parentReliabilityFilter !== 'all') {
       result = result.filter(group => {
         const r = group.matchReason.toLowerCase();
+        if (parentReliabilityFilter === 'medium_high') return r.includes('hohe') || r.includes('mittlere');
         if (parentReliabilityFilter === 'high') return r.includes('hohe');
         if (parentReliabilityFilter === 'medium') return r.includes('mittlere');
         if (parentReliabilityFilter === 'low') return r.includes('tiefe');
@@ -1327,6 +1328,16 @@ export function Step3Validation({
                       >
                         Alle ({parentIdInconsistencyGroups.length})
                       </Button>
+                      {(countHigh + countMedium) > 0 && (
+                        <Button
+                          size="sm"
+                          variant={parentReliabilityFilter === 'medium_high' ? 'default' : 'outline'}
+                          onClick={() => setParentReliabilityFilter('medium_high')}
+                          className={`gap-1.5 ${parentReliabilityFilter !== 'medium_high' ? 'border-primary/50 text-primary hover:bg-primary/5' : ''}`}
+                        >
+                          Mittel + Hoch ({countHigh + countMedium})
+                        </Button>
+                      )}
                       {countHigh > 0 && (
                         <Button
                           size="sm"
