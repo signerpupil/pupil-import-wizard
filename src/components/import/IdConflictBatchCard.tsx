@@ -20,13 +20,13 @@ const ITEMS_PER_PAGE = 5;
 const PATTERN_LABELS: Record<IdConflictPattern, string> = {
   placeholder: 'Platzhalter-ID',
   majority: 'Mehrheitsregel',
-  manual: 'Manuelle Prüfung',
+  auto_second: 'Automatische Zuweisung',
 };
 
 const PATTERN_COLORS: Record<IdConflictPattern, string> = {
   placeholder: 'bg-pupil-success/10 text-pupil-success border-pupil-success/30',
   majority: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
-  manual: 'bg-pupil-warning/10 text-pupil-warning border-pupil-warning/30',
+  auto_second: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
 };
 
 export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictBatchCardProps) {
