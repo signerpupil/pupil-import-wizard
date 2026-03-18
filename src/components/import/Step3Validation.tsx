@@ -133,7 +133,48 @@ export function Step3Validation({
   // Web Worker for background processing
   const { analyze, isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
 
-  const uncorrectedErrors = useMemo(() => errors.filter(e => e.correctedValue === undefined), [errors]);
+  const isSiblingInconsistencyStillOpen = useCallback((error: ValidationError) => {
+    if (!error.message.includes('Geschwister-Inkonsistenz')) return true;
+
+    const match = error.message.match(/von\s+(P_ERZ\d_ID)="([^"]+)"/);
+    if (!match) return false;
+
+    const [, idField, parentId] = match;
+    const currentRow = rows[error.row - 1];
+    if (!currentRow) return false;
+
+    // If the parent ID on this row changed, the original sibling warning is stale.
+    if (String(currentRow[idField] ?? '').trim() !== parentId) return false;
+
+    const familyRows = rows.filter(row => String(row[idField] ?? '').trim() === parentId);
+    if (familyRows.length < 2) return false;
+
+    const valueCounts = new Map<string, number>();
+    for (const row of familyRows) {
+      const value = String(row[error.column] ?? '').trim();
+      if (!value) continue;
+      valueCounts.set(value, (valueCounts.get(value) ?? 0) + 1);
+    }
+
+    if (valueCounts.size <= 1) return false;
+
+    let majorityValue = '';
+    let maxCount = 0;
+    for (const [value, count] of valueCounts.entries()) {
+      if (count > maxCount) {
+        majorityValue = value;
+        maxCount = count;
+      }
+    }
+
+    const currentValue = String(currentRow[error.column] ?? '').trim();
+    return currentValue !== '' && currentValue !== majorityValue;
+  }, [rows]);
+
+  const uncorrectedErrors = useMemo(
+    () => errors.filter(e => e.correctedValue === undefined && isSiblingInconsistencyStillOpen(e)),
+    [errors, isSiblingInconsistencyStillOpen]
+  );
   const correctedErrors = useMemo(() => errors.filter(e => e.correctedValue !== undefined), [errors]);
 
   // Helper function to get student name - must be defined BEFORE useMemo that uses it
