@@ -362,10 +362,6 @@ export default function Documentation() {
                         <Badge variant="outline" className="font-mono text-xs shrink-0">P_ERZ2_AHV</Badge>
                         <span className="text-xs text-muted-foreground">AHV Erziehungsberechtigter 2 — Identifikation über P_ERZ2_Name + P_ERZ2_Vorname</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <Badge variant="outline" className="font-mono text-xs shrink-0">L_KL1_AHV</Badge>
-                        <span className="text-xs text-muted-foreground">Lehrperson Klassenlehrperson — Identifikation über L_KL1_Name + L_KL1_Vorname</span>
-                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground font-medium mt-2">Automatische Auflösungsmuster (Batch):</p>
                     <ul className="space-y-2 text-sm text-muted-foreground">

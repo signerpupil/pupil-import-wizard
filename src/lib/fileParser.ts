@@ -1032,11 +1032,6 @@ function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers
     vornameField = 'S_Vorname';
     ahvField = field === 'S_ID' ? 'S_AHV' : 'S_ID';
     geburtsdatumField = 'S_Geburtsdatum';
-  } else if (field === 'L_KL1_AHV') {
-    nameField = 'L_KL1_Name';
-    vornameField = 'L_KL1_Vorname';
-    ahvField = null;
-    geburtsdatumField = null;
   } else if (field.startsWith('P_ERZ1_')) {
     nameField = 'P_ERZ1_Name';
     vornameField = 'P_ERZ1_Vorname';
