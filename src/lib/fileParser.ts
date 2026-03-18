@@ -296,11 +296,14 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Susu': 'Afrikanische Sprachen',
   'Indonesisch': 'Ostasiatische Sprachen',
   'Flämisch': 'Niederländisch',
-  'Singalesisch': 'Indoarische und drawidische Sprachen',
+  'Singalesisch': 'Übrige süd- und südostasiatische Sprachen',
+  'Singhalesisch': 'Übrige süd- und südostasiatische Sprachen',
   'Tigrigna': 'Afrikanische Sprachen',
   'Brasilianisch': 'Portugiesisch',
-  'Usbekisch': 'Westasiatische Sprachen',
+  'Usbekisch': 'Übrige westasiatische Sprachen',
+  'Uzbekisch': 'Übrige westasiatische Sprachen',
   'Tunesisch': 'Arabisch',
+  'Hebräisch': 'Übrige westasiatische Sprachen',
 };
 
 // Case-insensitive lookup for language auto-corrections
