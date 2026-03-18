@@ -90,7 +90,7 @@ export const schuelerColumns: ColumnDefinition[] = [
   { name: 'Q_Semester', required: false, category: 'System' },
   
   // Schüler (S_)
-  { name: 'S_AHV', required: true, category: 'Schüler', validationType: 'ahv' },
+  { name: 'S_AHV', required: false, category: 'Schüler', validationType: 'ahv' },
   { name: 'S_ID', required: true, category: 'Schüler' },
   { name: 'S_Name', required: true, category: 'Schüler' },
   { name: 'S_Vorname', required: true, category: 'Schüler' },
