@@ -313,14 +313,14 @@ describe("Parent Name Change Detection", () => {
     expect(nameChanges[0].severity).toBe("warning");
   });
 
-  it("should detect reverse hyphen addition (Doris Brunner → Doris Fliege-Brunner)", () => {
+  it("should detect reverse hyphen addition (Doris Brunner → Doris Fliege-Brunner) for same-surname students", () => {
     const rows: ParsedRow[] = [
       {
         S_ID: "1", S_Name: "Brunner", S_Vorname: "Tim", S_AHV: "756.1111.1111.11",
         P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Doris",
       },
       {
-        S_ID: "2", S_Name: "Fliege", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
+        S_ID: "2", S_Name: "Brunner", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
         P_ERZ1_Name: "Fliege-Brunner", P_ERZ1_Vorname: "Doris",
       },
     ];
