@@ -74,7 +74,7 @@ describe('ID Conflict Analysis', () => {
     expect(groups[0].suggestedReplacements.get(6)).toBe('123_D01');
   });
 
-  it('falls back to manual when no clear pattern', () => {
+  it('auto-assigns new ID to second person when no clear majority', () => {
     const rows: ParsedRow[] = [
       makeRow({ S_ID: '555', S_Name: 'Meier', S_Vorname: 'Anna' }),
       makeRow({ S_ID: '555', S_Name: 'Müller', S_Vorname: 'Peter' }),
@@ -85,8 +85,10 @@ describe('ID Conflict Analysis', () => {
 
     const groups = analyzeIdConflicts(errors, rows);
     expect(groups).toHaveLength(1);
-    expect(groups[0].pattern).toBe('manual');
-    expect(groups[0].resolvableRows).toEqual([]);
+    expect(groups[0].pattern).toBe('auto_second');
+    expect(groups[0].resolvableRows).toEqual([2]);
+    expect(groups[0].ownerPerson?.name).toBe('Meier');
+    expect(groups[0].suggestedReplacements.get(2)).toBe('555_D01');
   });
 
   it('ignores corrected errors', () => {
@@ -118,7 +120,7 @@ describe('ID Conflict Analysis', () => {
     const summary = getConflictSummary(groups);
     expect(summary.totalGroups).toBe(2);
     expect(summary.byPattern.placeholder).toHaveLength(1);
-    expect(summary.byPattern.manual).toHaveLength(1);
+    expect(summary.byPattern.auto_second).toHaveLength(1);
   });
 
   it('handles parent ID conflicts', () => {

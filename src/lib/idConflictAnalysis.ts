@@ -31,7 +31,7 @@ export interface IdConflictGroup {
 export type IdConflictPattern =
   | 'placeholder'   // ID is a known placeholder (0, 999, -1, etc.)
   | 'majority'      // One person has clearly more rows than others
-  | 'manual';       // No clear pattern, requires manual resolution
+  | 'auto_second';  // No clear majority → second person gets new ID automatically
 
 // Known placeholder values that schools commonly use
 const PLACEHOLDER_VALUES = new Set([
@@ -124,11 +124,11 @@ export function analyzeIdConflicts(
         }
         suffixCounter++;
       }
-    } else if (pattern === 'majority') {
-      // Sort by occurrence count descending
+    } else if (pattern === 'majority' || pattern === 'auto_second') {
+      // Sort by occurrence count descending; first person keeps the ID
       const sorted = [...persons].sort((a, b) => b.rowNumbers.length - a.rowNumbers.length);
       ownerPerson = sorted[0];
-      // Generate new IDs for all non-majority persons
+      // Generate new IDs for all non-first persons
       resolvableRows = sorted.slice(1).flatMap(p => p.rowNumbers);
       let suffixCounter = 1;
       for (const person of sorted.slice(1)) {
@@ -139,7 +139,6 @@ export function analyzeIdConflicts(
         suffixCounter++;
       }
     }
-    // 'manual' → resolvableRows stays empty
 
     result.push({
       idField: field,
@@ -153,7 +152,7 @@ export function analyzeIdConflicts(
   }
 
   // Sort: placeholder first, then majority, then manual. Within each, by count descending.
-  const patternOrder: Record<IdConflictPattern, number> = { placeholder: 0, majority: 1, manual: 2 };
+  const patternOrder: Record<IdConflictPattern, number> = { placeholder: 0, majority: 1, auto_second: 2 };
   result.sort((a, b) => {
     const po = patternOrder[a.pattern] - patternOrder[b.pattern];
     if (po !== 0) return po;
@@ -194,7 +193,7 @@ function classifyConflict(idValue: string, persons: ConflictPerson[]): IdConflic
     return 'majority';
   }
 
-  return 'manual';
+  return 'auto_second';
 }
 
 /**
@@ -245,17 +244,14 @@ export function getConflictSummary(groups: IdConflictGroup[]) {
   const byPattern = {
     placeholder: groups.filter(g => g.pattern === 'placeholder'),
     majority: groups.filter(g => g.pattern === 'majority'),
-    manual: groups.filter(g => g.pattern === 'manual'),
+    auto_second: groups.filter(g => g.pattern === 'auto_second'),
   };
 
   const totalResolvable = groups.reduce((sum, g) => sum + g.resolvableRows.length, 0);
-  const totalManual = groups.filter(g => g.pattern === 'manual')
-    .reduce((sum, g) => sum + g.persons.flatMap(p => p.rowNumbers).length, 0);
 
   return {
     totalGroups: groups.length,
     totalResolvable,
-    totalManual,
     byPattern,
   };
 }

@@ -20,13 +20,13 @@ const ITEMS_PER_PAGE = 5;
 const PATTERN_LABELS: Record<IdConflictPattern, string> = {
   placeholder: 'Platzhalter-ID',
   majority: 'Mehrheitsregel',
-  manual: 'Manuelle Prüfung',
+  auto_second: 'Automatische Zuweisung',
 };
 
 const PATTERN_COLORS: Record<IdConflictPattern, string> = {
   placeholder: 'bg-pupil-success/10 text-pupil-success border-pupil-success/30',
   majority: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
-  manual: 'bg-pupil-warning/10 text-pupil-warning border-pupil-warning/30',
+  auto_second: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
 };
 
 export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictBatchCardProps) {
@@ -147,11 +147,10 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
 
       <CardContent className="space-y-4">
         {/* Quick stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatBox value={summary.totalGroups} label="ID-Konflikte" color="text-destructive" />
           <StatBox value={summary.totalResolvable} label="Auto-lösbar" color="text-pupil-success" />
           <StatBox value={summary.byPattern.placeholder.length} label="Platzhalter" color="text-pupil-success" />
-          <StatBox value={summary.totalManual} label="Manuell" color="text-pupil-warning" />
         </div>
 
         {/* Pattern explanation */}
@@ -159,7 +158,7 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
           <p className="font-medium text-foreground text-sm">Erkannte Muster:</p>
           <p><span className="font-medium text-pupil-success">Platzhalter-ID:</span> Werte wie "0", "999", "-1" → Jede Person erhält eine neue eindeutige ID</p>
           <p><span className="font-medium text-blue-600">Mehrheitsregel:</span> Eine Person nutzt die ID in vielen Zeilen, eine andere nur in wenigen → Minderheit erhält neue ID</p>
-          <p><span className="font-medium text-pupil-warning">Manuelle Prüfung:</span> Kein klares Muster → muss manuell entschieden werden</p>
+          <p><span className="font-medium text-blue-600">Automatische Zuweisung:</span> Kein klares Mehrheitsmuster → Die erste Person behält die ID, die zweite erhält eine neue</p>
         </div>
 
         <Collapsible open={expanded} onOpenChange={setExpanded}>
@@ -199,13 +198,13 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
                   activeClass="bg-blue-600 hover:bg-blue-700 text-white"
                 />
               )}
-              {summary.byPattern.manual.length > 0 && (
+              {summary.byPattern.auto_second.length > 0 && (
                 <FilterButton
-                  active={patternFilter === 'manual'}
-                  onClick={() => setPatternFilter('manual')}
-                  label={`Manuell (${summary.byPattern.manual.length})`}
-                  colorClass="border-pupil-warning/50 text-pupil-warning hover:bg-pupil-warning/5"
-                  activeClass="bg-pupil-warning hover:bg-pupil-warning/90 text-white"
+                  active={patternFilter === 'auto_second'}
+                  onClick={() => setPatternFilter('auto_second')}
+                  label={`Automatisch (${summary.byPattern.auto_second.length})`}
+                  colorClass="border-blue-500/50 text-blue-600 hover:bg-blue-50"
+                  activeClass="bg-blue-600 hover:bg-blue-700 text-white"
                 />
               )}
             </div>
@@ -328,7 +327,7 @@ function ConflictGroupCard({
         <div className="space-y-1.5">
           {group.persons.map((person, pIdx) => {
             const isOwner = group.ownerPerson === person;
-            const willReplace = !isOwner && canResolve && group.pattern !== 'manual';
+            const willReplace = !isOwner && canResolve;
             // Get the replacement ID for the first row of this person
             const replacementId = willReplace
               ? group.suggestedReplacements.get(person.rowNumbers[0])
@@ -375,12 +374,6 @@ function ConflictGroupCard({
                     <Badge variant="outline" className="text-blue-600 border-blue-400/50 text-xs font-mono">
                       <Hash className="h-3 w-3 mr-1" />
                       → {replacementId}
-                    </Badge>
-                  )}
-                  {group.pattern === 'manual' && (
-                    <Badge variant="outline" className="text-pupil-warning border-pupil-warning/30 text-xs">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      Manuell
                     </Badge>
                   )}
                 </div>
