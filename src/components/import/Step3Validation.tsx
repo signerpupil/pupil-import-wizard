@@ -84,6 +84,7 @@ export function Step3Validation({
   const [analysisTime, setAnalysisTime] = useState<number | null>(null);
   const [hasRunAnalysis, setHasRunAnalysis] = useState(false);
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
+  const autoFixAppliedRef = useRef(false);
   
   // Parent ID consolidation UI state
   const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
