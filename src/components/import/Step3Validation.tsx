@@ -953,8 +953,13 @@ export function Step3Validation({
     
     try {
       // This runs entirely in a background Web Worker thread
-      // Use only uncorrected errors so resolved duplicates don't appear
-      const result = await analyze(uncorrectedErrors, rows);
+      // Use only uncorrected errors, excluding those handled by dedicated sections (ID conflicts, parent consolidation, etc.)
+      const errorsForAnalysis = uncorrectedErrors.filter(e => 
+        e.type !== 'id_conflict' && 
+        !e.message.includes('Inkonsistente ID:') &&
+        !e.message.includes('Geschwister-Inkonsistenz')
+      );
+      const result = await analyze(errorsForAnalysis, rows);
       const duration = performance.now() - startTime;
       setAnalysisTime(duration);
       setHasRunAnalysis(true);
