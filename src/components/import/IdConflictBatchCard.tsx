@@ -127,9 +127,9 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
             <Badge variant="outline" className="text-destructive border-destructive/30">
               {isFiltered ? `${filteredGroups.length} / ${summary.totalGroups}` : summary.totalGroups} Konflikte
             </Badge>
-            {filteredResolvableRows > 0 && (
+            {filteredResolvableCount > 0 && (
               <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
-                {filteredResolvableRows} automatisch lösbar
+                {filteredResolvableCount} automatisch lösbar
               </Badge>
             )}
           </div>
