@@ -166,7 +166,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for gender issues
     if (colLower.includes('geschlecht') || colLower.includes('geschl') || colLower.includes('gender') || colLower === 'sex') {
       const genderErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatGender(value) !== null;
       });
