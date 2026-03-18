@@ -334,6 +334,41 @@ export function Step3Validation({
 
   const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
 
+  // Apply bulk correction for parent ID inconsistencies (uses filtered groups)
+  const applyBulkParentIdCorrection = useCallback(() => {
+    const targetGroups = filteredParentGroups.length > 0 ? filteredParentGroups : parentIdInconsistencyGroups;
+    if (targetGroups.length === 0) return;
+    
+    const corrections: { row: number; column: string; value: string }[] = [];
+    let totalAffectedChildren = 0;
+    
+    for (const group of targetGroups) {
+      for (const affectedRow of group.affectedRows) {
+        corrections.push({
+          row: affectedRow.row,
+          column: group.column,
+          value: group.correctId,
+        });
+        totalAffectedChildren++;
+      }
+    }
+    
+    if (corrections.length > 0) {
+      onBulkCorrect(corrections, 'bulk');
+      toast({
+        title: 'Eltern-IDs konsolidiert',
+        description: `${targetGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+      });
+    }
+  }, [filteredParentGroups, parentIdInconsistencyGroups, onBulkCorrect, toast]);
+
+  const filteredParentChildren = useMemo(() => 
+    filteredParentGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
+    [filteredParentGroups]
+  );
+
+  const isParentFiltered = parentReliabilityFilter !== 'all' || parentConsolidationSearch.trim() !== '';
+
   // Reset page when search or filter changes
   useEffect(() => {
     setParentConsolidationPage(0);
