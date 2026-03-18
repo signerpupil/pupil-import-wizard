@@ -124,11 +124,11 @@ export function analyzeIdConflicts(
         }
         suffixCounter++;
       }
-    } else if (pattern === 'majority') {
-      // Sort by occurrence count descending
+    } else if (pattern === 'majority' || pattern === 'auto_second') {
+      // Sort by occurrence count descending; first person keeps the ID
       const sorted = [...persons].sort((a, b) => b.rowNumbers.length - a.rowNumbers.length);
       ownerPerson = sorted[0];
-      // Generate new IDs for all non-majority persons
+      // Generate new IDs for all non-first persons
       resolvableRows = sorted.slice(1).flatMap(p => p.rowNumbers);
       let suffixCounter = 1;
       for (const person of sorted.slice(1)) {
@@ -139,7 +139,6 @@ export function analyzeIdConflicts(
         suffixCounter++;
       }
     }
-    // 'manual' → resolvableRows stays empty
 
     result.push({
       idField: field,
