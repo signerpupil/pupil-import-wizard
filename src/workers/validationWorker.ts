@@ -232,7 +232,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for Ort/location issues
     if (colLower === 'ort' || colLower.endsWith('_ort')) {
       const ortErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatOrt(value) !== null;
       });
