@@ -233,32 +233,7 @@ export function Step3Validation({
   }, [uncorrectedErrors, getStudentNameForRow, rows]);
 
 
-  // Apply bulk correction for all parent ID inconsistencies at once
-  const applyBulkParentIdCorrection = useCallback(() => {
-    if (parentIdInconsistencyGroups.length === 0) return;
-    
-    const corrections: { row: number; column: string; value: string }[] = [];
-    let totalAffectedChildren = 0;
-    
-    for (const group of parentIdInconsistencyGroups) {
-      for (const affectedRow of group.affectedRows) {
-        corrections.push({
-          row: affectedRow.row,
-          column: group.column,
-          value: group.correctId,
-        });
-        totalAffectedChildren++;
-      }
-    }
-    
-    if (corrections.length > 0) {
-      onBulkCorrect(corrections, 'bulk');
-      toast({
-        title: 'Eltern-IDs konsolidiert',
-        description: `${parentIdInconsistencyGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
-      });
-    }
-  }, [parentIdInconsistencyGroups, onBulkCorrect, toast]);
+  // applyBulkParentIdCorrection is defined after filteredParentGroups (see below)
 
   // Dismiss a single parent ID inconsistency group (mark all affected rows as "ignored")
   const dismissParentGroup = useCallback((group: ParentIdInconsistencyGroup) => {
@@ -358,6 +333,41 @@ export function Step3Validation({
   }, [filteredParentGroups, parentConsolidationPage, PARENTS_PER_PAGE]);
 
   const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
+
+  // Apply bulk correction for parent ID inconsistencies (uses filtered groups)
+  const applyBulkParentIdCorrection = useCallback(() => {
+    const targetGroups = filteredParentGroups.length > 0 ? filteredParentGroups : parentIdInconsistencyGroups;
+    if (targetGroups.length === 0) return;
+    
+    const corrections: { row: number; column: string; value: string }[] = [];
+    let totalAffectedChildren = 0;
+    
+    for (const group of targetGroups) {
+      for (const affectedRow of group.affectedRows) {
+        corrections.push({
+          row: affectedRow.row,
+          column: group.column,
+          value: group.correctId,
+        });
+        totalAffectedChildren++;
+      }
+    }
+    
+    if (corrections.length > 0) {
+      onBulkCorrect(corrections, 'bulk');
+      toast({
+        title: 'Eltern-IDs konsolidiert',
+        description: `${targetGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+      });
+    }
+  }, [filteredParentGroups, parentIdInconsistencyGroups, onBulkCorrect, toast]);
+
+  const filteredParentChildren = useMemo(() => 
+    filteredParentGroups.reduce((sum, g) => sum + g.affectedRows.length, 0),
+    [filteredParentGroups]
+  );
+
+  const isParentFiltered = parentReliabilityFilter !== 'all' || parentConsolidationSearch.trim() !== '';
 
   // Reset page when search or filter changes
   useEffect(() => {
@@ -1228,10 +1238,10 @@ export function Step3Validation({
                 <Users className="h-5 w-5 text-blue-500" />
                 <CardTitle className="text-lg">Eltern-ID Konsolidierung</CardTitle>
                 <Badge variant="outline" className="text-blue-500 border-blue-500/30">
-                  {parentIdInconsistencyGroups.length} Eltern
+                  {isParentFiltered ? `${filteredParentGroups.length} / ${parentIdInconsistencyGroups.length}` : parentIdInconsistencyGroups.length} Eltern
                 </Badge>
                 <Badge variant="outline" className="text-blue-500 border-blue-500/30">
-                  {totalParentIdInconsistencies} Kinder
+                  {isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies} Kinder
                 </Badge>
               </div>
               <Button 
@@ -1240,7 +1250,7 @@ export function Step3Validation({
                 size="lg"
               >
                 <CheckCircle className="h-4 w-4" />
-                Alle {parentIdInconsistencyGroups.length} konsolidieren
+                Alle {isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length} konsolidieren
               </Button>
             </div>
             <CardDescription>
@@ -1253,22 +1263,22 @@ export function Step3Validation({
             {parentIdInconsistencyGroups.length > 10 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{parentIdInconsistencyGroups.length}</p>
+                  <p className="text-2xl font-bold text-blue-600">{isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length}</p>
                   <p className="text-xs text-muted-foreground">Eltern zu konsolidieren</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{totalParentIdInconsistencies}</p>
+                  <p className="text-2xl font-bold text-blue-600">{isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies}</p>
                   <p className="text-xs text-muted-foreground">Betroffene Kinder</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-600">
-                    {new Set(parentIdInconsistencyGroups.map(g => g.column)).size}
+                    {new Set((isParentFiltered ? filteredParentGroups : parentIdInconsistencyGroups).map(g => g.column)).size}
                   </p>
                   <p className="text-xs text-muted-foreground">Spalten betroffen</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg text-center">
                   <p className="text-2xl font-bold text-blue-600">
-                    {Math.round((parentIdInconsistencyGroups.length / rows.length) * 100)}%
+                    {Math.round(((isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length) / rows.length) * 100)}%
                   </p>
                   <p className="text-xs text-muted-foreground">Betroffene Zeilen</p>
                 </div>

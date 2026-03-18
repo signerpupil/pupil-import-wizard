@@ -111,7 +111,11 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
 
   if (conflictGroups.length === 0) return null;
 
-  const resolvableCount = conflictGroups.filter(g => g.resolvableRows.length > 0).length;
+  // Compute filtered stats for display
+  const filteredResolvableCount = filteredGroups.filter(g => g.resolvableRows.length > 0).length;
+  const filteredResolvableRows = filteredGroups.reduce((sum, g) => sum + g.resolvableRows.length, 0);
+  const filteredPlaceholderCount = filteredGroups.filter(g => g.pattern === 'placeholder').length;
+  const isFiltered = patternFilter !== 'all' || search.trim() !== '';
 
   return (
     <Card className="border-destructive/30 bg-destructive/5">
@@ -121,22 +125,22 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
             <ShieldAlert className="h-5 w-5 text-destructive" />
             <CardTitle className="text-lg">ID-Konflikte auflösen</CardTitle>
             <Badge variant="outline" className="text-destructive border-destructive/30">
-              {summary.totalGroups} Konflikte
+              {isFiltered ? `${filteredGroups.length} / ${summary.totalGroups}` : summary.totalGroups} Konflikte
             </Badge>
-            {summary.totalResolvable > 0 && (
+            {filteredResolvableRows > 0 && (
               <Badge variant="outline" className="text-pupil-success border-pupil-success/30">
-                {summary.totalResolvable} automatisch lösbar
+                {filteredResolvableRows} automatisch lösbar
               </Badge>
             )}
           </div>
-          {resolvableCount > 0 && (
+          {filteredResolvableCount > 0 && (
             <Button
               onClick={resolveAllResolvable}
               className="gap-2 bg-destructive hover:bg-destructive/90"
               size="lg"
             >
               <Hash className="h-4 w-4" />
-              Alle {resolvableCount} auflösen
+              Alle {filteredResolvableCount} auflösen
             </Button>
           )}
         </div>
@@ -148,9 +152,9 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
       <CardContent className="space-y-4">
         {/* Quick stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StatBox value={summary.totalGroups} label="ID-Konflikte" color="text-destructive" />
-          <StatBox value={summary.totalResolvable} label="Auto-lösbar" color="text-pupil-success" />
-          <StatBox value={summary.byPattern.placeholder.length} label="Platzhalter" color="text-pupil-success" />
+          <StatBox value={isFiltered ? filteredGroups.length : summary.totalGroups} label="ID-Konflikte" color="text-destructive" />
+          <StatBox value={filteredResolvableRows} label="Auto-lösbar" color="text-pupil-success" />
+          <StatBox value={filteredPlaceholderCount} label="Platzhalter" color="text-pupil-success" />
         </div>
 
         {/* Pattern explanation */}
