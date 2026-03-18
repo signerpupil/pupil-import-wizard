@@ -327,7 +327,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
         colLower.includes('vorname') || colLower.includes('heimatort') || colLower.includes('konfession') ||
         colLower.includes('schulhaus')) {
       const wsErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return trimWhitespace(value) !== null;
       });
