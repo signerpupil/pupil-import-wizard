@@ -1238,10 +1238,10 @@ export function Step3Validation({
                 <Users className="h-5 w-5 text-blue-500" />
                 <CardTitle className="text-lg">Eltern-ID Konsolidierung</CardTitle>
                 <Badge variant="outline" className="text-blue-500 border-blue-500/30">
-                  {parentIdInconsistencyGroups.length} Eltern
+                  {isParentFiltered ? `${filteredParentGroups.length} / ${parentIdInconsistencyGroups.length}` : parentIdInconsistencyGroups.length} Eltern
                 </Badge>
                 <Badge variant="outline" className="text-blue-500 border-blue-500/30">
-                  {totalParentIdInconsistencies} Kinder
+                  {isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies} Kinder
                 </Badge>
               </div>
               <Button 
@@ -1250,7 +1250,7 @@ export function Step3Validation({
                 size="lg"
               >
                 <CheckCircle className="h-4 w-4" />
-                Alle {parentIdInconsistencyGroups.length} konsolidieren
+                Alle {isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length} konsolidieren
               </Button>
             </div>
             <CardDescription>
