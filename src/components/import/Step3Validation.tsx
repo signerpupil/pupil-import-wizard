@@ -1061,9 +1061,31 @@ export function Step3Validation({
   }, [hasRunAnalysis, localSuggestions, errors, onBulkCorrect, toast]);
 
 
+  // Errors handled by dedicated UI sections (exclude from general error table)
+  const dedicatedSectionErrorKeys = useMemo(() => {
+    const keys = new Set<string>();
+    // Name change errors
+    for (const e of errors) {
+      if (e.message.includes('Möglicher Namenswechsel')) {
+        keys.add(`${e.row}:${e.column}`);
+      }
+      // Parent ID consolidation errors
+      if (e.message.includes('Inkonsistente ID:') && e.column.startsWith('P_ERZ')) {
+        keys.add(`${e.row}:${e.column}`);
+      }
+      // ID conflict errors
+      if (e.type === 'id_conflict') {
+        keys.add(`${e.row}:${e.column}`);
+      }
+    }
+    return keys;
+  }, [errors]);
+
+  // Group errors by column for grouped display — excluding errors shown in dedicated sections
   const errorsByColumn = useMemo(() => {
     const map = new Map<string, ValidationError[]>();
     for (const e of errors) {
+      if (dedicatedSectionErrorKeys.has(`${e.row}:${e.column}`)) continue;
       if (!map.has(e.column)) map.set(e.column, []);
       map.get(e.column)!.push(e);
     }
@@ -1072,7 +1094,7 @@ export function Step3Validation({
       const bUncorrected = b[1].filter(e => !e.correctedValue).length;
       return bUncorrected - aUncorrected;
     });
-  }, [errors]);
+  }, [errors, dedicatedSectionErrorKeys]);
 
   // Apply local bulk correction
   const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
