@@ -300,7 +300,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       const excelRowSet = new Set(excelDateErrors.map(e => e.row));
       const dateFormatErrors = groupErrors.filter(e => {
         if (excelRowSet.has(e.row)) return false;
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatDateDE(value) !== null;
       });
