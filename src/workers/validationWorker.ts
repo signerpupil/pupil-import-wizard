@@ -75,7 +75,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for AHV format issues
     if (colLower.includes('ahv')) {
       const ahvErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         const digits = value.replace(/\D/g, '');
         return digits.length === 13 && digits.startsWith('756');
@@ -98,7 +98,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for phone format issues
     if (colLower.includes('tel') || colLower.includes('phone') || colLower.includes('mobil') || colLower.includes('fax')) {
       const phoneErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         const digits = value.replace(/\D/g, '');
         return (digits.length >= 9 && digits.length <= 13);
@@ -121,7 +121,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for email issues - enhanced detection
     if (colLower.includes('email') || colLower.includes('mail') || colLower.includes('e-mail')) {
       const emailErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return value.includes('@') || value.includes('.com') || value.includes('.ch');
       });
@@ -143,7 +143,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for PLZ issues
     if (colLower.includes('plz') || colLower.includes('postleitzahl') || colLower === 'zip') {
       const plzErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string' && typeof value !== 'number') return false;
         const digits = String(value).replace(/\D/g, '');
         return digits.length === 4 || digits.length === 5;
@@ -166,7 +166,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for gender issues
     if (colLower.includes('geschlecht') || colLower.includes('geschl') || colLower.includes('gender') || colLower === 'sex') {
       const genderErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatGender(value) !== null;
       });
@@ -188,7 +188,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for name capitalization issues
     if (colLower.includes('name') || colLower.includes('vorname') || colLower.includes('nachname')) {
       const nameErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatName(value) !== null;
       });
@@ -210,7 +210,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for street/address issues
     if (colLower.includes('strasse') || colLower.includes('street') || colLower.includes('adresse') || colLower.includes('address')) {
       const streetErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatStreet(value) !== null;
       });
@@ -232,7 +232,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for Ort/location issues
     if (colLower === 'ort' || colLower.endsWith('_ort')) {
       const ortErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatOrt(value) !== null;
       });
@@ -254,7 +254,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for IBAN issues
     if (colLower.includes('iban') || colLower.includes('konto')) {
       const ibanErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatIBAN(value) !== null;
       });
@@ -276,7 +276,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for Excel date serial numbers AND date format variants
     if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
       const excelDateErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         const strVal = String(value).trim();
         // Only treat as Excel serial if purely numeric (no dots, dashes, slashes)
         if (/[.\-\/]/.test(strVal)) return false;
@@ -300,7 +300,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
       const excelRowSet = new Set(excelDateErrors.map(e => e.row));
       const dateFormatErrors = groupErrors.filter(e => {
         if (excelRowSet.has(e.row)) return false;
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return formatDateDE(value) !== null;
       });
@@ -327,7 +327,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
         colLower.includes('vorname') || colLower.includes('heimatort') || colLower.includes('konfession') ||
         colLower.includes('schulhaus')) {
       const wsErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         if (typeof value !== 'string') return false;
         return trimWhitespace(value) !== null;
       });
