@@ -276,7 +276,7 @@ function analyzeErrors(errors: ValidationError[], data: ImportRow[]): {
     // Check for Excel date serial numbers AND date format variants
     if (colLower.includes('datum') || colLower.includes('date') || colLower.includes('geburt')) {
       const excelDateErrors = groupErrors.filter(e => {
-        const value = data[e.row]?.[e.column];
+        const value = e.value;
         const strVal = String(value).trim();
         // Only treat as Excel serial if purely numeric (no dots, dashes, slashes)
         if (/[.\-\/]/.test(strVal)) return false;
