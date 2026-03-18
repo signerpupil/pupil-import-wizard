@@ -272,7 +272,7 @@ function detectDateFormatPattern(index: ErrorIndex): PatternGroup[] {
         rows: fixableRows,
         values: fixableValues,
         fixFunction: 'date_de_format',
-        description: `${fixableRows.length} Datumsangaben im falschen Format (Bindestriche/Schrägstriche/ISO) → DD.MM.YYYY`,
+        description: `${fixableRows.length} Datumsangaben im falschen Format (Bindestriche/Schrägstriche/ISO/2-stellige Jahreszahl) → DD.MM.YYYY`,
         canAutoFix: true,
       });
     }

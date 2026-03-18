@@ -132,7 +132,16 @@ export function convertExcelDate(value: string): string | null {
   return null;
 }
 
-/** Convert DD-MM-YYYY, YYYY-MM-DD, or DD/MM/YYYY → DD.MM.YYYY */
+/**
+ * Expand a 2-digit year to 4 digits with plausibility:
+ * - 00–30 → 2000–2030 (likely birth years for current students)
+ * - 31–99 → 1931–1999 (likely birth years for parents/older)
+ */
+function expandTwoDigitYear(yy: number): number {
+  return yy <= 30 ? 2000 + yy : 1900 + yy;
+}
+
+/** Convert DD-MM-YYYY, YYYY-MM-DD, DD/MM/YYYY, or DD.MM.YY → DD.MM.YYYY */
 export function formatDateDE(value: string): string | null {
   const dashMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if (dashMatch) return `${dashMatch[1].padStart(2, '0')}.${dashMatch[2].padStart(2, '0')}.${dashMatch[3]}`;
@@ -142,6 +151,27 @@ export function formatDateDE(value: string): string | null {
 
   const slashMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (slashMatch) return `${slashMatch[1].padStart(2, '0')}.${slashMatch[2].padStart(2, '0')}.${slashMatch[3]}`;
+
+  // DD.MM.YY → DD.MM.YYYY (2-digit year with plausibility)
+  const twoDigitMatch = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+  if (twoDigitMatch) {
+    const year = expandTwoDigitYear(parseInt(twoDigitMatch[3]));
+    return `${twoDigitMatch[1].padStart(2, '0')}.${twoDigitMatch[2].padStart(2, '0')}.${year}`;
+  }
+
+  // DD-MM-YY → DD.MM.YYYY
+  const dashTwoDigit = value.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+  if (dashTwoDigit) {
+    const year = expandTwoDigitYear(parseInt(dashTwoDigit[3]));
+    return `${dashTwoDigit[1].padStart(2, '0')}.${dashTwoDigit[2].padStart(2, '0')}.${year}`;
+  }
+
+  // DD/MM/YY → DD.MM.YYYY
+  const slashTwoDigit = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (slashTwoDigit) {
+    const year = expandTwoDigitYear(parseInt(slashTwoDigit[3]));
+    return `${slashTwoDigit[1].padStart(2, '0')}.${slashTwoDigit[2].padStart(2, '0')}.${year}`;
+  }
 
   return null;
 }

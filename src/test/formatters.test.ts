@@ -236,7 +236,33 @@ describe('Shared Formatters', () => {
     });
   });
 
-  // ===== Whitespace =====
+  // ===== 2-digit year conversion =====
+  describe('formatDateDE - 2-digit year', () => {
+    it('converts DD.MM.YY with year <= 30 to 20xx', () => {
+      expect(formatDateDE('03.03.10')).toBe('03.03.2010');
+      expect(formatDateDE('15.06.25')).toBe('15.06.2025');
+      expect(formatDateDE('01.01.00')).toBe('01.01.2000');
+      expect(formatDateDE('31.12.30')).toBe('31.12.2030');
+    });
+    it('converts DD.MM.YY with year > 30 to 19xx', () => {
+      expect(formatDateDE('03.03.99')).toBe('03.03.1999');
+      expect(formatDateDE('15.06.85')).toBe('15.06.1985');
+      expect(formatDateDE('01.01.31')).toBe('01.01.1931');
+      expect(formatDateDE('28.02.50')).toBe('28.02.1950');
+    });
+    it('converts DD-MM-YY with plausibility', () => {
+      expect(formatDateDE('03-03-10')).toBe('03.03.2010');
+      expect(formatDateDE('03-03-99')).toBe('03.03.1999');
+    });
+    it('converts DD/MM/YY with plausibility', () => {
+      expect(formatDateDE('03/03/10')).toBe('03.03.2010');
+      expect(formatDateDE('03/03/99')).toBe('03.03.1999');
+    });
+    it('pads single-digit day/month in YY format', () => {
+      expect(formatDateDE('3.3.10')).toBe('03.03.2010');
+    });
+  });
+
   describe('trimWhitespace', () => {
     it('trims leading/trailing', () => {
       expect(trimWhitespace(' Mueller ')).toBe('Mueller');
