@@ -199,13 +199,13 @@ export function IdConflictBatchCard({ errors, rows, onBulkCorrect }: IdConflictB
                   activeClass="bg-blue-600 hover:bg-blue-700 text-white"
                 />
               )}
-              {summary.byPattern.manual.length > 0 && (
+              {summary.byPattern.auto_second.length > 0 && (
                 <FilterButton
-                  active={patternFilter === 'manual'}
-                  onClick={() => setPatternFilter('manual')}
-                  label={`Manuell (${summary.byPattern.manual.length})`}
-                  colorClass="border-pupil-warning/50 text-pupil-warning hover:bg-pupil-warning/5"
-                  activeClass="bg-pupil-warning hover:bg-pupil-warning/90 text-white"
+                  active={patternFilter === 'auto_second'}
+                  onClick={() => setPatternFilter('auto_second')}
+                  label={`Automatisch (${summary.byPattern.auto_second.length})`}
+                  colorClass="border-blue-500/50 text-blue-600 hover:bg-blue-50"
+                  activeClass="bg-blue-600 hover:bg-blue-700 text-white"
                 />
               )}
             </div>
