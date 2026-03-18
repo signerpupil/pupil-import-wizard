@@ -330,20 +330,18 @@ describe("Parent Name Change Detection", () => {
     expect(nameChanges[0].severity).toBe("warning");
   });
 
-  it("should detect complete name change with similar names (Heidi Maier → Heidi Meier)", () => {
-    // Maier vs Meier: levenshtein=1, max=5, similarity=80% → should flag
+  it("should detect complete name change with similar names (Heidi Maier → Heidi Meier) for same-surname students", () => {
     const rows: ParsedRow[] = [
       {
         S_ID: "1", S_Name: "Müller", S_Vorname: "Tim", S_AHV: "756.1111.1111.11",
         P_ERZ1_Name: "Maier", P_ERZ1_Vorname: "Heidi",
       },
       {
-        S_ID: "2", S_Name: "Meier", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
+        S_ID: "2", S_Name: "Müller", S_Vorname: "Jana", S_AHV: "756.2222.2222.22",
         P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Heidi",
       },
     ];
     const errors = validateData(rows, testColumns);
-    // Maier vs Meier: high similarity → should flag
     const nameChanges = errors.filter(e => e.message.includes("Namenswechsel") || e.message.includes("Möglicher"));
     expect(nameChanges.length).toBeGreaterThan(0);
   });
