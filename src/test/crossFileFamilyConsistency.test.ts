@@ -132,3 +132,42 @@ describe('Cross-File Family Consistency', () => {
     expect(shared).toContain('20003');
   });
 });
+
+describe('Parent fields should not produce duplicate warnings for siblings', () => {
+  it('P_ERZ1_ID and P_ERZ2_ID shared by siblings produce no duplicate warnings', () => {
+    const rows: ParsedRow[] = [
+      { S_ID: '1', S_Name: 'Meier', S_Vorname: 'Anna', P_ERZ1_ID: '100', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Hans', P_ERZ2_ID: '200', P_ERZ2_Name: 'Meier', P_ERZ2_Vorname: 'Lisa' },
+      { S_ID: '2', S_Name: 'Meier', S_Vorname: 'Ben', P_ERZ1_ID: '100', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Hans', P_ERZ2_ID: '200', P_ERZ2_Name: 'Meier', P_ERZ2_Vorname: 'Lisa' },
+      { S_ID: '3', S_Name: 'Meier', S_Vorname: 'Clara', P_ERZ1_ID: '100', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Hans', P_ERZ2_ID: '200', P_ERZ2_Name: 'Meier', P_ERZ2_Vorname: 'Lisa' },
+    ];
+    const errors = validateData(rows, columns);
+    const parentDuplicates = errors.filter(
+      e => (e.column === 'P_ERZ1_ID' || e.column === 'P_ERZ2_ID') && e.type === 'duplicate'
+    );
+    expect(parentDuplicates).toHaveLength(0);
+  });
+
+  it('P_ERZ1_AHV and P_ERZ2_AHV shared by siblings produce no duplicate warnings', () => {
+    const rows: ParsedRow[] = [
+      { S_ID: '1', S_Name: 'Müller', S_Vorname: 'Tom', P_ERZ1_AHV: '7561234567897', P_ERZ1_Name: 'Müller', P_ERZ1_Vorname: 'Peter', P_ERZ2_AHV: '7569876543210', P_ERZ2_Name: 'Müller', P_ERZ2_Vorname: 'Eva' },
+      { S_ID: '2', S_Name: 'Müller', S_Vorname: 'Sara', P_ERZ1_AHV: '7561234567897', P_ERZ1_Name: 'Müller', P_ERZ1_Vorname: 'Peter', P_ERZ2_AHV: '7569876543210', P_ERZ2_Name: 'Müller', P_ERZ2_Vorname: 'Eva' },
+    ];
+    const errors = validateData(rows, columns);
+    const parentDuplicates = errors.filter(
+      e => (e.column === 'P_ERZ1_AHV' || e.column === 'P_ERZ2_AHV') && e.type === 'duplicate'
+    );
+    expect(parentDuplicates).toHaveLength(0);
+  });
+
+  it('P_ERZ1_ID with different persons still produces id_conflict errors', () => {
+    const rows: ParsedRow[] = [
+      { S_ID: '1', S_Name: 'Meier', S_Vorname: 'Anna', P_ERZ1_ID: '100', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Hans' },
+      { S_ID: '2', S_Name: 'Schmidt', S_Vorname: 'Max', P_ERZ1_ID: '100', P_ERZ1_Name: 'Schmidt', P_ERZ1_Vorname: 'Karl' },
+    ];
+    const errors = validateData(rows, columns);
+    const idConflicts = errors.filter(
+      e => e.column === 'P_ERZ1_ID' && e.type === 'id_conflict'
+    );
+    expect(idConflicts.length).toBeGreaterThan(0);
+  });
+});
