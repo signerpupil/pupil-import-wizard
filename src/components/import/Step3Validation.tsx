@@ -233,14 +233,15 @@ export function Step3Validation({
   }, [uncorrectedErrors, getStudentNameForRow, rows]);
 
 
-  // Apply bulk correction for all parent ID inconsistencies at once
+  // Apply bulk correction for parent ID inconsistencies (filtered)
   const applyBulkParentIdCorrection = useCallback(() => {
-    if (parentIdInconsistencyGroups.length === 0) return;
+    const targetGroups = filteredParentGroups.length > 0 ? filteredParentGroups : parentIdInconsistencyGroups;
+    if (targetGroups.length === 0) return;
     
     const corrections: { row: number; column: string; value: string }[] = [];
     let totalAffectedChildren = 0;
     
-    for (const group of parentIdInconsistencyGroups) {
+    for (const group of targetGroups) {
       for (const affectedRow of group.affectedRows) {
         corrections.push({
           row: affectedRow.row,
@@ -255,10 +256,10 @@ export function Step3Validation({
       onBulkCorrect(corrections, 'bulk');
       toast({
         title: 'Eltern-IDs konsolidiert',
-        description: `${parentIdInconsistencyGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+        description: `${targetGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
       });
     }
-  }, [parentIdInconsistencyGroups, onBulkCorrect, toast]);
+  }, [filteredParentGroups, parentIdInconsistencyGroups, onBulkCorrect, toast]);
 
   // Dismiss a single parent ID inconsistency group (mark all affected rows as "ignored")
   const dismissParentGroup = useCallback((group: ParentIdInconsistencyGroup) => {
