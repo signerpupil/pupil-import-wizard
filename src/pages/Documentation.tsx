@@ -322,6 +322,11 @@ export default function Documentation() {
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground">Duplikate werden als Fehler markiert und zeigen die erste Zeile an, in der der Wert vorkommt.</p>
+                    <div className="bg-background/50 rounded-lg border border-border/50 p-3 mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        <strong className="text-foreground">Hinweis:</strong> Eltern-Felder (<code className="font-mono text-xs bg-muted px-1 rounded">P_ERZ1_ID</code>, <code className="font-mono text-xs bg-muted px-1 rounded">P_ERZ2_ID</code>, <code className="font-mono text-xs bg-muted px-1 rounded">P_ERZ1_AHV</code>, <code className="font-mono text-xs bg-muted px-1 rounded">P_ERZ2_AHV</code>) lösen <strong>keine</strong> Duplikat-Warnungen aus, da dieselben Eltern erwartungsgemäss in mehreren Zeilen vorkommen (Geschwister). Echte ID-Konflikte (verschiedene Personen mit derselben ID) werden weiterhin erkannt – siehe Abschnitt 3b.
+                      </p>
+                    </div>
                   </div>
 
                   {/* 3b. ID-Konflikt-Erkennung */}
