@@ -31,7 +31,7 @@ export interface IdConflictGroup {
 export type IdConflictPattern =
   | 'placeholder'   // ID is a known placeholder (0, 999, -1, etc.)
   | 'majority'      // One person has clearly more rows than others
-  | 'manual';       // No clear pattern, requires manual resolution
+  | 'auto_second';  // No clear majority → second person gets new ID automatically
 
 // Known placeholder values that schools commonly use
 const PLACEHOLDER_VALUES = new Set([
