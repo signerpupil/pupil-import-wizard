@@ -37,17 +37,14 @@ describe('ID Conflict Analysis', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].pattern).toBe('placeholder');
     expect(groups[0].resolvableRows.length).toBeGreaterThan(0);
-    // Each person should get a unique replacement ID
     const replacements = new Set(groups[0].suggestedReplacements.values());
-    expect(replacements.size).toBeGreaterThanOrEqual(2); // At least 2 different new IDs
-    // Replacement IDs should follow the _D01 format
+    expect(replacements.size).toBeGreaterThanOrEqual(2);
     for (const id of replacements) {
       expect(id).toMatch(/^0_D\d{2}$/);
     }
   });
 
   it('detects majority pattern', () => {
-    // Meier appears in 5 rows, Müller in 1
     const rows: ParsedRow[] = [
       makeRow({ S_ID: '123', S_Name: 'Meier', S_Vorname: 'Anna' }),
       makeRow({ S_ID: '123', S_Name: 'Meier', S_Vorname: 'Anna' }),
@@ -68,9 +65,7 @@ describe('ID Conflict Analysis', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].pattern).toBe('majority');
     expect(groups[0].ownerPerson?.name).toBe('Meier');
-    // Only Müller's row should get a new ID
     expect(groups[0].resolvableRows).toEqual([6]);
-    // The replacement should be 123_D01
     expect(groups[0].suggestedReplacements.get(6)).toBe('123_D01');
   });
 
@@ -136,5 +131,87 @@ describe('ID Conflict Analysis', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].pattern).toBe('placeholder');
     expect(groups[0].persons).toHaveLength(2);
+  });
+
+  // --- New tests for post-correction scenarios ---
+
+  it('conflict disappears when row data has been corrected', () => {
+    // Simulate: rows already updated with new IDs after bulk correction
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '555', S_Name: 'Meier', S_Vorname: 'Anna' }),
+      makeRow({ S_ID: '555_D01', S_Name: 'Müller', S_Vorname: 'Peter' }), // already corrected
+    ];
+    // Error still exists from original validation
+    const errors: ValidationError[] = [
+      makeConflictError(2, 'S_ID', '555', 1),
+    ];
+
+    const groups = analyzeIdConflicts(errors, rows);
+    // Row 2 no longer has value '555', so only 1 row matches → no conflict
+    expect(groups).toHaveLength(0);
+  });
+
+  it('conflict disappears for placeholder after all rows corrected', () => {
+    // All rows already received new IDs
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '0_D01', S_Name: 'Meier', S_Vorname: 'Anna' }),
+      makeRow({ S_ID: '0_D02', S_Name: 'Müller', S_Vorname: 'Peter' }),
+      makeRow({ S_ID: '0_D02', S_Name: 'Müller', S_Vorname: 'Peter' }),
+    ];
+    const errors: ValidationError[] = [
+      makeConflictError(2, 'S_ID', '0', 1),
+      makeConflictError(3, 'S_ID', '0', 1),
+    ];
+
+    const groups = analyzeIdConflicts(errors, rows);
+    expect(groups).toHaveLength(0);
+  });
+
+  it('partial correction reduces group but keeps remaining conflict', () => {
+    // 3 persons share ID '0', only person 1 corrected so far
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '0_D01', S_Name: 'Meier', S_Vorname: 'Anna' }), // corrected
+      makeRow({ S_ID: '0', S_Name: 'Müller', S_Vorname: 'Peter' }),    // still '0'
+      makeRow({ S_ID: '0', S_Name: 'Keller', S_Vorname: 'Hans' }),     // still '0'
+    ];
+    const errors: ValidationError[] = [
+      makeConflictError(2, 'S_ID', '0', 1),
+      makeConflictError(3, 'S_ID', '0', 1),
+    ];
+
+    const groups = analyzeIdConflicts(errors, rows);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].persons).toHaveLength(2); // Müller and Keller
+    // Meier is gone from the group
+    expect(groups[0].persons.find(p => p.name === 'Meier')).toBeUndefined();
+  });
+
+  it('majority pattern: first row is minority and gets corrected', () => {
+    // Row 1 is the minority person, rows 2-4 are the majority
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '777', S_Name: 'Müller', S_Vorname: 'Peter' }), // minority (1 row)
+      makeRow({ S_ID: '777', S_Name: 'Meier', S_Vorname: 'Anna' }),   // majority
+      makeRow({ S_ID: '777', S_Name: 'Meier', S_Vorname: 'Anna' }),
+      makeRow({ S_ID: '777', S_Name: 'Meier', S_Vorname: 'Anna' }),
+    ];
+    const errors: ValidationError[] = [
+      // Only errors for rows 2-4 referencing row 1
+      makeConflictError(2, 'S_ID', '777', 1),
+      makeConflictError(3, 'S_ID', '777', 1),
+      makeConflictError(4, 'S_ID', '777', 1),
+    ];
+
+    const groups = analyzeIdConflicts(errors, rows);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].pattern).toBe('majority');
+    expect(groups[0].ownerPerson?.name).toBe('Meier');
+    // Row 1 (Müller) should be the resolvable one
+    expect(groups[0].resolvableRows).toEqual([1]);
+    expect(groups[0].suggestedReplacements.get(1)).toBe('777_D01');
+
+    // Now simulate correction: row 1 gets new ID
+    rows[0] = makeRow({ S_ID: '777_D01', S_Name: 'Müller', S_Vorname: 'Peter' });
+    const groupsAfter = analyzeIdConflicts(errors, rows);
+    expect(groupsAfter).toHaveLength(0); // Conflict resolved
   });
 });

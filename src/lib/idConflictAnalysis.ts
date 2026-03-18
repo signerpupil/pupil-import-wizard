@@ -44,44 +44,52 @@ const PLACEHOLDER_VALUES = new Set([
 
 /**
  * Analyze ID conflict errors and group them into resolvable patterns.
+ *
+ * KEY DESIGN: We use the errors only to identify *which* field+value pairs
+ * are conflicting, then scan `rows` for all rows that currently still carry
+ * that value. This means corrected rows (whose value was already changed in
+ * `rows`) disappear from the group immediately — even if their original
+ * ValidationError object still exists.
  */
 export function analyzeIdConflicts(
   errors: ValidationError[],
   rows: ParsedRow[]
 ): IdConflictGroup[] {
-  // Collect only uncorrected id_conflict errors
+  // Collect only uncorrected id_conflict errors to find conflict keys
   const conflictErrors = errors.filter(
     e => e.type === 'id_conflict' && e.correctedValue === undefined
   );
 
   if (conflictErrors.length === 0) return [];
 
-  // Group by field + value
-  const groupMap = new Map<string, { field: string; value: string; errorRows: number[] }>();
-
+  // Discover unique field+value conflict keys
+  const conflictKeys = new Map<string, { field: string; value: string }>();
   for (const err of conflictErrors) {
     const key = `${err.column}::${err.value}`;
-    if (!groupMap.has(key)) {
-      // Extract the "original" row from the error message
-      const origRowMatch = err.message.match(/Zeile\s+(\d+)/);
-      const origRow = origRowMatch ? parseInt(origRowMatch[1]) : null;
-      const initial: number[] = origRow ? [origRow] : [];
-      groupMap.set(key, { field: err.column, value: err.value, errorRows: initial });
-    }
-    const g = groupMap.get(key)!;
-    if (!g.errorRows.includes(err.row)) {
-      g.errorRows.push(err.row);
+    if (!conflictKeys.has(key)) {
+      conflictKeys.set(key, { field: err.column, value: err.value });
     }
   }
 
   const result: IdConflictGroup[] = [];
 
-  for (const { field, value, errorRows } of groupMap.values()) {
+  for (const { field, value } of conflictKeys.values()) {
+    // Scan ALL rows for those that currently have this value in this field
+    const matchingRowNumbers: number[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const rowValue = String(rows[i]?.[field] ?? '').trim();
+      if (rowValue === value) {
+        matchingRowNumbers.push(i + 1); // 1-indexed
+      }
+    }
+
+    if (matchingRowNumbers.length < 2) continue; // No longer a conflict
+
     // Identify persons by name+vorname
     const { nameField, vornameField, ahvField, gebField } = getIdentityFields(field);
     const personMap = new Map<string, ConflictPerson>();
 
-    for (const rowNum of errorRows) {
+    for (const rowNum of matchingRowNumbers) {
       const row = rows[rowNum - 1];
       if (!row) continue;
 
@@ -102,7 +110,7 @@ export function analyzeIdConflicts(
     }
 
     const persons = Array.from(personMap.values());
-    if (persons.length < 2) continue; // Not actually a conflict
+    if (persons.length < 2) continue; // Same person in all rows — not a conflict
 
     // Classify pattern
     const pattern = classifyConflict(value, persons);
@@ -114,8 +122,7 @@ export function analyzeIdConflicts(
 
     if (pattern === 'placeholder') {
       // All rows have a placeholder ID → generate new IDs for each person
-      resolvableRows = errorRows;
-      // Group rows by person, assign each person a unique suffix
+      resolvableRows = matchingRowNumbers;
       let suffixCounter = 1;
       for (const person of persons) {
         const newId = generateReplacementId(value, suffixCounter);
@@ -128,7 +135,6 @@ export function analyzeIdConflicts(
       // Sort by occurrence count descending; first person keeps the ID
       const sorted = [...persons].sort((a, b) => b.rowNumbers.length - a.rowNumbers.length);
       ownerPerson = sorted[0];
-      // Generate new IDs for all non-first persons
       resolvableRows = sorted.slice(1).flatMap(p => p.rowNumbers);
       let suffixCounter = 1;
       for (const person of sorted.slice(1)) {
@@ -151,7 +157,7 @@ export function analyzeIdConflicts(
     });
   }
 
-  // Sort: placeholder first, then majority, then manual. Within each, by count descending.
+  // Sort: placeholder first, then majority, then auto_second
   const patternOrder: Record<IdConflictPattern, number> = { placeholder: 0, majority: 1, auto_second: 2 };
   result.sort((a, b) => {
     const po = patternOrder[a.pattern] - patternOrder[b.pattern];
@@ -174,12 +180,10 @@ function generateReplacementId(originalId: string, index: number): string {
  * Classify a conflict into a pattern type.
  */
 function classifyConflict(idValue: string, persons: ConflictPerson[]): IdConflictPattern {
-  // Check for placeholder
   if (PLACEHOLDER_VALUES.has(idValue.toLowerCase())) {
     return 'placeholder';
   }
 
-  // Check for majority: one person has ≥3x more rows than any other
   const sorted = [...persons].sort((a, b) => b.rowNumbers.length - a.rowNumbers.length);
   const majority = sorted[0].rowNumbers.length;
   const secondMost = sorted[1].rowNumbers.length;
@@ -187,8 +191,6 @@ function classifyConflict(idValue: string, persons: ConflictPerson[]): IdConflic
   if (majority >= 3 && majority >= secondMost * 2) {
     return 'majority';
   }
-
-  // If majority has at least 2 more rows
   if (majority >= secondMost + 2) {
     return 'majority';
   }
