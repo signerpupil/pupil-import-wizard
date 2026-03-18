@@ -959,12 +959,18 @@ function checkParentNameChanges(rows: ParsedRow[]): ValidationError[] {
         const a = entries[i];
         const b = entries[j];
 
-        // Only compare across same student group OR same Vorname in different groups
         // Skip comparing two entries from the exact same row (different ERZ slots same row)
         if (a.rowIndex === b.rowIndex) continue;
 
-        // If both are from different students AND same Vorname → valid cross-student check
-        // If from same student → also check (sibling context)
+        // Skip if the students have different last names — this is likely
+        // two different families, not a name change (e.g., parent remarried
+        // and each child kept their original surname)
+        if (a.studentKey !== b.studentKey) {
+          const aStudentName = a.studentKey.split('|')[0];
+          const bStudentName = b.studentKey.split('|')[0];
+          if (aStudentName !== bStudentName) continue;
+        }
+
         const changeType = detectNameChange(a.nachname, b.nachname);
         if (!changeType) continue;
 
