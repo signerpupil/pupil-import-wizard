@@ -193,7 +193,7 @@ function classifyConflict(idValue: string, persons: ConflictPerson[]): IdConflic
     return 'majority';
   }
 
-  return 'manual';
+  return 'auto_second';
 }
 
 /**
