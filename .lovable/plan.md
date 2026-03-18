@@ -1,42 +1,54 @@
 
 
-## PUPIL-Klassen-Export Anleitung fuer LPStep2Teachers
+# Geschwister-Inkonsistenz Auflösung — Implementierungsplan
 
-Neue aufklappbare Anleitung fuer den PUPIL-Klassen-Export, analog zu `PUPILInstructionGuide` und `LOInstructionGuide`.
+## Ausgangslage
 
-### Aenderungen
+Geschwister-Inkonsistenzen (S_PLZ, S_Ort) werden als `type: 'business'`, `severity: 'warning'` Fehler erzeugt. Es fehlt eine dedizierte UI zur Auflösung -- aktuell landen sie in der allgemeinen Fehlertabelle.
 
-**1. Screenshots kopieren**
-- `user-uploads://2026-03-03-06-52-16.png` → `src/assets/pupil-anleitung-klassen.png` (PUPIL Klassen-Ansicht)
-- `user-uploads://2026-03-03-06-54-50.png` → `src/assets/pupil-anleitung-klassen-excel.png` (Excel-Ergebnis)
+## Umsetzung
 
-**2. Neue Komponente `src/components/import/lp-zuweisung/PUPILClassesInstructionGuide.tsx`**
+### 1. Neue Komponente: `SiblingInconsistencyCard.tsx`
 
-Gleiche Struktur wie `PUPILInstructionGuide`, mit zwei Phasen:
+Eigenständige Karte (analog zu `IdConflictBatchCard`), die:
+- Geschwister-Inkonsistenz-Warnungen aus `errors` filtert (Message enthält `Geschwister-Inkonsistenz`)
+- Nach `parentId` gruppiert (aus Message extrahiert: `P_ERZ1_ID="..."` oder `P_ERZ2_ID="..."`)
+- Pro Familie eine Karte zeigt mit:
+  - Familienname (aus `S_Name` des ersten Kindes)
+  - Pro inkonsistentem Feld (S_PLZ, S_Ort): **RadioGroup** mit allen Werten, Anzahl Kinder pro Wert, und Kindernamen
+  - **PLZ↔Ort-Kopplung**: Wenn PLZ gewählt wird, `getOrteForPlz()` aufrufen und den Ort automatisch vorschlagen (wenn S_Ort ebenfalls inkonsistent ist)
+  - Buttons: "Mehrheitswert übernehmen" (setzt häufigsten Wert) und "Auswahl anwenden" (setzt gewählten RadioGroup-Wert)
+- Erledigte Gruppen verschwinden automatisch (Errors werden via `onBulkCorrect` als korrigiert markiert)
+- "Alle Mehrheitswerte übernehmen" Batch-Button im Header
 
-**Phase A — Navigieren:**
-1. Im linken Menü **Master Data** öffnen
-2. **Schulen/Klassen/Gruppen** anklicken
-3. **Klassen** auswählen
+### 2. Integration in `Step3Validation.tsx`
 
-Screenshot `pupil-anleitung-klassen.png` mit Lightbox
+- Import der neuen Komponente
+- Platzierung nach dem `IdConflictBatchCard`-Block (Zeile ~1231)
+- Props: `errors`, `rows`, `onBulkCorrect`
+- Keine zusätzliche State-Logik nötig in Step3 — die Komponente verwaltet ihren eigenen UI-State (welche RadioGroup-Werte gewählt sind, Paginierung)
 
-**Phase B — Tabelle kopieren:**
-4. Gesamte Klassentabelle mit Kopfzeile bis ganz nach unten markieren
-5. Mit Rechtsklick oder **Ctrl+C** kopieren
-6. In leere Excel-Tabelle einfügen und **Excel speichern**
+### 3. Gruppenlogik (innerhalb der Komponente)
 
-Screenshot `pupil-anleitung-klassen-excel.png` mit Lightbox
+```text
+errors mit "Geschwister-Inkonsistenz"
+→ Parse parentId + idField aus Message
+→ Gruppiere nach parentId
+→ Pro Gruppe: sammle betroffene Felder + Werte aus rows[]
+→ Bestimme Mehrheitswert pro Feld
+→ Bei Auswahl: onBulkCorrect() für alle abweichenden Zeilen
+```
 
-- localStorage-Key: `pupil-classes-guide-open`, standardmässig eingeklappt
-- Nummern-Badges 1-6, identisches Pattern
+Wichtig: Wie bei der neuen `analyzeIdConflicts`-Logik werden die **aktuellen Zeilendaten** aus `rows` gelesen (nicht die Error-Werte), damit bereits korrigierte Zeilen sofort verschwinden.
 
-**3. `LPStep2Teachers.tsx` anpassen**
+### 4. PLZ↔Ort-Kopplung
 
-`<PUPILClassesInstructionGuide />` in die zweite Card ("PUPIL-Klassen Datei hochladen") einbauen, zwischen der Beschreibung und dem File-Upload-Input (Zeile ~386, nach dem `<p>` Tag).
+- Nutzt `getOrteForPlz()` aus `swissPlzData.ts`
+- Wenn eine PLZ gewählt wird und der dazugehörige Ort eindeutig ist (1 Eintrag in der DB), wird der Ort-RadioButton automatisch vorausgewählt
+- Wenn mehrere Orte möglich sind, werden diese als Optionen angezeigt
 
-### Technische Details
+### Betroffene Dateien
 
-- Identisches Pattern wie `PUPILInstructionGuide`: Collapsible, Dialog-Lightbox, localStorage-Persistenz
-- Zwei Screenshots statt einem (je einer pro Phase)
+- **Neu**: `src/components/import/SiblingInconsistencyCard.tsx`
+- **Edit**: `src/components/import/Step3Validation.tsx` (Import + Einbindung, ~5 Zeilen)
 
