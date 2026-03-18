@@ -317,7 +317,7 @@ export default function Documentation() {
                     <h5 className="font-semibold text-sm">3. Duplikat-Erkennung</h5>
                     <p className="text-xs text-muted-foreground">Folgende Felder werden auf doppelte Werte geprüft:</p>
                     <div className="flex flex-wrap gap-2">
-                      {['S_AHV', 'S_ID', 'L_KL1_AHV'].map(f => (
+                      {['S_AHV', 'S_ID'].map(f => (
                         <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
                       ))}
                     </div>
