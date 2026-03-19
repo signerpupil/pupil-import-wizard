@@ -559,7 +559,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Lithauen': 'Litauen',
   'Slovakei': 'Slowakei',
   'Slovenien': 'Slowenien',
-  'Bulgarien ': 'Bulgarien',
   'Bangla Desh': 'Bangladesh',
   'Bangladesch': 'Bangladesh',
 };
