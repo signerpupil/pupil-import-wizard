@@ -1033,7 +1033,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Cameroon': 'Kamerun',
   'Senegal': 'Senegal',
   'Congo': 'Kongo (Republik)',
-  'Ivory Coast': "Côte d'Ivoire",
   'South Africa': 'Südafrika',
   'Saudi Arabia': 'Saudi-Arabien',
   'Saudiarabien': 'Saudi-Arabien',
