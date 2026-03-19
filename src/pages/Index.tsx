@@ -238,6 +238,8 @@ export default function Index() {
       setCorrectedRows([...parseResult.rows]);
       // Reset auto-corrections flag to allow reapplication
       setAutoCorrectionsApplied(false);
+      // Mark initial validation as done so re-validation can kick in
+      initialValidationDone.current = true;
     }
     const nextStep = Math.min(currentStep + 1, 4);
     setCurrentStep(nextStep);
