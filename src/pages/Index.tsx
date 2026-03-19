@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { WizardHeader } from '@/components/import/WizardHeader';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { WizardSummary } from '@/components/import/WizardSummary';
