@@ -131,7 +131,7 @@ export function Step3Validation({
   }, [stepByStepMode]);
   
   // Web Worker for background processing
-  const { analyze, isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
+  const { isProcessing: isAnalyzing, error: workerError } = useValidationWorker();
 
   /**
    * Generic staleness check: hides errors whose underlying data has changed
