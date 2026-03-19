@@ -92,7 +92,7 @@ describe('Date validation — exhaustive parameterized', () => {
   });
 
   // Future birth dates should produce a warning
-  it.each(['01.01.2030', '15.06.2028'])('warns on future birth date "%s"', (date) => {
+  it.each(['01.01.2030', '15.06.2028', '31.12.2099'])('warns on future birth date "%s"', (date) => {
     const errors = validateData([makeRow({ S_Geburtsdatum: date })], baseCols);
     const futureErrors = errors.filter(e => e.column === 'S_Geburtsdatum' && e.message.includes('Zukunft'));
     expect(futureErrors.length).toBe(1);
