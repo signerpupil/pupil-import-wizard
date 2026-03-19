@@ -1185,7 +1185,7 @@ function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
 // Check for S_ID = 0 placeholder values
 function checkPlaceholderIds(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
-  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
+  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
   
   for (let i = 0; i < rows.length; i++) {
     const sId = String(rows[i]['S_ID'] ?? '').trim();
