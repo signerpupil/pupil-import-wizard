@@ -569,7 +569,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   // --- Übrige osteuropäische Sprachen (erweitert) ---
   'Weissrussisch': 'Übrige osteuropäische Sprachen',
   'Belarussisch': 'Übrige osteuropäische Sprachen',
-  'Moldawisch': 'Übrige osteuropäische Sprachen',
+  'Moldawisch': 'Rumänisch', // Moldawisch ist linguistisch identisch mit Rumänisch
 
   // --- Übrige slawische Sprachen ---
   'Sorbisch': 'Übrige slawische Sprachen',
