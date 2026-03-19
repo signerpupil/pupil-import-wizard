@@ -987,11 +987,11 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Nordjemen': 'Jemen',
   'Südjemen': 'Jemen',
   'Katalonien': 'Spanien',
-  'Kurdistan': 'Irak',
+  'Kurdistan': 'Irak',                        // Umfasst Teile von Irak, Türkei, Syrien, Iran
   'Ostpakistan': 'Bangladesh',
   'Südwestafrika': 'Namibia',
-  'Französisch-Westafrika': 'Senegal',
-  'Französisch-Äquatorialafrika': 'Kongo (Republik)',
+  'Französisch-Westafrika': 'Senegal',              // Umfasste 8 Länder, Senegal war Verwaltungssitz
+  'Französisch-Äquatorialafrika': 'Kongo (Republik)', // Umfasste 4 Länder
   'Italienisch-Somaliland': 'Somalia',
   'Britisch-Somaliland': 'Somalia',
   'Französisch-Somaliland': 'Dschibuti',
