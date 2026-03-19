@@ -1404,9 +1404,28 @@ function validateFieldType(
 
 function isValidDate(value: string): boolean {
   // Only accept DD.MM.YYYY as the valid Swiss date format.
-  // Other formats (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Excel serial) are flagged
-  // so the auto-fix patterns can convert them.
-  return /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value);
+  const match = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!match) return false;
+  
+  const day = parseInt(match[1]);
+  const month = parseInt(match[2]);
+  const year = parseInt(match[3]);
+  
+  // Basic range checks
+  if (month < 1 || month > 12) return false;
+  if (day < 1) return false;
+  
+  // Days per month (with leap year support)
+  const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+    daysInMonth[2] = 29;
+  }
+  if (day > daysInMonth[month]) return false;
+  
+  // Year plausibility: 1900-2100
+  if (year < 1900 || year > 2100) return false;
+  
+  return true;
 }
 
 function isValidAHV(value: string): boolean {
