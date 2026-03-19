@@ -246,7 +246,7 @@ export function checkColumnStatus(
   return statuses;
 }
 
-// BISTA-Sprachliste (49 gültige Werte gemäss BISTA-Codierung)
+// BISTA-Sprachliste (51 gültige Werte gemäss BISTA-Codierung)
 export const VALID_BISTA_LANGUAGES = new Set([
   'Afrikanische Sprachen', 'Albanisch', 'Andere nordeuropäische Sprachen',
   'Andere westeuropäische Sprachen', 'Arabisch', 'Armenisch', 'Bosnisch',
@@ -259,6 +259,7 @@ export const VALID_BISTA_LANGUAGES = new Set([
   'Serbisch', 'Serbo-Kroatisch', 'Slowakisch', 'Slowenisch', 'Spanisch',
   'Tamil', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch',
   'Übrige osteuropäische Sprachen', 'Übrige slawische Sprachen',
+  'Übrige süd- und südostasiatische Sprachen', 'Übrige westasiatische Sprachen',
   'Ukrainisch', 'Ungarisch', 'Vietnamesisch', 'Westasiatische Sprachen',
 ]);
 
@@ -1184,7 +1185,7 @@ function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
 // Check for S_ID = 0 placeholder values
 function checkPlaceholderIds(rows: ParsedRow[]): ValidationError[] {
   const errors: ValidationError[] = [];
-  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
+  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
   
   for (let i = 0; i < rows.length; i++) {
     const sId = String(rows[i]['S_ID'] ?? '').trim();
@@ -1491,6 +1492,16 @@ function validateFieldType(
     case 'date':
       if (!isValidDate(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültiges Datumsformat' };
+      }
+      // Future date warning for birth dates
+      if (columnName === 'S_Geburtsdatum') {
+        const dateMatch = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (dateMatch) {
+          const birthDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
+          if (birthDate > new Date()) {
+            return { row: rowNum, column: columnName, value, message: 'Geburtsdatum liegt in der Zukunft', severity: 'warning' };
+          }
+        }
       }
       break;
     case 'ahv':

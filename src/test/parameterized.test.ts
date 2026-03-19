@@ -70,7 +70,7 @@ describe('Date validation — exhaustive parameterized', () => {
     '01.01.2000', '29.02.2024', '31.12.2023', '15.06.1990', '28.02.2019',
     '31.01.2020', '30.04.2020', '31.03.2020', '30.06.2020', '31.05.2020',
     '31.07.2020', '31.08.2020', '30.09.2020', '31.10.2020', '30.11.2020',
-    '29.02.2000', '29.02.2004', '01.01.1900', '31.12.2099',
+    '29.02.2000', '29.02.2004', '01.01.1900',
   ];
 
   const invalidDates = [
@@ -89,6 +89,14 @@ describe('Date validation — exhaustive parameterized', () => {
     const errors = validateData([makeRow({ S_Geburtsdatum: date })], baseCols);
     const dateErrors = errors.filter(e => e.column === 'S_Geburtsdatum');
     expect(dateErrors.length).toBeGreaterThan(0);
+  });
+
+  // Future birth dates should produce a warning
+  it.each(['01.01.2030', '15.06.2028', '31.12.2099'])('warns on future birth date "%s"', (date) => {
+    const errors = validateData([makeRow({ S_Geburtsdatum: date })], baseCols);
+    const futureErrors = errors.filter(e => e.column === 'S_Geburtsdatum' && e.message.includes('Zukunft'));
+    expect(futureErrors.length).toBe(1);
+    expect(futureErrors[0].severity).toBe('warning');
   });
 });
 
@@ -205,16 +213,21 @@ describe('formatEmail — typo corrections parameterized', () => {
     ['test@gmial.com', 'test@gmail.com'],
     ['test@gmai.com', 'test@gmail.com'],
     ['test@gamil.com', 'test@gmail.com'],
+    ['test@gmal.com', 'test@gmail.com'],
     ['test@hotmal.com', 'test@hotmail.com'],
     ['test@hotmai.com', 'test@hotmail.com'],
+    ['test@hitmail.com', 'test@hotmail.com'],
     ['test@outllok.com', 'test@outlook.com'],
     ['test@outlok.com', 'test@outlook.com'],
+    ['test@outloo.com', 'test@outlook.com'],
     ['test@yahooo.com', 'test@yahoo.com'],
     ['test@yaho.com', 'test@yahoo.com'],
     ['test@gmx.cch', 'test@gmx.ch'],
     ['test@bleuwin.ch', 'test@bluewin.ch'],
+    ['test@bluwin.ch', 'test@bluewin.ch'],
     ['test@protonmai.ch', 'test@protonmail.ch'],
     ['test@protonmal.ch', 'test@protonmail.ch'],
+    ['test@protonmial.ch', 'test@protonmail.ch'],
     ['test@iclod.com', 'test@icloud.com'],
     ['test@icloude.com', 'test@icloud.com'],
   ])('fixes "%s" → "%s"', (input, expected) => {
@@ -238,10 +251,7 @@ describe('Language auto-corrections — complete iteration', () => {
   it.each(Object.entries(LANGUAGE_AUTO_CORRECTIONS))(
     'maps "%s" → "%s" (must be valid BISTA)',
     (input, expected) => {
-      expect(VALID_BISTA_LANGUAGES.has(expected) ||
-        // Some corrections map to values not directly in BISTA but accepted
-        expected.length > 0
-      ).toBe(true);
+      expect(VALID_BISTA_LANGUAGES.has(expected)).toBe(true);
     }
   );
 
@@ -311,8 +321,8 @@ describe('ERZ1=ERZ2 detection — parameterized', () => {
 // ============================================
 
 describe('Placeholder ID detection — parameterized', () => {
-  const placeholders = ['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx'];
-  const validIds = ['1', '12345', '100001', '54321', 'A0001'];
+  const placeholders = ['0', '00', '000', '0000', '-1', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx'];
+  const validIds = ['1', '12345', '100001', '54321', 'A0001', '99999'];
 
   it.each(placeholders)('detects placeholder S_ID="%s"', (id) => {
     const errors = validateData([makeRow({ S_ID: id })], baseCols);
@@ -419,7 +429,11 @@ describe('formatName — parameterized', () => {
     ['müller', 'Müller'],
     ['ANNA-MARIA', 'Anna-Maria'],
     ['anna maria', 'Anna Maria'],
-    ['VON DER MÜHLE', 'Von Der Mühle'],
+    ['VON DER MÜHLE', 'Von der Mühle'],
+    ['PETER VAN DEN BERG', 'Peter van den Berg'],
+    ['MARIA DE LA CRUZ', 'Maria de la Cruz'],
+    ['ANNA DELLA TORRE', 'Anna della Torre'],
+    ['MAX VON MOOS', 'Max von Moos'],
   ])('formats "%s" → "%s"', (input, expected) => {
     expect(formatName(input)).toBe(expected);
   });
@@ -596,39 +610,48 @@ describe('Validation determinism', () => {
 // ============================================
 
 describe('Clean data — no false positives', () => {
-  it('50 clean rows produce 0 field-level errors', () => {
+  /** Generate a valid AHV with correct EAN-13 checksum */
+  function generateValidAHV(seed: number): string {
+    const base = `756${String(seed).padStart(9, '0').slice(0, 9)}`;
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(base[i]) * (i % 2 === 0 ? 1 : 3);
+    }
+    const check = (10 - (sum % 10)) % 10;
+    const digits = base + check;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 7)}.${digits.slice(7, 11)}.${digits.slice(11, 13)}`;
+  }
+
+  it('50 clean rows produce 0 errors (excluding cross-record)', () => {
     const rows: ParsedRow[] = [];
     for (let i = 0; i < 50; i++) {
       rows.push(makeRow({
         S_ID: String(80000 + i),
-        S_AHV: `756.${String(80000 + i).padStart(4, '0')}.0001.40`,
+        S_AHV: generateValidAHV(100000 + i),
         S_Geburtsdatum: '15.03.2015',
         S_Geschlecht: i % 2 === 0 ? 'M' : 'W',
         S_PLZ: '8001',
         S_Muttersprache: 'Deutsch',
         S_Nationalitaet: 'Schweiz',
         P_ERZ1_ID: String(90000 + i),
-        P_ERZ1_AHV: `756.${String(90000 + i).padStart(4, '0')}.0001.40`,
-        P_ERZ1_Name: `Elter${i}`,
-        P_ERZ1_Vorname: `Vorn${i}`,
+        P_ERZ1_AHV: generateValidAHV(200000 + i),
+        P_ERZ1_Name: `Eltern${i}a`,
+        P_ERZ1_Vorname: `Vorna${i}`,
         P_ERZ2_ID: String(91000 + i),
-        P_ERZ2_AHV: `756.${String(91000 + i).padStart(4, '0')}.0001.40`,
-        P_ERZ2_Name: `Elter2_${i}`,
-        P_ERZ2_Vorname: `Vorn2_${i}`,
+        P_ERZ2_AHV: generateValidAHV(300000 + i),
+        P_ERZ2_Name: `Eltern${i}b`,
+        P_ERZ2_Vorname: `Vornb${i}`,
       }));
     }
     const errors = validateData(rows, baseCols);
-    // Only duplicate/consistency errors could appear, not format errors
-    const formatErrors = errors.filter(e =>
+    // Only cross-record checks (duplicates, consistency) may fire — no field-level errors
+    const fieldErrors = errors.filter(e =>
       !e.message.includes('Duplikat') &&
       !e.message.includes('Inkonsistente') &&
       !e.message.includes('Namenswechsel') &&
-      !e.message.includes('Diakritische') &&
-      !e.message.includes('Prüfsumme') &&
-      !e.message.includes('PLZ') &&
-      !e.message.includes('AHV')
+      !e.message.includes('Diakritische')
     );
-    expect(formatErrors.length).toBe(0);
+    expect(fieldErrors.length).toBe(0);
   });
 });
 

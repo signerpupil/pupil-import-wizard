@@ -201,10 +201,15 @@ export function formatEmail(value: string): string | null {
   cleaned = cleaned.replace(/@yaho\./, '@yahoo.');
   cleaned = cleaned.replace(/@gmx\.cch$/, '@gmx.ch');
   cleaned = cleaned.replace(/@bleuwin\./, '@bluewin.');
+  cleaned = cleaned.replace(/@bluwin\./, '@bluewin.');
   cleaned = cleaned.replace(/@protonmai\./, '@protonmail.');
   cleaned = cleaned.replace(/@protonmal\./, '@protonmail.');
+  cleaned = cleaned.replace(/@protonmial\./, '@protonmail.');
   cleaned = cleaned.replace(/@iclod\./, '@icloud.');
   cleaned = cleaned.replace(/@icloude\./, '@icloud.');
+  cleaned = cleaned.replace(/@gmal\./, '@gmail.');
+  cleaned = cleaned.replace(/@outloo\./, '@outlook.');
+  cleaned = cleaned.replace(/@hitmail\./, '@hotmail.');
 
   if (cleaned.includes('@') && cleaned.includes('.')) {
     return cleaned;
@@ -232,6 +237,9 @@ export function isValidGender(value: string): boolean {
   return formatGender(value) !== null;
 }
 
+/** Noble prefixes that should remain lowercase in proper-case names */
+const NOBLE_PREFIXES = new Set(['von', 'van', 'de', 'del', 'della', 'di', 'da', 'le', 'la', 'el', 'al', 'der', 'den', 'het', 'ten', 'ter', 'zu']);
+
 export function formatName(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -240,11 +248,15 @@ export function formatName(value: string): string | null {
   const isAllLower = trimmed === trimmed.toLowerCase() && trimmed !== trimmed.toUpperCase();
   if (!isAllCaps && !isAllLower) return null;
 
-  return trimmed
-    .toLowerCase()
-    .split(/(\s+|-)/g)
+  const parts = trimmed.toLowerCase().split(/(\s+|-)/g);
+  let firstWordDone = false;
+
+  return parts
     .map(part => {
       if (part === '-' || /^\s+$/.test(part)) return part;
+      // Keep noble prefixes lowercase, but not if it's the very first word
+      if (firstWordDone && NOBLE_PREFIXES.has(part)) return part;
+      firstWordDone = true;
       return part.charAt(0).toUpperCase() + part.slice(1);
     })
     .join('');
