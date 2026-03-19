@@ -1214,6 +1214,18 @@ export function validateData(
   const plzOrtErrors = checkPlzOrtConsistency(rows);
   errors.push(...plzOrtErrors);
 
+  // Check ERZ1 = ERZ2 (same person listed as both parents)
+  const erz1Erz2Errors = checkErz1EqualsErz2(rows);
+  errors.push(...erz1Erz2Errors);
+
+  // Check S_ID = 0 placeholder
+  const placeholderErrors = checkPlaceholderIds(rows);
+  errors.push(...placeholderErrors);
+
+  // Check student = parent (S_AHV == P_ERZ_AHV)
+  const selfParentErrors = checkStudentIsParent(rows);
+  errors.push(...selfParentErrors);
+
   return errors;
 }
 
