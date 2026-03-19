@@ -489,6 +489,18 @@ export default function Documentation() {
                         <Badge key={f} variant="outline" className="font-mono text-xs">{f}</Badge>
                       ))}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={async () => {
+                        const { exportMappingsToExcel } = await import('@/lib/exportMappings');
+                        await exportMappingsToExcel();
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Alle Mappings als Excel herunterladen
+                    </Button>
                   </div>
 
                   {/* 8. AHV-Prüfziffer */}
