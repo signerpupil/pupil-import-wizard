@@ -1138,6 +1138,101 @@ function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers
   return false;
 }
 
+// Check if ERZ1 and ERZ2 are the same person (same AHV or same Name+Vorname)
+function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const erz1Ahv = String(row['P_ERZ1_AHV'] ?? '').trim();
+    const erz2Ahv = String(row['P_ERZ2_AHV'] ?? '').trim();
+    const erz1Name = String(row['P_ERZ1_Name'] ?? '').trim().toLowerCase();
+    const erz1Vorname = String(row['P_ERZ1_Vorname'] ?? '').trim().toLowerCase();
+    const erz2Name = String(row['P_ERZ2_Name'] ?? '').trim().toLowerCase();
+    const erz2Vorname = String(row['P_ERZ2_Vorname'] ?? '').trim().toLowerCase();
+    
+    // Check AHV match (most reliable)
+    if (erz1Ahv && erz2Ahv && erz1Ahv === erz2Ahv) {
+      errors.push({
+        row: i + 1,
+        column: 'P_ERZ2_AHV',
+        value: erz2Ahv,
+        message: `ERZ1 und ERZ2 haben die gleiche AHV-Nummer "${erz1Ahv}" – vermutlich dieselbe Person doppelt erfasst`,
+        type: 'business',
+        severity: 'warning',
+      });
+      continue;
+    }
+    
+    // Check Name+Vorname match
+    if (erz1Name && erz1Vorname && erz2Name && erz2Vorname &&
+        erz1Name === erz2Name && erz1Vorname === erz2Vorname) {
+      errors.push({
+        row: i + 1,
+        column: 'P_ERZ2_Name',
+        value: `${row['P_ERZ2_Vorname']} ${row['P_ERZ2_Name']}`,
+        message: `ERZ1 und ERZ2 haben den gleichen Namen "${erz1Vorname} ${erz1Name}" – vermutlich dieselbe Person doppelt erfasst`,
+        type: 'business',
+        severity: 'warning',
+      });
+    }
+  }
+  
+  return errors;
+}
+
+// Check for S_ID = 0 placeholder values
+function checkPlaceholderIds(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
+  
+  for (let i = 0; i < rows.length; i++) {
+    const sId = String(rows[i]['S_ID'] ?? '').trim();
+    if (sId && placeholderValues.has(sId)) {
+      errors.push({
+        row: i + 1,
+        column: 'S_ID',
+        value: sId,
+        message: `S_ID "${sId}" ist ein Platzhalter-Wert – muss vor dem Import ersetzt werden`,
+        type: 'business',
+        severity: 'warning',
+      });
+    }
+  }
+  
+  return errors;
+}
+
+// Check if a student is listed as their own parent (S_AHV == P_ERZ_AHV)
+function checkStudentIsParent(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const sAhv = String(row['S_AHV'] ?? '').trim();
+    if (!sAhv) continue;
+    
+    for (const [erzAhvField, label] of [
+      ['P_ERZ1_AHV', 'ERZ1'],
+      ['P_ERZ2_AHV', 'ERZ2'],
+    ] as const) {
+      const erzAhv = String(row[erzAhvField] ?? '').trim();
+      if (erzAhv && sAhv === erzAhv) {
+        errors.push({
+          row: i + 1,
+          column: erzAhvField,
+          value: erzAhv,
+          message: `Schüler-AHV und ${label}-AHV sind identisch ("${sAhv}") – Schüler/in kann nicht eigene/r Erziehungsberechtigte/r sein`,
+          type: 'business',
+          severity: 'error',
+        });
+      }
+    }
+  }
+  
+  return errors;
+}
+
 // Validate data - Optimized for large datasets (4000+ rows)
 export function validateData(
   rows: ParsedRow[],
