@@ -1493,6 +1493,16 @@ function validateFieldType(
       if (!isValidDate(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültiges Datumsformat' };
       }
+      // Future date warning for birth dates
+      if (columnName === 'S_Geburtsdatum') {
+        const dateMatch = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (dateMatch) {
+          const birthDate = new Date(parseInt(dateMatch[3]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[1]));
+          if (birthDate > new Date()) {
+            return { row: rowNum, column: columnName, value, message: 'Geburtsdatum liegt in der Zukunft', severity: 'warning' };
+          }
+        }
+      }
       break;
     case 'ahv':
       if (!isValidAHV(value)) {

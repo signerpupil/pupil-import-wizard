@@ -238,10 +238,7 @@ describe('Language auto-corrections — complete iteration', () => {
   it.each(Object.entries(LANGUAGE_AUTO_CORRECTIONS))(
     'maps "%s" → "%s" (must be valid BISTA)',
     (input, expected) => {
-      expect(VALID_BISTA_LANGUAGES.has(expected) ||
-        // Some corrections map to values not directly in BISTA but accepted
-        expected.length > 0
-      ).toBe(true);
+      expect(VALID_BISTA_LANGUAGES.has(expected)).toBe(true);
     }
   );
 

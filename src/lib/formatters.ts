@@ -201,10 +201,15 @@ export function formatEmail(value: string): string | null {
   cleaned = cleaned.replace(/@yaho\./, '@yahoo.');
   cleaned = cleaned.replace(/@gmx\.cch$/, '@gmx.ch');
   cleaned = cleaned.replace(/@bleuwin\./, '@bluewin.');
+  cleaned = cleaned.replace(/@bluwin\./, '@bluewin.');
   cleaned = cleaned.replace(/@protonmai\./, '@protonmail.');
   cleaned = cleaned.replace(/@protonmal\./, '@protonmail.');
+  cleaned = cleaned.replace(/@protonmial\./, '@protonmail.');
   cleaned = cleaned.replace(/@iclod\./, '@icloud.');
   cleaned = cleaned.replace(/@icloude\./, '@icloud.');
+  cleaned = cleaned.replace(/@gmal\./, '@gmail.');
+  cleaned = cleaned.replace(/@outloo\./, '@outlook.');
+  cleaned = cleaned.replace(/@hitmail\./, '@hotmail.');
 
   if (cleaned.includes('@') && cleaned.includes('.')) {
     return cleaned;
