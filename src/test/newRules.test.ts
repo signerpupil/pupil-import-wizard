@@ -306,7 +306,7 @@ describe('Phase 4 historical nationality names', () => {
     ['Nordjemen', 'Jemen'],
     ['Südjemen', 'Jemen'],
     ['Ostpakistan', 'Bangladesh'],
-    ['Ruanda-Urundi', 'Ruanda'],
+    ['Ruanda-Urundi', 'Rwanda'],
     ['Transkei', 'Südafrika'],
   ];
 
