@@ -371,6 +371,32 @@ function isValidLanguage(value: string): boolean {
   return VALID_BISTA_LANGUAGES.has(value.trim());
 }
 
+// Levenshtein distance for fuzzy matching
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    let prev = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const curr = Math.min(dp[j] + 1, prev + 1, dp[j - 1] + cost);
+      dp[j - 1] = prev;
+      prev = curr;
+    }
+    dp[n] = prev;
+  }
+  return dp[n];
+}
+
+// Max allowed Levenshtein distance based on string length
+function maxDistance(len: number): number {
+  if (len <= 4) return 1;
+  if (len <= 8) return 2;
+  return 3;
+}
+
 function findSimilarLanguage(value: string): string | null {
   const normalized = value.toLowerCase().trim();
   // 1. Check explicit auto-corrections first (highest priority)
@@ -379,7 +405,7 @@ function findSimilarLanguage(value: string): string | null {
   }
   // 2. Exact match via normalized (case-insensitive)
   if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // 3. Partial prefix match (first 5 chars) for typo detection
+  // 3. Prefix match (first 5 chars)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
@@ -387,7 +413,29 @@ function findSimilarLanguage(value: string): string | null {
       }
     }
   }
-  return null;
+  // 4. Levenshtein fuzzy match against valid BISTA languages
+  let bestMatch: string | null = null;
+  let bestDist = Infinity;
+  const maxDist = maxDistance(normalized.length);
+  for (const [key, lang] of BISTA_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = lang;
+    }
+  }
+  if (bestMatch) return bestMatch;
+  // 5. Levenshtein fuzzy match against auto-correction keys
+  for (const [key, target] of LANGUAGE_CORRECTIONS_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = target;
+    }
+  }
+  return bestMatch;
 }
 
 // ==============================
@@ -578,15 +626,37 @@ function isValidNationality(value: string): boolean {
 
 function findNationalityCorrection(value: string): string | null {
   const normalized = value.trim().toLowerCase();
-  // Check auto-corrections first
+  // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
     return NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!;
   }
-  // Case-insensitive match against valid list
+  // 2. Case-insensitive match against valid list
   if (NATIONALITY_NORMALIZED.has(normalized)) {
     return NATIONALITY_NORMALIZED.get(normalized)!;
   }
-  return null;
+  // 3. Levenshtein fuzzy match against valid nationalities
+  let bestMatch: string | null = null;
+  let bestDist = Infinity;
+  const maxDist = maxDistance(normalized.length);
+  for (const [key, nat] of NATIONALITY_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = nat;
+    }
+  }
+  if (bestMatch) return bestMatch;
+  // 4. Levenshtein fuzzy match against auto-correction keys
+  for (const [key, target] of NATIONALITY_CORRECTIONS_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = target;
+    }
+  }
+  return bestMatch;
 }
 
 // Fields that should be checked for duplicates
@@ -1005,21 +1075,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 //   - Complete name change same first name (Heidi Müller → Heidi Meier) via fuzzy
 //   - Fuzzy matching (Levenshtein distance) for similar names
 
-// Compute Levenshtein distance between two strings
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
+// (levenshtein function defined above, near line 375)
 
 // Determine if two last names represent a plausible name change
 // Returns the type of match or null
