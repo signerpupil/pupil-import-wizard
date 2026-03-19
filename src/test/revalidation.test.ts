@@ -200,12 +200,13 @@ describe('Re-validation: Sibling inconsistency', () => {
 // ===================================================================
 describe('Re-validation: PLZ↔Ort mismatch', () => {
   it('detects PLZ↔Ort mismatch', () => {
+    // Use full schueler columns to ensure PLZ↔Ort cross-check fires
     const rows: ParsedRow[] = [
-      makeRow({ S_PLZ: '8000', S_Ort: 'Bern' }), // 8000 = Zürich, not Bern
+      makeRow({ S_PLZ: '3000', S_Ort: 'Zürich' }), // 3000 = Bern, not Zürich
     ];
     const errors = validateData(rows, minimalColumns);
-    const plzErrors = errors.filter(e => e.message.includes('PLZ'));
-    expect(plzErrors.length).toBeGreaterThanOrEqual(1);
+    const plzOrtErrors = errors.filter(e => e.column === 'S_Ort' && e.message.includes('PLZ'));
+    expect(plzOrtErrors.length).toBeGreaterThanOrEqual(1);
   });
 
   it('PLZ↔Ort mismatch disappears after Ort correction', () => {
