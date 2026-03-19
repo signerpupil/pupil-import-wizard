@@ -371,6 +371,32 @@ function isValidLanguage(value: string): boolean {
   return VALID_BISTA_LANGUAGES.has(value.trim());
 }
 
+// Levenshtein distance for fuzzy matching
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    let prev = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const curr = Math.min(dp[j] + 1, prev + 1, dp[j - 1] + cost);
+      dp[j - 1] = prev;
+      prev = curr;
+    }
+    dp[n] = prev;
+  }
+  return dp[n];
+}
+
+// Max allowed Levenshtein distance based on string length
+function maxDistance(len: number): number {
+  if (len <= 4) return 1;
+  if (len <= 8) return 2;
+  return 3;
+}
+
 function findSimilarLanguage(value: string): string | null {
   const normalized = value.toLowerCase().trim();
   // 1. Check explicit auto-corrections first (highest priority)
@@ -379,7 +405,7 @@ function findSimilarLanguage(value: string): string | null {
   }
   // 2. Exact match via normalized (case-insensitive)
   if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // 3. Partial prefix match (first 5 chars) for typo detection
+  // 3. Prefix match (first 5 chars)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
@@ -387,7 +413,29 @@ function findSimilarLanguage(value: string): string | null {
       }
     }
   }
-  return null;
+  // 4. Levenshtein fuzzy match against valid BISTA languages
+  let bestMatch: string | null = null;
+  let bestDist = Infinity;
+  const maxDist = maxDistance(normalized.length);
+  for (const [key, lang] of BISTA_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = lang;
+    }
+  }
+  if (bestMatch) return bestMatch;
+  // 5. Levenshtein fuzzy match against auto-correction keys
+  for (const [key, target] of LANGUAGE_CORRECTIONS_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = target;
+    }
+  }
+  return bestMatch;
 }
 
 // ==============================
