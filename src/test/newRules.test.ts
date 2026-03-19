@@ -274,6 +274,89 @@ describe('Extended nationality auto-corrections', () => {
 });
 
 // ============================================
+// Phase 4: Erweiterte Nationalitäts-Mappings
+// ============================================
+
+describe('Phase 4 nationality ISO-2 codes', () => {
+  const isoCodes: [string, string][] = [
+    ['AL', 'Albanien'], ['BR', 'Brasilien'], ['CN', 'China'], ['EG', 'Ägypten'],
+    ['ER', 'Eritrea'], ['ET', 'Äthiopien'], ['GR', 'Griechenland'], ['HR', 'Kroatien'],
+    ['IQ', 'Irak'], ['JP', 'Japan'], ['KR', 'Korea (Republik Korea)'], ['NG', 'Nigeria'],
+    ['PH', 'Philippinen'], ['SY', 'Syrien'], ['UA', 'Ukraine'], ['ZW', 'Zimbabwe'],
+    ['AF', 'Afghanistan'], ['CD', 'Demokratische Republik Kongo'], ['KP', 'Korea (Dem. Volksrep.)'],
+    ['MM', 'Myanmar'], ['RW', 'Ruanda'], ['SO', 'Somalia'], ['ZA', 'Südafrika'],
+  ];
+
+  for (const [code, expected] of isoCodes) {
+    it(`maps ISO "${code}" → ${expected}`, () => {
+      expect(NATIONALITY_AUTO_CORRECTIONS[code]).toBe(expected);
+    });
+  }
+});
+
+describe('Phase 4 historical nationality names', () => {
+  const historical: [string, string][] = [
+    ['Tschechoslowakei', 'Tschechien'],
+    ['Niederländisch-Ostindien', 'Indonesien'],
+    ['Französisch-Indochina', 'Vietnam'],
+    ['Belgisch-Kongo', 'Demokratische Republik Kongo'],
+    ['Deutsch-Südwestafrika', 'Namibia'],
+    ['Portugiesisch-Ostafrika', 'Mosambik'],
+    ['Mesopotamien', 'Irak'],
+    ['Nordjemen', 'Jemen'],
+    ['Südjemen', 'Jemen'],
+    ['Ostpakistan', 'Bangladesh'],
+    ['Ruanda-Urundi', 'Ruanda'],
+    ['Transkei', 'Südafrika'],
+  ];
+
+  for (const [input, expected] of historical) {
+    it(`maps "${input}" → ${expected}`, () => {
+      expect(NATIONALITY_AUTO_CORRECTIONS[input]).toBe(expected);
+    });
+  }
+});
+
+describe('Phase 4 English nationality names', () => {
+  const english: [string, string][] = [
+    ['Syria', 'Syrien'], ['Turkey', 'Türkiye'], ['Greece', 'Griechenland'],
+    ['Croatia', 'Kroatien'], ['Morocco', 'Marokko'], ['Egypt', 'Ägypten'],
+    ['South Korea', 'Korea (Republik Korea)'], ['North Korea', 'Korea (Dem. Volksrep.)'],
+    ['Switzerland', 'Schweiz'], ['United Kingdom', 'Vereinigtes Königreich'],
+    ['Dominican Republic', 'Dominikanische Republik'],
+  ];
+
+  for (const [input, expected] of english) {
+    it(`maps "${input}" → ${expected}`, () => {
+      expect(NATIONALITY_AUTO_CORRECTIONS[input]).toBe(expected);
+    });
+  }
+});
+
+describe('Phase 4 nationality typos', () => {
+  const typos: [string, string][] = [
+    ['Schweitz', 'Schweiz'], ['Kroatein', 'Kroatien'], ['Kolombien', 'Kolumbien'],
+    ['Marroko', 'Marokko'], ['Tuniesien', 'Tunesien'], ['Ägipten', 'Ägypten'],
+    ['Sirien', 'Syrien'], ['Ukranie', 'Ukraine'], ['Montenegero', 'Montenegro'],
+    ['Ekuador', 'Ecuador'], ['Simbabwe', 'Zimbabwe'], ['Kammerun', 'Kamerun'],
+  ];
+
+  for (const [input, expected] of typos) {
+    it(`corrects typo "${input}" → ${expected}`, () => {
+      expect(NATIONALITY_AUTO_CORRECTIONS[input]).toBe(expected);
+    });
+  }
+
+  it('produces correctedValue for typo Schweitz', () => {
+    const row = makeRow({ S_Nationalitaet: 'Schweitz' });
+    const errors = validateData([row], baseCols);
+    const natErrors = errors.filter(e => e.column === 'S_Nationalitaet');
+    expect(natErrors.length).toBe(1);
+    expect(natErrors[0].correctedValue).toBe('Schweiz');
+  });
+});
+
+// ============================================
 // Extended Email Typo Corrections
 // ============================================
 
