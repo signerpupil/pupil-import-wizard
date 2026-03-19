@@ -186,6 +186,22 @@ describe('Extended language auto-corrections', () => {
     'Katalanisch', 'Baskisch', 'Irisch', 'Gälisch',
     'Arabish', 'Türkish', 'Portugisisch', 'Albanish', 'Kroatish', 'Serbish',
     'Bosniakisch', 'Mazedonish',
+    // Phase 4: Weltweite Sprachen
+    'Zulu', 'Xhosa', 'Shona', 'Ndebele', 'Sotho', 'Tswana', 'Malagasy',
+    'Ewe', 'Fon', 'Mandinka', 'Dinka', 'Nuer', 'Kikuyu', 'Luo',
+    'Ägyptisch', 'Levantinisch', 'Maghrebinisch', 'Libanesisch',
+    'Hakka', 'Hokkien', 'Shanghaiisch',
+    'Sindhi', 'Odia', 'Assamesisch', 'Bhojpuri', 'Kashmiri',
+    'Hmong', 'Mongolisch', 'Tibetisch',
+    'Javanisch', 'Sundanesisch', 'Cebuano', 'Ilocano', 'Tetum',
+    'Aserbaidschanisch', 'Tadschikisch', 'Turkmenisch', 'Zazaki',
+    'Kirgisisch', 'Kasachisch', 'Tschetschenisch', 'Ossetisch', 'Tatarisch',
+    'Walisisch', 'Bretonisch', 'Okzitanisch', 'Maltesisch', 'Luxemburgisch',
+    'Samisch', 'Färöisch', 'Grönländisch',
+    'Weissrussisch', 'Belarussisch', 'Moldawisch',
+    'Sorbisch', 'Kaschubisch',
+    'Kapverdisch', 'Quechua', 'Guarani', 'Gebärdensprache',
+    'Turkisch', 'Franzoesisch', 'Spannisch',
   ];
   
   for (const lang of newMappings) {
@@ -196,6 +212,30 @@ describe('Extended language auto-corrections', () => {
 
   it('maps Somalisch → Afrikanische Sprachen', () => {
     expect(LANGUAGE_AUTO_CORRECTIONS['Somalisch']).toBe('Afrikanische Sprachen');
+  });
+
+  it('maps Zulu → Afrikanische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Zulu']).toBe('Afrikanische Sprachen');
+  });
+
+  it('maps Hakka → Chinesisch', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Hakka']).toBe('Chinesisch');
+  });
+
+  it('maps Hmong → Ostasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Hmong']).toBe('Ostasiatische Sprachen');
+  });
+
+  it('maps Javanisch → Übrige süd- und südostasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Javanisch']).toBe('Übrige süd- und südostasiatische Sprachen');
+  });
+
+  it('maps Tschetschenisch → Übrige westasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Tschetschenisch']).toBe('Übrige westasiatische Sprachen');
+  });
+
+  it('maps Quechua → nicht definiert', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Quechua']).toBe('nicht definiert');
   });
 
   it('produces warnings for new language mappings', () => {
