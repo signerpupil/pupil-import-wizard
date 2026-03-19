@@ -432,22 +432,24 @@ describe('Re-validation: Edge cases', () => {
 
   it('correcting one field does not affect unrelated errors', () => {
     const rows: ParsedRow[] = [
-      makeRow({ S_Geschlecht: 'X', S_PLZ: '99999' }), // invalid gender + invalid PLZ
+      makeRow({ S_Geschlecht: 'Z', S_Geburtsdatum: 'invalid-date' }), // invalid gender + invalid date
     ];
     const initialErrors = validateData(rows, minimalColumns);
     const genderError = initialErrors.find(e => e.column === 'S_Geschlecht');
+    const dateError = initialErrors.find(e => e.column === 'S_Geburtsdatum');
     expect(genderError).toBeTruthy();
+    expect(dateError).toBeTruthy();
 
-    // Correct gender but PLZ is still wrong
+    // Correct gender but date is still wrong
     const corrected: ParsedRow[] = [
-      makeRow({ S_Geschlecht: 'M', S_PLZ: '99999' }),
+      makeRow({ S_Geschlecht: 'M', S_Geburtsdatum: 'invalid-date' }),
     ];
     const freshErrors = validateData(corrected, minimalColumns);
     
     // Gender error should be gone
     expect(freshErrors.find(e => e.column === 'S_Geschlecht')).toBeUndefined();
-    // PLZ error may still be present (format validation)
-    // The point is: correcting one doesn't break the other
+    // Date error should still be present
+    expect(freshErrors.find(e => e.column === 'S_Geburtsdatum')).toBeTruthy();
   });
 
   it('multiple simultaneous corrections merge correctly', () => {
