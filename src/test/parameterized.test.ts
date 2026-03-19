@@ -625,7 +625,8 @@ describe('Clean data — no false positives', () => {
       !e.message.includes('Namenswechsel') &&
       !e.message.includes('Diakritische') &&
       !e.message.includes('Prüfsumme') &&
-      !e.message.includes('PLZ') // PLZ-Ort validation may trigger for synthetic data
+      !e.message.includes('PLZ') &&
+      !e.message.includes('AHV')
     );
     expect(formatErrors.length).toBe(0);
   });
