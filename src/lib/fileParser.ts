@@ -277,7 +277,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Hindi': 'Indoarische und drawidische Sprachen',
   'Kosovarisch': 'Albanisch',
   'Farsi': 'Westasiatische Sprachen',
-  'Tagalog': 'Ostasiatische Sprachen',
+  'Tagalog': 'Übrige süd- und südostasiatische Sprachen',
   'Malayalam': 'Indoarische und drawidische Sprachen',
   'Indische Sprachen': 'Indoarische und drawidische Sprachen',
   'Paschto': 'Westasiatische Sprachen',
