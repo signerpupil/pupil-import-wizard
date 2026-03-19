@@ -19,7 +19,8 @@ import type { ValidationError, ParsedRow } from '@/types/importTypes';
 import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
 import { useValidationWorker } from '@/hooks/useValidationWorker';
 import { 
-  applyLocalCorrection, 
+  applyLocalCorrection,
+  analyzeErrorsLocally,
   type LocalSuggestion,
   formatSwissPhone,
   formatAHV,
