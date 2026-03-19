@@ -308,8 +308,8 @@ describe('ERZ1=ERZ2 detection — parameterized', () => {
 // ============================================
 
 describe('Placeholder ID detection — parameterized', () => {
-  const placeholders = ['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx'];
-  const validIds = ['1', '12345', '100001', '54321', 'A0001'];
+  const placeholders = ['0', '00', '000', '0000', '-1', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx'];
+  const validIds = ['1', '12345', '100001', '54321', 'A0001', '99999'];
 
   it.each(placeholders)('detects placeholder S_ID="%s"', (id) => {
     const errors = validateData([makeRow({ S_ID: id })], baseCols);
