@@ -192,7 +192,7 @@ describe('Extended language auto-corrections', () => {
     'Ägyptisch', 'Levantinisch', 'Maghrebinisch', 'Libanesisch',
     'Hakka', 'Hokkien', 'Shanghaiisch',
     'Sindhi', 'Odia', 'Assamesisch', 'Bhojpuri', 'Kashmiri',
-    'Hmong', 'Mongolisch', 'Tibetisch',
+    'Hmong',
     'Javanisch', 'Sundanesisch', 'Cebuano', 'Ilocano', 'Tetum',
     'Aserbaidschanisch', 'Tadschikisch', 'Turkmenisch', 'Zazaki',
     'Kirgisisch', 'Kasachisch', 'Tschetschenisch', 'Ossetisch', 'Tatarisch',
@@ -284,7 +284,7 @@ describe('Phase 4 nationality ISO-2 codes', () => {
     ['IQ', 'Irak'], ['JP', 'Japan'], ['KR', 'Korea (Republik Korea)'], ['NG', 'Nigeria'],
     ['PH', 'Philippinen'], ['SY', 'Syrien'], ['UA', 'Ukraine'], ['ZW', 'Zimbabwe'],
     ['AF', 'Afghanistan'], ['CD', 'Demokratische Republik Kongo'], ['KP', 'Korea (Dem. Volksrep.)'],
-    ['MM', 'Myanmar'], ['RW', 'Ruanda'], ['SO', 'Somalia'], ['ZA', 'Südafrika'],
+    ['MM', 'Myanmar'], ['RW', 'Rwanda'], ['SO', 'Somalia'], ['ZA', 'Südafrika'],
   ];
 
   for (const [code, expected] of isoCodes) {
@@ -306,7 +306,7 @@ describe('Phase 4 historical nationality names', () => {
     ['Nordjemen', 'Jemen'],
     ['Südjemen', 'Jemen'],
     ['Ostpakistan', 'Bangladesh'],
-    ['Ruanda-Urundi', 'Ruanda'],
+    ['Ruanda-Urundi', 'Rwanda'],
     ['Transkei', 'Südafrika'],
   ];
 

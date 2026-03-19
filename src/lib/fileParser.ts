@@ -329,8 +329,8 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Estnisch': 'Andere nordeuropäische Sprachen',
   'Isländisch': 'Andere nordeuropäische Sprachen',
   // Phase 3: Fehlende Sprachen (CH-Schulen)
-  'Romani': 'Übrige osteuropäische Sprachen',
-  'Romanes': 'Übrige osteuropäische Sprachen',
+  'Romani': 'Indoarische und drawidische Sprachen',   // Indoarische Sprache (verwandt mit Hindi/Sanskrit)
+  'Romanes': 'Indoarische und drawidische Sprachen', // Alternativbezeichnung für Romani
   'Telugu': 'Indoarische und drawidische Sprachen',
   'Kannada': 'Indoarische und drawidische Sprachen',
   'Gujarati': 'Indoarische und drawidische Sprachen',
@@ -489,8 +489,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Mien': 'Ostasiatische Sprachen',
   'Yao': 'Ostasiatische Sprachen',
   'Dong': 'Ostasiatische Sprachen',
-  'Mongolisch': 'Ostasiatische Sprachen',
-  'Tibetisch': 'Ostasiatische Sprachen',
+  // 'Mongolisch' und 'Tibetisch' entfernt — sind bereits gültige BISTA-Werte
 
   // --- Übrige süd- und südostasiatische Sprachen (erweitert) ---
   'Javanisch': 'Übrige süd- und südostasiatische Sprachen',
@@ -570,7 +569,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   // --- Übrige osteuropäische Sprachen (erweitert) ---
   'Weissrussisch': 'Übrige osteuropäische Sprachen',
   'Belarussisch': 'Übrige osteuropäische Sprachen',
-  'Moldawisch': 'Übrige osteuropäische Sprachen',
+  'Moldawisch': 'Rumänisch', // Moldawisch ist linguistisch identisch mit Rumänisch
 
   // --- Übrige slawische Sprachen ---
   'Sorbisch': 'Übrige slawische Sprachen',
@@ -932,7 +931,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'GH': 'Ghana',
   'GT': 'Guatemala',
   'HN': 'Honduras',
-  'KG': 'Kirgistan',
+  'KG': 'Kirgisistan',
   'KH': 'Kambodscha',
   'KP': 'Korea (Dem. Volksrep.)',
   'KZ': 'Kasachstan',
@@ -952,7 +951,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'PA': 'Panama',
   'PY': 'Paraguay',
   'QA': 'Katar',
-  'RW': 'Ruanda',
+  'RW': 'Rwanda',
   'SD': 'Sudan',
   'SL': 'Sierra Leone',
   'SN': 'Senegal',
@@ -976,8 +975,8 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   // ============================================
   'Niederländisch-Ostindien': 'Indonesien',
   'Niederländisch-Indien': 'Indonesien',
-  'Französisch-Indochina': 'Vietnam',
-  'Indochina': 'Vietnam',
+  'Französisch-Indochina': 'Vietnam', // Umfasste auch Laos und Kambodscha
+  'Indochina': 'Vietnam',             // Umfasste Vietnam, Laos, Kambodscha
   'Belgisch-Kongo': 'Demokratische Republik Kongo',
   'Deutsch-Südwestafrika': 'Namibia',
   'Portugiesisch-Ostafrika': 'Mosambik',
@@ -988,15 +987,15 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Nordjemen': 'Jemen',
   'Südjemen': 'Jemen',
   'Katalonien': 'Spanien',
-  'Kurdistan': 'Irak',
+  'Kurdistan': 'Irak',                        // Umfasst Teile von Irak, Türkei, Syrien, Iran
   'Ostpakistan': 'Bangladesh',
   'Südwestafrika': 'Namibia',
-  'Französisch-Westafrika': 'Senegal',
-  'Französisch-Äquatorialafrika': 'Kongo (Republik)',
+  'Französisch-Westafrika': 'Senegal',              // Umfasste 8 Länder, Senegal war Verwaltungssitz
+  'Französisch-Äquatorialafrika': 'Kongo (Republik)', // Umfasste 4 Länder
   'Italienisch-Somaliland': 'Somalia',
   'Britisch-Somaliland': 'Somalia',
   'Französisch-Somaliland': 'Dschibuti',
-  'Ruanda-Urundi': 'Ruanda',
+  'Ruanda-Urundi': 'Rwanda',
   'Transkei': 'Südafrika',
   'Bophuthatswana': 'Südafrika',
   'Ciskei': 'Südafrika',
