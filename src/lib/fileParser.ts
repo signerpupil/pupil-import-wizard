@@ -511,7 +511,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Pangasinan': 'Übrige süd- und südostasiatische Sprachen',
   'Hiligaynon': 'Übrige süd- und südostasiatische Sprachen',
   'Bikol': 'Übrige süd- und südostasiatische Sprachen',
-  'Malaiisch': 'Übrige süd- und südostasiatische Sprachen',
+  'Malaysisch': 'Übrige süd- und südostasiatische Sprachen',
   'Dzongkha': 'Übrige süd- und südostasiatische Sprachen',
   'Bhutanisch': 'Übrige süd- und südostasiatische Sprachen',
 
