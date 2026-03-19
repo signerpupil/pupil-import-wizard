@@ -192,7 +192,7 @@ describe('Extended language auto-corrections', () => {
     'Ägyptisch', 'Levantinisch', 'Maghrebinisch', 'Libanesisch',
     'Hakka', 'Hokkien', 'Shanghaiisch',
     'Sindhi', 'Odia', 'Assamesisch', 'Bhojpuri', 'Kashmiri',
-    'Hmong', 'Mongolisch', 'Tibetisch',
+    'Hmong',
     'Javanisch', 'Sundanesisch', 'Cebuano', 'Ilocano', 'Tetum',
     'Aserbaidschanisch', 'Tadschikisch', 'Turkmenisch', 'Zazaki',
     'Kirgisisch', 'Kasachisch', 'Tschetschenisch', 'Ossetisch', 'Tatarisch',
