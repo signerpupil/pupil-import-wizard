@@ -159,10 +159,65 @@ export default function Index() {
     setAutoCorrectionsApplied(true);
   }, [pendingCorrectionRules, autoCorrectionsApplied, parseResult, correctedRows, errors, correctionMemory, toast]);
 
+  // Re-validation after corrections: debounced useEffect
+  const revalidationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialValidationDone = useRef(false);
+
+  useEffect(() => {
+    // Only re-validate after the initial validation has been done (step 3 entry)
+    if (currentStep !== 3 || !initialValidationDone.current) return;
+    if (correctedRows.length === 0 || columnDefinitions.length === 0) return;
+
+    if (revalidationTimer.current) clearTimeout(revalidationTimer.current);
+
+    revalidationTimer.current = setTimeout(() => {
+      const freshErrors = validateData(correctedRows, columnDefinitions);
+
+      setErrors(prev => {
+        const merged: ValidationError[] = [];
+
+        // 1. Keep corrected errors that are still relevant
+        for (const old of prev) {
+          if (old.correctedValue !== undefined) {
+            // Check if a fresh error still exists at this position
+            const stillExists = freshErrors.some(f => f.row === old.row && f.column === old.column);
+            // Keep it either way — user already corrected it
+            merged.push(old);
+            continue;
+          }
+        }
+
+        // 2. Add fresh errors (new or existing uncorrected)
+        for (const fresh of freshErrors) {
+          // Skip if already handled by a corrected error
+          const alreadyCorrected = merged.some(
+            m => m.row === fresh.row && m.column === fresh.column && m.correctedValue !== undefined
+          );
+          if (alreadyCorrected) continue;
+
+          // Check if an identical uncorrected error already existed
+          const existingUncorrected = prev.find(
+            old => old.row === fresh.row && old.column === fresh.column && old.type === fresh.type && old.correctedValue === undefined
+          );
+          if (existingUncorrected) {
+            merged.push(existingUncorrected); // preserve UI state
+          } else {
+            merged.push(fresh); // genuinely new error
+          }
+        }
+
+        return merged;
+      });
+    }, 300);
+
+    return () => {
+      if (revalidationTimer.current) clearTimeout(revalidationTimer.current);
+    };
+  }, [correctedRows, currentStep, columnDefinitions]);
+
   // Apply corrections when entering step 3
   useEffect(() => {
     if (currentStep === 3 && processingMode === 'continued' && !autoCorrectionsApplied) {
-      // Small delay to ensure state is settled
       const timer = setTimeout(() => {
         applyPendingCorrections();
       }, 100);
