@@ -995,7 +995,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Italienisch-Somaliland': 'Somalia',
   'Britisch-Somaliland': 'Somalia',
   'Französisch-Somaliland': 'Dschibuti',
-  'Ruanda-Urundi': 'Ruanda',
+  'Ruanda-Urundi': 'Rwanda',
   'Transkei': 'Südafrika',
   'Bophuthatswana': 'Südafrika',
   'Ciskei': 'Südafrika',
