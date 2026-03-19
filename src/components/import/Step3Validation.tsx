@@ -17,7 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
 import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
-import { useValidationWorker, type AnalysisPattern } from '@/hooks/useValidationWorker';
+import { useValidationWorker } from '@/hooks/useValidationWorker';
 import { 
   applyLocalCorrection, 
   type LocalSuggestion,
