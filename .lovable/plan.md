@@ -1,42 +1,29 @@
 
 
-## PUPIL-Klassen-Export Anleitung fuer LPStep2Teachers
+# Regelanalyse: Duplikate, Verbesserungen & fehlende Regeln
 
-Neue aufklappbare Anleitung fuer den PUPIL-Klassen-Export, analog zu `PUPILInstructionGuide` und `LOInstructionGuide`.
+## Aktuelle Regel-Übersicht
 
-### Aenderungen
+Das System hat **drei Validierungsebenen**: Feld-Validierung (`fileParser.ts`), Muster-Erkennung (`localBulkCorrections.ts`), und Worker-Analyse (`validationWorker.ts`).
 
-**1. Screenshots kopieren**
-- `user-uploads://2026-03-03-06-52-16.png` → `src/assets/pupil-anleitung-klassen.png` (PUPIL Klassen-Ansicht)
-- `user-uploads://2026-03-03-06-54-50.png` → `src/assets/pupil-anleitung-klassen-excel.png` (Excel-Ergebnis)
+---
 
-**2. Neue Komponente `src/components/import/lp-zuweisung/PUPILClassesInstructionGuide.tsx`**
+## 1. Duplikate & Redundanzen
 
-Gleiche Struktur wie `PUPILInstructionGuide`, mit zwei Phasen:
+### Worker ↔ localBulkCorrections — doppelte Muster-Erkennung
+Der `validationWorker.ts` (Zeile 37-391) enthält eine komplette `analyzeErrors()`-Funktion, die **identische Muster** wie `localBulkCorrections.ts` erkennt: AHV, Phone, Email, PLZ, Gender, Name, Street, Ort, IBAN, Date, Whitespace, Duplicate, ID-Conflict. Die Worker-Version wird aber **nirgends genutzt** — die UI verwendet ausschliesslich `analyzeErrorsLocally()` aus `localBulkCorrections.ts`.
 
-**Phase A — Navigieren:**
-1. Im linken Menü **Master Data** öffnen
-2. **Schulen/Klassen/Gruppen** anklicken
-3. **Klassen** auswählen
+**Empfehlung**: Die gesamte `analyzeErrors()`-Funktion im Worker (Zeilen 37-391) kann entfernt werden. Ebenso der `analyze`-Handler und der `applyCorrection`-Handler im Worker, da Korrekturen über `applyLocalCorrection()` laufen. Der Worker sollte nur noch `validate` machen.
 
-Screenshot `pupil-anleitung-klassen.png` mit Lightbox
+### Worker `validateField` ↔ `fileParser.validateFieldType`
+Beide Dateien enthalten separate Feld-Validierungslogik. Der Worker wird nur via `useValidationWorker` aufgerufen, aber `Index.tsx` nutzt `validateData` aus `fileParser.ts` direkt. Der Worker-Pfad scheint ungenutzt.
 
-**Phase B — Tabelle kopieren:**
-4. Gesamte Klassentabelle mit Kopfzeile bis ganz nach unten markieren
-5. Mit Rechtsklick oder **Ctrl+C** kopieren
-6. In leere Excel-Tabelle einfügen und **Excel speichern**
+---
 
-Screenshot `pupil-anleitung-klassen-excel.png` mit Lightbox
+## 2. Fehlende Regeln — basierend auf realen Datenkonstellationen
 
-- localStorage-Key: `pupil-classes-guide-open`, standardmässig eingeklappt
-- Nummern-Badges 1-6, identisches Pattern
+### A. Plausibilitätsprüfungen (neue Regeln)
 
-**3. `LPStep2Teachers.tsx` anpassen**
-
-`<PUPILClassesInstructionGuide />` in die zweite Card ("PUPIL-Klassen Datei hochladen") einbauen, zwischen der Beschreibung und dem File-Upload-Input (Zeile ~386, nach dem `<p>` Tag).
-
-### Technische Details
-
-- Identisches Pattern wie `PUPILInstructionGuide`: Collapsible, Dialog-Lightbox, localStorage-Persistenz
-- Zwei Screenshots statt einem (je einer pro Phase)
-
+| Regel | Beschreibung | Typ |
+|---|---|---|
+| **S_ID = 0 Erkennung** | `test-id-conflicts.csv` zeigt S_ID=0 für mehrere verschiedene Personen. Wert `0` ist ein Platzhalter und sollte als
