@@ -626,15 +626,37 @@ function isValidNationality(value: string): boolean {
 
 function findNationalityCorrection(value: string): string | null {
   const normalized = value.trim().toLowerCase();
-  // Check auto-corrections first
+  // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
     return NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!;
   }
-  // Case-insensitive match against valid list
+  // 2. Case-insensitive match against valid list
   if (NATIONALITY_NORMALIZED.has(normalized)) {
     return NATIONALITY_NORMALIZED.get(normalized)!;
   }
-  return null;
+  // 3. Levenshtein fuzzy match against valid nationalities
+  let bestMatch: string | null = null;
+  let bestDist = Infinity;
+  const maxDist = maxDistance(normalized.length);
+  for (const [key, nat] of NATIONALITY_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = nat;
+    }
+  }
+  if (bestMatch) return bestMatch;
+  // 4. Levenshtein fuzzy match against auto-correction keys
+  for (const [key, target] of NATIONALITY_CORRECTIONS_NORMALIZED) {
+    if (Math.abs(key.length - normalized.length) > maxDist) continue;
+    const dist = levenshtein(normalized, key);
+    if (dist < bestDist && dist <= maxDist) {
+      bestDist = dist;
+      bestMatch = target;
+    }
+  }
+  return bestMatch;
 }
 
 // Fields that should be checked for duplicates
