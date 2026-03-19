@@ -423,7 +423,7 @@ export const VALID_NATIONALITIES = new Set([
   'Australien','Fidschi','Nauru','Vanuatu','Neuseeland','Papua-Neuguinea','Tonga','Samoa',
   'Salomon-Inseln','Tuvalu','Kiribati','Marshall-Inseln','Mikronesien',
   'Serbien','Kosovo','Montenegro','Palau','Timor-Leste','Südsudan','Cookinseln','Niue',
-  'Vatikanstadt','Palästina',
+  'Vatikanstadt','Palästina','Eswatini','Cabo Verde',
 ]);
 
 // Auto-Korrekturen für bekannte veraltete/falsche Bezeichnungen
