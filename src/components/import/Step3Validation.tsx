@@ -1053,7 +1053,7 @@ export function Step3Validation({
     }
     
     setPreviousUncorrectedCount(uncorrectedErrors.length);
-  }, [uncorrectedErrors.length, hasRunAnalysis, previousUncorrectedCount, analyzeWithWorker]);
+  }, [uncorrectedErrors.length, hasRunAnalysis, previousUncorrectedCount, analyzeLocally]);
 
   // Show worker errors
   useEffect(() => {
