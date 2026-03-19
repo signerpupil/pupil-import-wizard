@@ -1,42 +1,34 @@
 
 
-# Deep Research: Weltweite Sprachen → BISTA-Mapping
+# Nationalitäts-Mappings erweitern
 
-## Ausgangslage
+## Übersicht
+Die bestehende `NATIONALITY_AUTO_CORRECTIONS` hat ~135 Einträge. Die `VALID_NATIONALITIES` Liste umfasst ~200 Länder. Es fehlen noch viele alternative Bezeichnungen, ISO-Codes, historische Namen und Tippfehler-Varianten.
 
-- **52 offizielle BISTA-Kategorien** (Zielwerte, unveränderbar)
-- **~90 bestehende Auto-Korrekturen** in `LANGUAGE_AUTO_CORRECTIONS`
-- Fuzzy-Matching (Levenshtein) fängt Tippfehler ab, aber **unbekannte Sprachbezeichnungen** (z.B. "Zulu", "Quechua", "Cebuano") werden nicht erkannt
+## Änderungen
 
-## Forschungsergebnis: Fehlende Sprachen nach Region
+### Datei: `src/lib/fileParser.ts`
 
-Basierend auf Ethnologue, Wikipedia (Top 200 Sprachen), BFS-Migrationsdaten und Schweizer Schulrealität fehlen ca. **150–200 weitere Sprachen**, die in der Schweiz als Muttersprache vorkommen können.
+Erweiterung von `NATIONALITY_AUTO_CORRECTIONS` um ca. **120 neue Einträge** in folgenden Kategorien:
 
-### Kategorisierung der fehlenden Sprachen:
+**1. Fehlende ISO-2-Codes (~40)**
+AL, BA, BG, BR, CL, CN, CO, CZ, DK, DZ, EC, EG, ER, ET, FI, GE, GR, HR, HU, ID, IE, IL, IN, IQ, IR, JP, KE, KR, KW, LB, LI, LK, MA, MX, NG, NO, PE, PH, PK, PL, RO, RS, RU, SA, SE, SK, SI, SY, TH, TN, UA, UZ, VN, XK
 
-| BISTA-Zielkategorie | Fehlende Sprachen (Beispiele) |
-|---|---|
-| **Afrikanische Sprachen** | Zulu, Xhosa, Shona, Ndebele, Sotho, Tswana, Malagasy, Ewe, Fon, Mossi/Mooré, Mandinka, Sango, Luba, Chichewa, Luganda, Acholi, Dinka, Nuer, Afar, Beja, Serer, Diola/Jola, Mende, Krio, Edo, Kikuyu, Luo, Runyankole, Teso, Nyanja, Bemba, Chewa, Zarma, Kanuri, Tiv, Efik, Nupe |
-| **Arabisch** (Dialekte) | Ägyptisch-Arabisch, Levantinisch, Irakisch-Arabisch, Maghrebinisch, Sudanesisch-Arabisch, Jemenitisch |
-| **Chinesisch** (Varianten) | Hakka, Min, Wu, Shanghaiisch, Hokkien, Teochew, Fuzhou |
-| **Indoarische/Drawidische** | Sindhi, Odia/Oriya, Assamesisch, Konkani, Maithili, Bhojpuri, Rajasthani, Chhattisgarhi, Dogri, Kashmiri, Santali, Tulu, Badaga |
-| **Ostasiatische Sprachen** | Hmong/Miao, Zhuang, Yi, Mien/Yao, Dong |
-| **Übrige süd-/südostasiat.** | Javanisch, Sundanesisch, Cebuano, Ilocano, Bisaya, Shan, Karen, Mon, Cham, Tetum, Balinesisch, Minangkabau, Acehnese |
-| **Westasiatische Sprachen** | Aserbaidschanisch, Tadschikisch, Turkmenisch, Belutschi/Balochi, Hazaragi |
-| **Übrige westasiatische** | Kirgisisch, Kasachisch, Tschetschenisch, Awarisch, Ossetisch |
-| **Andere westeuropäische** | Walisisch, Bretonisch, Okzitanisch, Galicisch, Korsisch, Sardisch, Maltesisch, Luxemburgisch, Friesisch |
-| **Andere nordeuropäische** | Samisch/Sami, Färöisch/Faröisch, Grönländisch |
-| **Übrige osteuropäische** | Weissrussisch/Belarussisch, Moldawisch |
-| **Übrige slawische** | Sorbisch, Ruthenisch, Kaschubisch |
-| **Portugiesisch** (Variante) | Kreolisch (Kapverdisch), Brasilianisches Portugiesisch |
-| **Spanisch** (Variante) | Quechua → eigentlich Andere westeuropäische? Nein → nicht definiert oder eigene Logik |
+**2. Fehlende historische/veraltete Namen (~20)**
+Abessinien (bereits vorhanden) → ergänzen: Niederländisch-Ostindien → Indonesien, Französisch-Indochina → Vietnam, Belgisch-Kongo → Dem. Rep. Kongo, Deutsch-Südwestafrika → Namibia, Portugiesisch-Ostafrika → Mosambik, Mesopotamien → Irak, Salomoninseln → Salomon-Inseln, Borneo → Malaysia, Katalonien → Spanien, Kurdistan → Irak, Tschechoslowakei → Tschechien, Nordjemen/Südjemen → Jemen
 
-Zusätzlich: **Gebärdensprachen**, **Kreolsprachen**, **amerikanische indigene Sprachen** (Quechua, Aymara, Guaraní, Nahuatl) → `nicht definiert` oder nächste Kategorie.
+**3. Alternative Bezeichnungen/Varianten (~30)**
+Nordmazedonien-Varianten, Ländernamen in anderen Schreibweisen (z.B. Bosnien-Herzegovina, Bosnien-Herzegowina), englische Bezeichnungen die in CH-Schulen vorkommen (Syria, Turkey, Greece, Serbia, Croatia, Hungary, Albania, Morocco, Tunisia, Egypt), umgangssprachliche (Saudis → Saudi-Arabien, Palästinenser → Palästina)
 
-## Umsetzungsplan
+**4. Weitere Tippfehler (~30)**
+Schweitz, Schwiez, Albanin, Boglaren, Kroatein, Serbin, Makzedonien, Montenegero, Frankrreich, Griechenland-Varianten, Spanein, Kolombien, Ekuador, Tansanien, Kammerun, Simbabwe, Marroko, Tuniesien, Algierien, Liberien/Libanon-Verwechslung, etc.
 
-### Schritt 1: Erweiterte Mapping-Tabelle erstellen
-Datei: `src/lib/fileParser.ts` — `LANGUAGE_AUTO_CORRECTIONS` erweitern um ca. **150+ neue Einträge**, systematisch nach BISTA-Kategorie geordnet:
+### Datei: `src/test/newRules.test.ts`
+Bestehende Nationalitäts-Tests erweitern mit Stichproben für neue Kategorien (ISO-Codes, historische Namen, Tippfehler).
 
-**Afrikanische Sprachen (~40 neue)**:
-Zulu, Xhosa, Shona, Ndebele, Sotho, Tswana, Malagasy, Ewe, Fon, Mooré, Mandinka, S
+## Technische Details
+- Alle neuen Einträge werden in `NATIONALITY_AUTO_CORRECTIONS` eingefügt
+- Die bestehende case-insensitive Normalisierung und Levenshtein-Fuzzy-Matching greifen weiterhin
+- Excel-Export aktualisiert sich automatisch
+- Keine Änderung an `VALID_NATIONALITIES` (Zielliste bleibt fix)
+
