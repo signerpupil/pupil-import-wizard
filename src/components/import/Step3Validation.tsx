@@ -994,24 +994,8 @@ export function Step3Validation({
     }
   }, [duplicateInfo, selectedMasterRow, rows, onBulkCorrect, toast]);
 
-  // Convert worker patterns to LocalSuggestion format
-  const convertPatternToSuggestion = useCallback((pattern: AnalysisPattern): LocalSuggestion => {
-    return {
-      type: pattern.type,
-      affectedColumn: pattern.column,
-      affectedRows: pattern.affectedRows,
-      pattern: pattern.description,
-      suggestion: pattern.canAutoFix 
-        ? 'Automatische Korrektur verfügbar - kein Datenversand erforderlich'
-        : 'Manuelle Überprüfung empfohlen',
-      autoFix: pattern.canAutoFix,
-      fixFunction: pattern.type, // Worker uses type as fix function identifier
-      correctValue: null,
-    };
-  }, []);
-
-  // Analyze errors using Web Worker - runs in background thread, never blocks UI
-  const analyzeWithWorker = useCallback(async (silent: boolean = false) => {
+  // Analyze errors locally — runs synchronously but is fast (<100ms for typical datasets)
+  const analyzeLocally = useCallback((silent: boolean = false) => {
     if (uncorrectedErrors.length === 0) {
       setLocalSuggestions([]);
       return;
@@ -1019,47 +1003,34 @@ export function Step3Validation({
     
     const startTime = performance.now();
     
-    try {
-      // This runs entirely in a background Web Worker thread
-      // Use only uncorrected errors, excluding those handled by dedicated sections (ID conflicts, parent consolidation, etc.)
-      const errorsForAnalysis = uncorrectedErrors.filter(e => 
-        e.type !== 'id_conflict' && 
-        !e.message.includes('Inkonsistente ID:') &&
-        !e.message.includes('Geschwister-Inkonsistenz')
-      );
-      const result = await analyze(errorsForAnalysis, rows);
-      const duration = performance.now() - startTime;
-      setAnalysisTime(duration);
-      setHasRunAnalysis(true);
-      
-      // Convert worker patterns to LocalSuggestion format
-      const suggestions = result.patterns.map(convertPatternToSuggestion);
-      setLocalSuggestions(suggestions);
-      
-      if (!silent) {
-        if (suggestions.length > 0) {
-          toast({
-            title: 'Hintergrund-Analyse abgeschlossen',
-            description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms) - Web Worker`,
-          });
-        } else {
-          toast({
-            title: 'Keine automatischen Korrekturen',
-            description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Worker analysis failed:', err);
-      if (!silent) {
+    // Filter out errors handled by dedicated sections (ID conflicts, parent consolidation, etc.)
+    const errorsForAnalysis = uncorrectedErrors.filter(e => 
+      e.type !== 'id_conflict' && 
+      !e.message.includes('Inkonsistente ID:') &&
+      !e.message.includes('Geschwister-Inkonsistenz')
+    );
+    
+    const { analyzeErrorsLocally } = require('@/lib/localBulkCorrections');
+    const suggestions = analyzeErrorsLocally(errorsForAnalysis, rows) as LocalSuggestion[];
+    const duration = performance.now() - startTime;
+    setAnalysisTime(duration);
+    setHasRunAnalysis(true);
+    setLocalSuggestions(suggestions);
+    
+    if (!silent) {
+      if (suggestions.length > 0) {
         toast({
-          title: 'Analysefehler',
-          description: 'Die Hintergrundanalyse konnte nicht durchgeführt werden.',
-          variant: 'destructive',
+          title: 'Analyse abgeschlossen',
+          description: `${suggestions.length} Korrekturvorschläge gefunden (${Math.round(duration)}ms)`,
+        });
+      } else {
+        toast({
+          title: 'Keine automatischen Korrekturen',
+          description: 'Bitte nutzen Sie die manuelle Schritt-für-Schritt Korrektur.',
         });
       }
     }
-  }, [uncorrectedErrors, rows, analyze, convertPatternToSuggestion, toast]);
+  }, [uncorrectedErrors, rows, toast]);
 
   // Automatically run analysis on mount when there are uncorrected errors
   useEffect(() => {
