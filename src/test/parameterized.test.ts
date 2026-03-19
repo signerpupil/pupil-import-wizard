@@ -416,7 +416,11 @@ describe('formatName — parameterized', () => {
     ['müller', 'Müller'],
     ['ANNA-MARIA', 'Anna-Maria'],
     ['anna maria', 'Anna Maria'],
-    ['VON DER MÜHLE', 'Von Der Mühle'],
+    ['VON DER MÜHLE', 'Von der Mühle'],
+    ['PETER VAN DEN BERG', 'Peter van den Berg'],
+    ['MARIA DE LA CRUZ', 'Maria de la Cruz'],
+    ['ANNA DELLA TORRE', 'Anna della Torre'],
+    ['MAX VON MOOS', 'Max von Moos'],
   ])('formats "%s" → "%s"', (input, expected) => {
     expect(formatName(input)).toBe(expected);
   });
