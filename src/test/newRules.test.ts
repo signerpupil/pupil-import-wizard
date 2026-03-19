@@ -284,7 +284,7 @@ describe('Phase 4 nationality ISO-2 codes', () => {
     ['IQ', 'Irak'], ['JP', 'Japan'], ['KR', 'Korea (Republik Korea)'], ['NG', 'Nigeria'],
     ['PH', 'Philippinen'], ['SY', 'Syrien'], ['UA', 'Ukraine'], ['ZW', 'Zimbabwe'],
     ['AF', 'Afghanistan'], ['CD', 'Demokratische Republik Kongo'], ['KP', 'Korea (Dem. Volksrep.)'],
-    ['MM', 'Myanmar'], ['RW', 'Ruanda'], ['SO', 'Somalia'], ['ZA', 'Südafrika'],
+    ['MM', 'Myanmar'], ['RW', 'Rwanda'], ['SO', 'Somalia'], ['ZA', 'Südafrika'],
   ];
 
   for (const [code, expected] of isoCodes) {
