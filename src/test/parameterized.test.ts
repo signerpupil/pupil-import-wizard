@@ -129,7 +129,7 @@ describe('AHV validation — parameterized', () => {
 describe('AHV checksum (EAN-13)', () => {
   it.each([
     ['7561234567897', true],   // valid checksum
-    ['7560000000000', false],  // checksum: (10 - 0) % 10 = 0, but check digit is 0 — actually valid? No: sum=0+0+...=0, check=(10-0)%10=0, digit=0 → true. Let me recalc.
+    ['7560000000000', false],  // wrong checksum (check digit should be 2)
     ['7561234567890', false],  // wrong check digit
     ['1234567890123', false],  // not 756
     ['756123', false],         // too short
