@@ -295,7 +295,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Mandarin': 'Chinesisch',
   'Holländisch': 'Niederländisch',
   'Susu': 'Afrikanische Sprachen',
-  'Indonesisch': 'Ostasiatische Sprachen',
+  'Indonesisch': 'Übrige süd- und südostasiatische Sprachen',
   'Flämisch': 'Niederländisch',
   'Singalesisch': 'Übrige süd- und südostasiatische Sprachen',
   'Singhalesisch': 'Übrige süd- und südostasiatische Sprachen',
