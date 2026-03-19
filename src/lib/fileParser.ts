@@ -246,7 +246,7 @@ export function checkColumnStatus(
   return statuses;
 }
 
-// BISTA-Sprachliste (49 gültige Werte gemäss BISTA-Codierung)
+// BISTA-Sprachliste (51 gültige Werte gemäss BISTA-Codierung)
 export const VALID_BISTA_LANGUAGES = new Set([
   'Afrikanische Sprachen', 'Albanisch', 'Andere nordeuropäische Sprachen',
   'Andere westeuropäische Sprachen', 'Arabisch', 'Armenisch', 'Bosnisch',
@@ -259,6 +259,7 @@ export const VALID_BISTA_LANGUAGES = new Set([
   'Serbisch', 'Serbo-Kroatisch', 'Slowakisch', 'Slowenisch', 'Spanisch',
   'Tamil', 'Thai', 'Tibetisch', 'Tschechisch', 'Türkisch',
   'Übrige osteuropäische Sprachen', 'Übrige slawische Sprachen',
+  'Übrige süd- und südostasiatische Sprachen', 'Übrige westasiatische Sprachen',
   'Ukrainisch', 'Ungarisch', 'Vietnamesisch', 'Westasiatische Sprachen',
 ]);
 
