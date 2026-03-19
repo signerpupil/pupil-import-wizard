@@ -287,7 +287,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Nepalesisch': 'Indoarische und drawidische Sprachen',
   'Slovakisch': 'Slowakisch',
   'Bengalisch': 'Indoarische und drawidische Sprachen',
-  'Uigurisch': 'Westasiatische Sprachen',
+  'Uigurisch': 'Ostasiatische Sprachen',
   'Litauisch': 'Übrige osteuropäische Sprachen',
   'Paschtou': 'Westasiatische Sprachen',
   'Persisch': 'Westasiatische Sprachen',
