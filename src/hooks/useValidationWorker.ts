@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ValidationError, ImportRow, ColumnDefinition, FormatRule, BusinessRule } from '@/types/importTypes';
 
-export interface AnalysisPattern {
-  type: string;
-  column: string;
-  count: number;
-  description: string;
-  canAutoFix: boolean;
-  affectedRows: number[];
-  suggestedAction?: string;
-}
-
 interface WorkerResult {
   type: string;
   payload: unknown;
@@ -23,7 +13,6 @@ export function useValidationWorker() {
   const pendingCallbacks = useRef<Map<string, (result: unknown) => void>>(new Map());
 
   useEffect(() => {
-    // Create worker
     workerRef.current = new Worker(
       new URL('../workers/validationWorker.ts', import.meta.url),
       { type: 'module' }
@@ -38,7 +27,6 @@ export function useValidationWorker() {
         return;
       }
 
-      // Map result type to callback type
       const callbackType = type.replace('-result', '');
       const callback = pendingCallbacks.current.get(callbackType);
       
@@ -88,60 +76,8 @@ export function useValidationWorker() {
     });
   }, []);
 
-  const analyze = useCallback((
-    errors: ValidationError[],
-    data: ImportRow[]
-  ): Promise<{ patterns: AnalysisPattern[] }> => {
-    return new Promise((resolve, reject) => {
-      if (!workerRef.current) {
-        reject(new Error('Worker not initialized'));
-        return;
-      }
-
-      setIsProcessing(true);
-      setError(null);
-
-      pendingCallbacks.current.set('analyze', (result) => {
-        resolve(result as { patterns: AnalysisPattern[] });
-      });
-
-      workerRef.current.postMessage({
-        type: 'analyze',
-        payload: { errors, data }
-      });
-    });
-  }, []);
-
-  const applyCorrection = useCallback((
-    data: ImportRow[],
-    correctionType: string,
-    targetRows: number[],
-    column: string
-  ): Promise<{ data: ImportRow[] }> => {
-    return new Promise((resolve, reject) => {
-      if (!workerRef.current) {
-        reject(new Error('Worker not initialized'));
-        return;
-      }
-
-      setIsProcessing(true);
-      setError(null);
-
-      pendingCallbacks.current.set('apply-correction', (result) => {
-        resolve(result as { data: ImportRow[] });
-      });
-
-      workerRef.current.postMessage({
-        type: 'apply-correction',
-        payload: { data, correctionType, targetRows, column }
-      });
-    });
-  }, []);
-
   return {
     validate,
-    analyze,
-    applyCorrection,
     isProcessing,
     error,
   };

@@ -194,8 +194,17 @@ export function formatEmail(value: string): string | null {
   cleaned = cleaned.replace(/@gmai\./, '@gmail.');
   cleaned = cleaned.replace(/@gamil\./, '@gmail.');
   cleaned = cleaned.replace(/@hotmal\./, '@hotmail.');
+  cleaned = cleaned.replace(/@hotmai\./, '@hotmail.');
   cleaned = cleaned.replace(/@outllok\./, '@outlook.');
   cleaned = cleaned.replace(/@outlok\./, '@outlook.');
+  cleaned = cleaned.replace(/@yahooo\./, '@yahoo.');
+  cleaned = cleaned.replace(/@yaho\./, '@yahoo.');
+  cleaned = cleaned.replace(/@gmx\.cch$/, '@gmx.ch');
+  cleaned = cleaned.replace(/@bleuwin\./, '@bluewin.');
+  cleaned = cleaned.replace(/@protonmai\./, '@protonmail.');
+  cleaned = cleaned.replace(/@protonmal\./, '@protonmail.');
+  cleaned = cleaned.replace(/@iclod\./, '@icloud.');
+  cleaned = cleaned.replace(/@icloude\./, '@icloud.');
 
   if (cleaned.includes('@') && cleaned.includes('.')) {
     return cleaned;

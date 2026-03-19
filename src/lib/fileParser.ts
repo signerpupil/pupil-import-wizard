@@ -304,6 +304,29 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Uzbekisch': 'Übrige westasiatische Sprachen',
   'Tunesisch': 'Arabisch',
   'Hebräisch': 'Übrige westasiatische Sprachen',
+  // Phase 2 additions
+  'Somalisch': 'Afrikanische Sprachen',
+  'Eritreisch': 'Afrikanische Sprachen',
+  'Tamilisch': 'Tamil',
+  'Kurdisch (Kurmandschi)': 'Kurdisch',
+  'Marokkanisch': 'Arabisch',
+  'Philippinisch': 'Ostasiatische Sprachen',
+  'Georgisch': 'Übrige osteuropäische Sprachen',
+  'Berberisch': 'Afrikanische Sprachen',
+  'Panjabi': 'Indoarische und drawidische Sprachen',
+  'Punjabi': 'Indoarische und drawidische Sprachen',
+  'Oromo': 'Afrikanische Sprachen',
+  'Haussa': 'Afrikanische Sprachen',
+  'Hausa': 'Afrikanische Sprachen',
+  'Wolof': 'Afrikanische Sprachen',
+  'Yoruba': 'Afrikanische Sprachen',
+  'Igbo': 'Afrikanische Sprachen',
+  'Birmanisch': 'Übrige süd- und südostasiatische Sprachen',
+  'Burmesisch': 'Übrige süd- und südostasiatische Sprachen',
+  'Khmer': 'Übrige süd- und südostasiatische Sprachen',
+  'Lettisch': 'Übrige osteuropäische Sprachen',
+  'Estnisch': 'Andere nordeuropäische Sprachen',
+  'Isländisch': 'Andere nordeuropäische Sprachen',
 };
 
 // Case-insensitive lookup for language auto-corrections
@@ -380,6 +403,37 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Bosnien-Herzegowina': 'Bosnien und Herzegowina',
   'Vereinigte Staaten': 'Vereinigte Staaten von Amerika',
   'Fidschi-Inseln': 'Fidschi',
+  // Phase 2 additions
+  'USA': 'Vereinigte Staaten von Amerika',
+  'England': 'Vereinigtes Königreich',
+  'Grossbritannien': 'Vereinigtes Königreich',
+  'Großbritannien': 'Vereinigtes Königreich',
+  'Holland': 'Niederlande',
+  'Weissrussland': 'Belarus (Weissrussland)',
+  'Weißrussland': 'Belarus (Weissrussland)',
+  'Kongo': 'Kongo (Republik)',
+  'Elfenbeinküste': "Côte d'Ivoire",
+  'Burma': 'Myanmar',
+  'Birma': 'Myanmar',
+  'Persien': 'Iran',
+  'Ceylon': 'Sri Lanka',
+  'Siam': 'Thailand',
+  'Bombay': 'Indien',
+  'Czechoslovakia': 'Tschechien',
+  'Yugoslavia': 'Serbien',
+  'Jugoslavien': 'Serbien',
+  'Jugoslawien': 'Serbien',
+  'Sowjetunion': 'Russland',
+  'UdSSR': 'Russland',
+  'Swaziland': 'Swasiland',
+  'Rhodesien': 'Zimbabwe',
+  'Zaire': 'Demokratische Republik Kongo',
+  'Ostindien': 'Indien',
+  'Formosa': 'Taiwan (Chinesisches Taipei)',
+  'Nordkorea': 'Korea (Dem. Volksrep.)',
+  'Südkorea': 'Korea (Republik Korea)',
+  'Kapverde': 'Kap Verden',
+  'Kapverden': 'Kap Verden',
 };
 
 // Case-insensitive lookup
@@ -1084,6 +1138,101 @@ function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers
   return false;
 }
 
+// Check if ERZ1 and ERZ2 are the same person (same AHV or same Name+Vorname)
+function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const erz1Ahv = String(row['P_ERZ1_AHV'] ?? '').trim();
+    const erz2Ahv = String(row['P_ERZ2_AHV'] ?? '').trim();
+    const erz1Name = String(row['P_ERZ1_Name'] ?? '').trim().toLowerCase();
+    const erz1Vorname = String(row['P_ERZ1_Vorname'] ?? '').trim().toLowerCase();
+    const erz2Name = String(row['P_ERZ2_Name'] ?? '').trim().toLowerCase();
+    const erz2Vorname = String(row['P_ERZ2_Vorname'] ?? '').trim().toLowerCase();
+    
+    // Check AHV match (most reliable)
+    if (erz1Ahv && erz2Ahv && erz1Ahv === erz2Ahv) {
+      errors.push({
+        row: i + 1,
+        column: 'P_ERZ2_AHV',
+        value: erz2Ahv,
+        message: `ERZ1 und ERZ2 haben die gleiche AHV-Nummer "${erz1Ahv}" – vermutlich dieselbe Person doppelt erfasst`,
+        type: 'business',
+        severity: 'warning',
+      });
+      continue;
+    }
+    
+    // Check Name+Vorname match
+    if (erz1Name && erz1Vorname && erz2Name && erz2Vorname &&
+        erz1Name === erz2Name && erz1Vorname === erz2Vorname) {
+      errors.push({
+        row: i + 1,
+        column: 'P_ERZ2_Name',
+        value: `${row['P_ERZ2_Vorname']} ${row['P_ERZ2_Name']}`,
+        message: `ERZ1 und ERZ2 haben den gleichen Namen "${erz1Vorname} ${erz1Name}" – vermutlich dieselbe Person doppelt erfasst`,
+        type: 'business',
+        severity: 'warning',
+      });
+    }
+  }
+  
+  return errors;
+}
+
+// Check for S_ID = 0 placeholder values
+function checkPlaceholderIds(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const placeholderValues = new Set(['0', '00', '000', '0000', '-1', '99999', 'NULL', 'null', 'N/A', 'n/a', 'TBD', 'tbd', 'XXX', 'xxx']);
+  
+  for (let i = 0; i < rows.length; i++) {
+    const sId = String(rows[i]['S_ID'] ?? '').trim();
+    if (sId && placeholderValues.has(sId)) {
+      errors.push({
+        row: i + 1,
+        column: 'S_ID',
+        value: sId,
+        message: `S_ID "${sId}" ist ein Platzhalter-Wert – muss vor dem Import ersetzt werden`,
+        type: 'business',
+        severity: 'warning',
+      });
+    }
+  }
+  
+  return errors;
+}
+
+// Check if a student is listed as their own parent (S_AHV == P_ERZ_AHV)
+function checkStudentIsParent(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const sAhv = String(row['S_AHV'] ?? '').trim();
+    if (!sAhv) continue;
+    
+    for (const [erzAhvField, label] of [
+      ['P_ERZ1_AHV', 'ERZ1'],
+      ['P_ERZ2_AHV', 'ERZ2'],
+    ] as const) {
+      const erzAhv = String(row[erzAhvField] ?? '').trim();
+      if (erzAhv && sAhv === erzAhv) {
+        errors.push({
+          row: i + 1,
+          column: erzAhvField,
+          value: erzAhv,
+          message: `Schüler-AHV und ${label}-AHV sind identisch ("${sAhv}") – Schüler/in kann nicht eigene/r Erziehungsberechtigte/r sein`,
+          type: 'business',
+          severity: 'error',
+        });
+      }
+    }
+  }
+  
+  return errors;
+}
+
 // Validate data - Optimized for large datasets (4000+ rows)
 export function validateData(
   rows: ParsedRow[],
@@ -1213,6 +1362,18 @@ export function validateData(
   // Check PLZ↔Ort consistency
   const plzOrtErrors = checkPlzOrtConsistency(rows);
   errors.push(...plzOrtErrors);
+
+  // Check ERZ1 = ERZ2 (same person listed as both parents)
+  const erz1Erz2Errors = checkErz1EqualsErz2(rows);
+  errors.push(...erz1Erz2Errors);
+
+  // Check S_ID = 0 placeholder
+  const placeholderErrors = checkPlaceholderIds(rows);
+  errors.push(...placeholderErrors);
+
+  // Check student = parent (S_AHV == P_ERZ_AHV)
+  const selfParentErrors = checkStudentIsParent(rows);
+  errors.push(...selfParentErrors);
 
   return errors;
 }
@@ -1404,9 +1565,28 @@ function validateFieldType(
 
 function isValidDate(value: string): boolean {
   // Only accept DD.MM.YYYY as the valid Swiss date format.
-  // Other formats (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Excel serial) are flagged
-  // so the auto-fix patterns can convert them.
-  return /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value);
+  const match = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!match) return false;
+  
+  const day = parseInt(match[1]);
+  const month = parseInt(match[2]);
+  const year = parseInt(match[3]);
+  
+  // Basic range checks
+  if (month < 1 || month > 12) return false;
+  if (day < 1) return false;
+  
+  // Days per month (with leap year support)
+  const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+    daysInMonth[2] = 29;
+  }
+  if (day > daysInMonth[month]) return false;
+  
+  // Year plausibility: 1900-2100
+  if (year < 1900 || year > 2100) return false;
+  
+  return true;
 }
 
 function isValidAHV(value: string): boolean {
