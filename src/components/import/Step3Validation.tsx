@@ -1011,8 +1011,7 @@ export function Step3Validation({
       !e.message.includes('Geschwister-Inkonsistenz')
     );
     
-    const { analyzeErrorsLocally } = require('@/lib/localBulkCorrections');
-    const suggestions = analyzeErrorsLocally(errorsForAnalysis, rows) as LocalSuggestion[];
+    const suggestions = analyzeErrorsLocally(errorsForAnalysis, rows);
     const duration = performance.now() - startTime;
     setAnalysisTime(duration);
     setHasRunAnalysis(true);
