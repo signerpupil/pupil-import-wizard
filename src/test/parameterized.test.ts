@@ -90,6 +90,14 @@ describe('Date validation — exhaustive parameterized', () => {
     const dateErrors = errors.filter(e => e.column === 'S_Geburtsdatum');
     expect(dateErrors.length).toBeGreaterThan(0);
   });
+
+  // Future birth dates should produce a warning
+  it.each(['01.01.2030', '15.06.2028'])('warns on future birth date "%s"', (date) => {
+    const errors = validateData([makeRow({ S_Geburtsdatum: date })], baseCols);
+    const futureErrors = errors.filter(e => e.column === 'S_Geburtsdatum' && e.message.includes('Zukunft'));
+    expect(futureErrors.length).toBe(1);
+    expect(futureErrors[0].severity).toBe('warning');
+  });
 });
 
 // ============================================
