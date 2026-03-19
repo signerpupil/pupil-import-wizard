@@ -1049,7 +1049,7 @@ export function Step3Validation({
     
     // If count decreased (corrections applied), re-analyze silently
     if (hasRunAnalysis && uncorrectedErrors.length < previousUncorrectedCount) {
-      analyzeWithWorker(true); // Silent re-analysis
+      analyzeLocally(true); // Silent re-analysis
     }
     
     setPreviousUncorrectedCount(uncorrectedErrors.length);
