@@ -489,8 +489,7 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Mien': 'Ostasiatische Sprachen',
   'Yao': 'Ostasiatische Sprachen',
   'Dong': 'Ostasiatische Sprachen',
-  'Mongolisch': 'Ostasiatische Sprachen',
-  'Tibetisch': 'Ostasiatische Sprachen',
+  // 'Mongolisch' und 'Tibetisch' entfernt — sind bereits gültige BISTA-Werte
 
   // --- Übrige süd- und südostasiatische Sprachen (erweitert) ---
   'Javanisch': 'Übrige süd- und südostasiatische Sprachen',
