@@ -1035,7 +1035,7 @@ export function Step3Validation({
   // Automatically run analysis on mount when there are uncorrected errors
   useEffect(() => {
     if (!hasRunAnalysis && uncorrectedErrors.length > 0) {
-      analyzeWithWorker(false);
+      analyzeLocally(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
