@@ -329,8 +329,8 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Estnisch': 'Andere nordeuropäische Sprachen',
   'Isländisch': 'Andere nordeuropäische Sprachen',
   // Phase 3: Fehlende Sprachen (CH-Schulen)
-  'Romani': 'Übrige osteuropäische Sprachen',
-  'Romanes': 'Übrige osteuropäische Sprachen',
+  'Romani': 'Indoarische und drawidische Sprachen',   // Indoarische Sprache (verwandt mit Hindi/Sanskrit)
+  'Romanes': 'Indoarische und drawidische Sprachen', // Alternativbezeichnung für Romani
   'Telugu': 'Indoarische und drawidische Sprachen',
   'Kannada': 'Indoarische und drawidische Sprachen',
   'Gujarati': 'Indoarische und drawidische Sprachen',
