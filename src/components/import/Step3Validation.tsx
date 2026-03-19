@@ -1952,7 +1952,7 @@ export function Step3Validation({
                   </Button>
                 )}
                 <Button 
-                  onClick={() => analyzeWithWorker(false)} 
+                  onClick={() => analyzeLocally(false)} 
                   disabled={isAnalyzing}
                   className="gap-2"
                   variant="outline"
