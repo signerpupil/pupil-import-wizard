@@ -931,7 +931,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'GH': 'Ghana',
   'GT': 'Guatemala',
   'HN': 'Honduras',
-  'KG': 'Kirgistan',
+  'KG': 'Kirgisistan',
   'KH': 'Kambodscha',
   'KP': 'Korea (Dem. Volksrep.)',
   'KZ': 'Kasachstan',
