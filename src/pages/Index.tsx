@@ -345,6 +345,7 @@ export default function Index() {
     setLoadedCorrectionRules([]);
     setPendingCorrectionRules([]);
     setAutoCorrectionsApplied(false);
+    initialValidationDone.current = false;
   };
 
   // Show summary from step 1 onwards (not for special types)
