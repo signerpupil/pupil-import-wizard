@@ -1,34 +1,66 @@
 
 
-# Nationalitäts-Mappings erweitern
+# Mapping-Audit: Ergebnisse und Korrekturen
 
-## Übersicht
-Die bestehende `NATIONALITY_AUTO_CORRECTIONS` hat ~135 Einträge. Die `VALID_NATIONALITIES` Liste umfasst ~200 Länder. Es fehlen noch viele alternative Bezeichnungen, ISO-Codes, historische Namen und Tippfehler-Varianten.
+## Gefundene Fehler
 
-## Änderungen
+### KRITISCH: Zielwerte nicht in gültiger Liste vorhanden
+
+Diese Mappings zeigen auf Werte, die **nicht** in `VALID_NATIONALITIES` existieren und daher bei der Validierung scheitern:
+
+1. **`'RW': 'Ruanda'`** — Die gültige Liste hat `'Rwanda'` (nicht 'Ruanda')
+2. **`'Ruanda-Urundi': 'Ruanda'`** — Gleicher Fehler, muss `'Rwanda'` sein
+3. **`'KG': 'Kirgistan'`** — Die gültige Liste hat `'Kirgisistan'` (nicht 'Kirgistan')
+
+### FEHLER: Sprach-Mappings überschreiben gültige BISTA-Werte (Dead Code)
+
+4. **`'Mongolisch': 'Ostasiatische Sprachen'`** — 'Mongolisch' ist bereits ein gültiger BISTA-Wert. Das Mapping wird nie erreicht und ist irreführend. Entfernen.
+5. **`'Tibetisch': 'Ostasiatische Sprachen'`** — 'Tibetisch' ist bereits ein gültiger BISTA-Wert. Gleiches Problem. Entfernen.
+
+### FEHLER: Falsche linguistische Zuordnung
+
+6. **`'Moldawisch': 'Übrige osteuropäische Sprachen'`** — Moldawisch ist linguistisch identisch mit Rumänisch. Korrekt: `'Rumänisch'`
+7. **`'Romani'/'Romanes': 'Übrige osteuropäische Sprachen'`** — Romani ist eine indoarische Sprache (verwandt mit Hindi/Sanskrit). Korrekt: `'Indoarische und drawidische Sprachen'`
+
+### FRAGWÜRDIG: Mehrdeutige historische Regionen
+
+Diese Mappings sind vereinfachend, da sie Regionen abdecken, die mehrere heutige Staaten umfassen. Empfehlung: Beibehalten aber mit Kommentar versehen:
+
+8. **`'Kurdistan': 'Irak'`** — Umfasst Teile von Irak, Türkei, Syrien, Iran
+9. **`'Indochina': 'Vietnam'`** — Umfasst Vietnam, Laos, Kambodscha
+10. **`'Französisch-Westafrika': 'Senegal'`** — Umfasste 8 Länder (Senegal war Verwaltungssitz)
+11. **`'Französisch-Äquatorialafrika': 'Kongo (Republik)'`** — Umfasste 4 Länder
+
+### HINWEIS: Korrekte aber ungewöhnliche Zuordnungen (verifiziert)
+
+- `'Berberisch': 'Afrikanische Sprachen'` — Korrekt (Afroasiatische Sprachfamilie, Nordafrika)
+- `'Estnisch': 'Andere nordeuropäische Sprachen'` — Korrekt (Finno-ugrisch, Nordeuropa)
+- `'Kapverdisch': 'Portugiesisch'` — Korrekt (Portugiesisch-basiertes Kreol)
+- `'Krio': 'Afrikanische Sprachen'` — Korrekt (Kreolsprache Sierra Leones)
+- `'Santali': 'Indoarische und drawidische Sprachen'` — Akzeptabel (Munda-Sprache, aber BISTA fasst Südasien zusammen)
+
+## Umsetzung
 
 ### Datei: `src/lib/fileParser.ts`
 
-Erweiterung von `NATIONALITY_AUTO_CORRECTIONS` um ca. **120 neue Einträge** in folgenden Kategorien:
+**3 Nationality-Fixes:**
+- `'RW': 'Ruanda'` → `'RW': 'Rwanda'`
+- `'Ruanda-Urundi': 'Ruanda'` → `'Ruanda-Urundi': 'Rwanda'`
+- `'KG': 'Kirgistan'` → `'KG': 'Kirgisistan'`
 
-**1. Fehlende ISO-2-Codes (~40)**
-AL, BA, BG, BR, CL, CN, CO, CZ, DK, DZ, EC, EG, ER, ET, FI, GE, GR, HR, HU, ID, IE, IL, IN, IQ, IR, JP, KE, KR, KW, LB, LI, LK, MA, MX, NG, NO, PE, PH, PK, PL, RO, RS, RU, SA, SE, SK, SI, SY, TH, TN, UA, UZ, VN, XK
+**2 Sprach-Einträge entfernen (Dead Code):**
+- `'Mongolisch': 'Ostasiatische Sprachen'` entfernen
+- `'Tibetisch': 'Ostasiatische Sprachen'` entfernen (Zeile 493 im Phase-4-Block; Tibetisch bleibt als gültiger BISTA-Wert erhalten)
 
-**2. Fehlende historische/veraltete Namen (~20)**
-Abessinien (bereits vorhanden) → ergänzen: Niederländisch-Ostindien → Indonesien, Französisch-Indochina → Vietnam, Belgisch-Kongo → Dem. Rep. Kongo, Deutsch-Südwestafrika → Namibia, Portugiesisch-Ostafrika → Mosambik, Mesopotamien → Irak, Salomoninseln → Salomon-Inseln, Borneo → Malaysia, Katalonien → Spanien, Kurdistan → Irak, Tschechoslowakei → Tschechien, Nordjemen/Südjemen → Jemen
+**2 Sprach-Zuordnungen korrigieren:**
+- `'Moldawisch': 'Übrige osteuropäische Sprachen'` → `'Moldawisch': 'Rumänisch'`
+- `'Romani': 'Übrige osteuropäische Sprachen'` → `'Romani': 'Indoarische und drawidische Sprachen'`
+- `'Romanes': 'Übrige osteuropäische Sprachen'` → `'Romanes': 'Indoarische und drawidische Sprachen'`
 
-**3. Alternative Bezeichnungen/Varianten (~30)**
-Nordmazedonien-Varianten, Ländernamen in anderen Schreibweisen (z.B. Bosnien-Herzegovina, Bosnien-Herzegowina), englische Bezeichnungen die in CH-Schulen vorkommen (Syria, Turkey, Greece, Serbia, Croatia, Hungary, Albania, Morocco, Tunisia, Egypt), umgangssprachliche (Saudis → Saudi-Arabien, Palästinenser → Palästina)
-
-**4. Weitere Tippfehler (~30)**
-Schweitz, Schwiez, Albanin, Boglaren, Kroatein, Serbin, Makzedonien, Montenegero, Frankrreich, Griechenland-Varianten, Spanein, Kolombien, Ekuador, Tansanien, Kammerun, Simbabwe, Marroko, Tuniesien, Algierien, Liberien/Libanon-Verwechslung, etc.
+**Kommentare bei mehrdeutigen Regionen hinzufügen:**
+- Bei Kurdistan, Indochina, Französisch-Westafrika, Französisch-Äquatorialafrika erklärende Kommentare ergänzen
 
 ### Datei: `src/test/newRules.test.ts`
-Bestehende Nationalitäts-Tests erweitern mit Stichproben für neue Kategorien (ISO-Codes, historische Namen, Tippfehler).
 
-## Technische Details
-- Alle neuen Einträge werden in `NATIONALITY_AUTO_CORRECTIONS` eingefügt
-- Die bestehende case-insensitive Normalisierung und Levenshtein-Fuzzy-Matching greifen weiterhin
-- Excel-Export aktualisiert sich automatisch
-- Keine Änderung an `VALID_NATIONALITIES` (Zielliste bleibt fix)
+- Tests für die korrigierten Werte aktualisieren (Romani, Moldawisch)
 
