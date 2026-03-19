@@ -177,7 +177,16 @@ describe('Student is parent detection', () => {
 // ============================================
 
 describe('Extended language auto-corrections', () => {
-  const newMappings = ['Somalisch', 'Eritreisch', 'Tamilisch', 'Georgisch', 'Berberisch', 'Khmer'];
+  const newMappings = [
+    'Somalisch', 'Eritreisch', 'Tamilisch', 'Georgisch', 'Berberisch', 'Khmer',
+    // Phase 3
+    'Romani', 'Romanes', 'Telugu', 'Kannada', 'Gujarati', 'Marathi',
+    'Kinyarwanda', 'Kirundi', 'Lingala', 'Bambara', 'Fulfulde', 'Fula',
+    'Twi', 'Akan', 'Somali', 'Lao', 'Malaiisch', 'Malay',
+    'Katalanisch', 'Baskisch', 'Irisch', 'Gälisch',
+    'Arabish', 'Türkish', 'Portugisisch', 'Albanish', 'Kroatish', 'Serbish',
+    'Bosniakisch', 'Mazedonish',
+  ];
   
   for (const lang of newMappings) {
     it(`maps "${lang}" to a valid BISTA language`, () => {
