@@ -975,8 +975,8 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   // ============================================
   'Niederländisch-Ostindien': 'Indonesien',
   'Niederländisch-Indien': 'Indonesien',
-  'Französisch-Indochina': 'Vietnam',
-  'Indochina': 'Vietnam',
+  'Französisch-Indochina': 'Vietnam', // Umfasste auch Laos und Kambodscha
+  'Indochina': 'Vietnam',             // Umfasste Vietnam, Laos, Kambodscha
   'Belgisch-Kongo': 'Demokratische Republik Kongo',
   'Deutsch-Südwestafrika': 'Namibia',
   'Portugiesisch-Ostafrika': 'Mosambik',
