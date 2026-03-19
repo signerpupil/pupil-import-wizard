@@ -951,7 +951,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'PA': 'Panama',
   'PY': 'Paraguay',
   'QA': 'Katar',
-  'RW': 'Ruanda',
+  'RW': 'Rwanda',
   'SD': 'Sudan',
   'SL': 'Sierra Leone',
   'SN': 'Senegal',
