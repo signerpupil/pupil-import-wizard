@@ -1001,7 +1001,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Bophuthatswana': 'Südafrika',
   'Ciskei': 'Südafrika',
   'Venda': 'Südafrika',
-  'Sowjetunion': 'Russland',
 
   // ============================================
   // Phase 4: Alternative Bezeichnungen (~30 neue)
