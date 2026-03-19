@@ -1,42 +1,58 @@
 
 
-## PUPIL-Klassen-Export Anleitung fuer LPStep2Teachers
+# Re-Validierung nach Korrekturen
 
-Neue aufklappbare Anleitung fuer den PUPIL-Klassen-Export, analog zu `PUPILInstructionGuide` und `LOInstructionGuide`.
+## Problem
 
-### Aenderungen
+Fehler werden **einmalig** beim Eintritt in Schritt 3 berechnet (`validateData()` in `Index.tsx`, Zeile 181). Danach werden nur `correctedValue`-Marker gesetzt und `rows` aktualisiert — aber **keine neue Validierung** durchgeführt. Wenn eine automatische Korrektur (z.B. ID-Konflikt-Auflösung mit `_D01`-Suffix) einen **neuen** Fehler erzeugt (z.B. `_D01` kollidiert mit einer existierenden ID), wird dieser nicht erkannt.
 
-**1. Screenshots kopieren**
-- `user-uploads://2026-03-03-06-52-16.png` → `src/assets/pupil-anleitung-klassen.png` (PUPIL Klassen-Ansicht)
-- `user-uploads://2026-03-03-06-54-50.png` → `src/assets/pupil-anleitung-klassen-excel.png` (Excel-Ergebnis)
+## Lösung: Re-Validierung nach Bulk-Korrekturen
 
-**2. Neue Komponente `src/components/import/lp-zuweisung/PUPILClassesInstructionGuide.tsx`**
+Nach jeder `handleBulkCorrect`-Ausführung wird eine **inkrementelle Re-Validierung** auf den aktualisierten `correctedRows` durchgeführt. Neue Fehler werden zur `errors`-Liste hinzugefügt, und bereits gelöste Fehler werden entfernt.
 
-Gleiche Struktur wie `PUPILInstructionGuide`, mit zwei Phasen:
+### Änderungen
 
-**Phase A — Navigieren:**
-1. Im linken Menü **Master Data** öffnen
-2. **Schulen/Klassen/Gruppen** anklicken
-3. **Klassen** auswählen
+**`src/pages/Index.tsx`**:
 
-Screenshot `pupil-anleitung-klassen.png` mit Lightbox
+1. **Neue Funktion `revalidateAfterCorrection`**: Wird nach `handleBulkCorrect` und `handleErrorCorrect` aufgerufen, sobald `correctedRows` aktualisiert wurden.
+   - Ruft `validateData(updatedRows, columnDefinitions)` erneut auf
+   - Vergleicht neue Fehler mit bestehenden Fehlern:
+     - **Bereits korrigierte Fehler** (`correctedValue !== undefined`) bleiben erhalten
+     - **Neue Fehler** (die in der alten Liste nicht existierten) werden hinzugefügt
+     - **Stale Fehler** (die nicht mehr auftreten) werden entfernt
+   - Wird via `useEffect` getriggert, das auf Änderungen von `correctedRows` reagiert (mit Debounce, um nicht bei jeder Einzeländerung zu feuern)
 
-**Phase B — Tabelle kopieren:**
-4. Gesamte Klassentabelle mit Kopfzeile bis ganz nach unten markieren
-5. Mit Rechtsklick oder **Ctrl+C** kopieren
-6. In leere Excel-Tabelle einfügen und **Excel speichern**
+2. **Merge-Logik**:
+   ```text
+   revalidate(newRows):
+     freshErrors = validateData(newRows, columnDefinitions)
+     mergedErrors = []
+     
+     // Behalte korrigierte Fehler
+     for each old error with correctedValue:
+       mergedErrors.push(old error)
+     
+     // Füge neue/aktuelle Fehler hinzu
+     for each fresh error:
+       existingCorrected = find in old errors where correctedValue set
+       if existingCorrected: skip (already handled)
+       existingUncorrected = find in old errors (same row+column+type)
+       if existingUncorrected: keep old (preserves UI state)
+       else: add as new error
+     
+     setErrors(mergedErrors)
+   ```
 
-Screenshot `pupil-anleitung-klassen-excel.png` mit Lightbox
+3. **Debounce**: Re-Validierung wird mit 300ms Verzögerung nach der letzten Korrektur ausgeführt, damit Batch-Korrekturen (die viele Zeilen ändern) nur eine Re-Validierung auslösen.
 
-- localStorage-Key: `pupil-classes-guide-open`, standardmässig eingeklappt
-- Nummern-Badges 1-6, identisches Pattern
+### Vorteile gegenüber Alternativen
 
-**3. `LPStep2Teachers.tsx` anpassen**
+- **Keine separate "Nochmal prüfen"-Taste nötig** — geschieht automatisch
+- **Bestehende Korrekturen bleiben erhalten** — nur wirklich neue Fehler erscheinen
+- **`isErrorStillValid`-Filter bleibt als schnelle Zwischenlösung** — Re-Validierung ergänzt ihn für den Fall, dass neue Fehler entstehen
+- **Performance**: `validateData` ist schnell (< 100ms für typische Datensätze), Debounce verhindert Mehrfachausführung
 
-`<PUPILClassesInstructionGuide />` in die zweite Card ("PUPIL-Klassen Datei hochladen") einbauen, zwischen der Beschreibung und dem File-Upload-Input (Zeile ~386, nach dem `<p>` Tag).
+### Betroffene Dateien
 
-### Technische Details
-
-- Identisches Pattern wie `PUPILInstructionGuide`: Collapsible, Dialog-Lightbox, localStorage-Persistenz
-- Zwei Screenshots statt einem (je einer pro Phase)
+- **`src/pages/Index.tsx`**: `useEffect` mit Debounce nach `correctedRows`-Änderungen, Merge-Logik für Fehler
 
