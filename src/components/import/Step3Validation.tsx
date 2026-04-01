@@ -1736,10 +1736,10 @@ export function Step3Validation({
                                             <span className="font-medium text-amber-700 dark:text-amber-400">{field.label} – Unterschiede</span>
                                           </div>
                                           <div className="grid gap-0.5 pl-4">
-                                            {group.affectedRows.map((r, i) => (
-                                              <div key={r.row} className="flex items-center gap-2">
-                                                <span className="text-muted-foreground w-24 shrink-0 truncate text-[11px]">
-                                                  {r.studentName || `Zeile ${r.row}`}:
+                                            {field.rowLabels.map((label, i) => (
+                                              <div key={i} className="flex items-center gap-2">
+                                                <span className="text-muted-foreground w-32 shrink-0 truncate text-[11px]">
+                                                  {label}:
                                                 </span>
                                                 <span className={`text-[11px] ${field.values[i] !== field.uniqueValues[0] ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-foreground'}`}>
                                                   {field.values[i] || '–'}
