@@ -1,43 +1,36 @@
 
 
-# Analyse: Eltern-ID Konsolidierung zeigt "alle gleich" trotz unterschiedlicher Eltern
+# Fix: Eltern-Konsolidierung – gleiche Kindernamen & fehlender Referenz-Vergleich
 
-## Gefundenes Problem
+## Gefundene Probleme
 
-Der Feldvergleich ("Felder der Elternperson") in der Konsolidierungs-UI vergleicht nur die **betroffenen Zeilen** untereinander, aber **nicht die Referenzzeile** (die Zeile mit der "korrekten" ID). Wenn es nur 1 betroffene Zeile gibt, zeigt der Vergleich immer "alle gleich" — selbst wenn die Referenzzeile komplett andere Elterndaten hat (z.B. anderen Vornamen).
+### 1. Tooltip zeigt falsche Referenzzeile
+Zeile 1568: `Aus Zeile {group.affectedRows[0]?.row}` zeigt die erste **betroffene** Zeile statt die **Referenzzeile** (`group.referenceRow`). Die Referenzzeile ist der Eintrag mit der "korrekten" ID.
 
-Das heisst: Wenn die `name_strasse`-Strategie zwei Einträge matcht (gleicher Nachname + gleicher Vorname + gleiche Strasse), und es nur 1 betroffene Zeile + 1 Referenzzeile gibt, können Unterschiede in ANDEREN Feldern (z.B. E-Mail, Telefon, Rolle) unsichtbar bleiben.
+### 2. "betroffene Kinder" zeigt identische Namen
+Wenn derselbe Schüler in mehreren Zeilen vorkommt (z.B. Duplikate), wird `getStudentNameForRow()` für beide Zeilen denselben Namen zurückgeben: "Sarina Khushy ✕, Sarina Khushy ✕". Es fehlt eine Unterscheidung durch Zeilennummer.
 
-**Für das Vorname-Problem**: Die Erkennungslogik selbst kann verschiedene Vornamen bei "Mittlere Zuverlässigkeit" eigentlich NICHT matchen (der Key enthält den Vornamen). Das Problem liegt darin, dass die UI den Referenz-Eintrag nicht vergleicht und daher Unterschiede nicht sichtbar macht. Zusätzlich fehlt ein Sicherheitscheck, der die tatsächlichen Felddaten vor der Konsolidierung nochmals prüft.
+### 3. "alle gleich" trotz unterschiedlicher Daten
+Die Referenzzeile wird zwar im Code via `group.referenceRow` extrahiert, aber in der Feldvergleichs-Berechnung (`getParentFieldComparison`) nur einbezogen, wenn `referenceRow != null`. Falls die Regex-Extraktion fehlschlägt oder der Wert `undefined` ist, werden nur die betroffenen Zeilen verglichen — die naturgemäss identisch sind (selber Elternteil, selbes Kind).
 
 ## Lösung
 
-### 1. Referenzzeile in den Vergleich einbeziehen (`Step3Validation.tsx`)
+### Datei: `src/components/import/Step3Validation.tsx`
 
-- Referenzzeilennummer aus der Fehlermeldung extrahieren (`hat in Zeile (\d+)`) und in `ParentIdInconsistencyGroup` speichern
-- `getParentFieldComparison` erweitern: Referenzzeile als ersten Eintrag in den Vergleich aufnehmen
-- UI: Referenzzeile als "Referenz (Zeile X)" in der linken Karte anzeigen
+**Fix 1 – Tooltip korrigieren (Zeile 1568, 1572):**
+- `group.affectedRows[0]?.row` → `group.referenceRow ?? group.affectedRows[0]?.row`
 
-### 2. Sicherheitscheck für kritische Felder (`Step3Validation.tsx`)
+**Fix 2 – Kindernamen disambiguieren (Zeile 1579-1588):**
+- Bei doppelten Kindernamen Zeilennummer anhängen: "Sarina Khushy (Z. 515)" statt nur "Sarina Khushy"
+- Logik: Prüfe ob `studentName` in der Liste mehr als einmal vorkommt → wenn ja, `(Z. {row})` anhängen
 
-- Vor der Konsolidierung prüfen, ob **Vorname** und **Nachname** zwischen Referenzzeile und betroffenen Zeilen übereinstimmen
-- Bei Abweichung im Vornamen: 
-  - Konsolidierung **blockieren** (Button deaktiviert)
-  - Prominente Warnung anzeigen: "Unterschiedliche Vornamen erkannt — keine automatische Konsolidierung möglich"
-  - Nur "Ignorieren" erlauben
+**Fix 3 – Aktueller-Stand-Einträge disambiguieren (Zeile 1673-1680):**
+- Gleiche Logik für die Einträge in "Aktueller Stand" und "Nach Konsolidierung": bei identischen Schülernamen Zeilennummer ergänzen
 
-### 3. "Alle konsolidieren" Batch-Aktion absichern
+**Fix 4 – Referenzzeile als Fallback sichern:**
+- Falls `referenceRow` undefiniert ist (Regex-Match fehlgeschlagen), als Fallback die `correctId` nutzen, um in `rows` nach der Referenzzeile zu suchen: erste Zeile finden, deren `[column]`-Wert === `correctId`
+- So ist die Referenzzeile immer im Vergleich enthalten
 
-- Gruppen mit Vorname-Abweichung automatisch aus der Batch-Aktion ausschliessen
-- Badge-Hinweis im Header: "X Gruppen übersprungen (Namensunterschied)"
-
-### 4. Erkennungslogik absichern (`fileParser.ts`)
-
-- In der `name_strasse`-Strategie nach dem Map-Lookup einen **Post-Check** einbauen: Vorname des aktuellen Eintrags gegen den gespeicherten Vorname vergleichen (redundant, aber als Sicherheitsnetz)
-- `ParentEntry`-Typ um `vorname` und `name` Felder erweitern, damit der Vergleich möglich ist
-
-### Betroffene Dateien
-
-- `src/components/import/Step3Validation.tsx` — Referenzzeile extrahieren, Feldvergleich erweitern, Sicherheitscheck, Batch-Absicherung
-- `src/lib/fileParser.ts` — `ParentEntry` erweitern, Post-Check in `addError`
+## Betroffene Datei
+- `src/components/import/Step3Validation.tsx` — 4 punktuelle Änderungen
 
