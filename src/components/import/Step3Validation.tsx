@@ -1348,14 +1348,26 @@ export function Step3Validation({
                   {isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies} Kinder
                 </Badge>
               </div>
-              <Button 
-                onClick={applyBulkParentIdCorrection}
-                className="gap-2 bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Alle {isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length} konsolidieren
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {nameMismatchCount > 0 && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {nameMismatchCount} übersprungen (Namensunterschied)
+                  </Badge>
+                )}
+                <Button 
+                  onClick={applyBulkParentIdCorrection}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Alle {(() => {
+                    const total = isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length;
+                    const safe = total - (isParentFiltered ? filteredParentGroups.filter(g => g.hasNameMismatch).length : nameMismatchCount);
+                    return safe;
+                  })()} konsolidieren
+                </Button>
+              </div>
             </div>
             <CardDescription>
               Gleiche Eltern wurden mit unterschiedlichen IDs erfasst. Mit einem Klick alle auf die korrekte ID vereinheitlichen.
