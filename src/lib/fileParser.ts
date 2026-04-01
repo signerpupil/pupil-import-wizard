@@ -1425,7 +1425,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         }
       }
     } else {
-      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label });
+      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label, vorname: parentVorname, name: parentName });
     }
   };
 
