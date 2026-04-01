@@ -49,11 +49,13 @@ interface ParentIdInconsistencyGroup {
   severity?: 'error' | 'warning'; // warning = name_only strategy
   parentName?: string;   // Vorname + Name of the parent
   parentAddress?: string; // Strasse + PLZ + Ort
+  referenceRow?: number; // The row number of the first occurrence (reference)
   affectedRows: {
     row: number;
     currentId: string;
     studentName: string | null;
   }[];
+  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
 }
 
 interface Step3ValidationProps {
@@ -262,6 +264,10 @@ export function Step3Validation({
       
       if (!correctId) return;
       
+      // Extract reference row number from message: "hat in Zeile (\d+)"
+      const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
+      const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+      
       // Extract match reason: "[Erkannt via: AHV-Nummer – Hohe Zuverlässigkeit]"
       const matchReasonMatch = firstError.message.match(/\[Erkannt via: ([^\]]+)\]/);
       const matchReason = matchReasonMatch ? matchReasonMatch[1] : '';
@@ -286,6 +292,27 @@ export function Step3Validation({
       const parentName = [vorname, name].filter(Boolean).join(' ') || undefined;
       const addressParts = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean);
       const parentAddress = addressParts.join(', ') || undefined;
+
+      // Safety check: detect name mismatch between reference row and affected rows
+      let hasNameMismatch = false;
+      if (referenceRow != null) {
+        const refRow = rows[referenceRow - 1];
+        if (refRow) {
+          const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+          const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+          for (const ar of affectedRows) {
+            const arRow = rows[ar.row - 1];
+            if (!arRow) continue;
+            const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+            const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+            if ((refVorname && arVorname && refVorname !== arVorname) ||
+                (refName && arName && refName !== arName)) {
+              hasNameMismatch = true;
+              break;
+            }
+          }
+        }
+      }
       
       groups.push({
         identifier,
@@ -295,7 +322,9 @@ export function Step3Validation({
         severity: groupErrors.some(e => e.severity === 'warning') ? 'warning' : 'error',
         parentName,
         parentAddress,
+        referenceRow,
         affectedRows,
+        hasNameMismatch,
       });
     });
     
@@ -323,7 +352,8 @@ export function Step3Validation({
   function getParentFieldComparison(
     affectedRows: { row: number; currentId: string; studentName: string | null }[],
     column: string,
-    allRows: ParsedRow[]
+    allRows: ParsedRow[],
+    referenceRow?: number
   ) {
     const prefix = column.replace(/_ID$/, '_');
     const FIELDS_TO_COMPARE = [
@@ -340,8 +370,19 @@ export function Step3Validation({
       { key: 'Rolle',            label: 'Rolle' },
       { key: 'Beruf',            label: 'Beruf' },
     ];
+
+    // Build the list of rows to compare: reference row first, then affected rows
+    const rowEntries: { row: number; label: string }[] = [];
+    if (referenceRow != null) {
+      const refStudentName = getStudentNameForRow(referenceRow);
+      rowEntries.push({ row: referenceRow, label: `Referenz (Zeile ${referenceRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    }
+    for (const r of affectedRows) {
+      rowEntries.push({ row: r.row, label: r.studentName || `Zeile ${r.row}` });
+    }
+
     return FIELDS_TO_COMPARE.map(field => {
-      const values = affectedRows.map(r => {
+      const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
         return String(row?.[`${prefix}${field.key}`] ?? '').trim();
       });
@@ -352,6 +393,7 @@ export function Step3Validation({
         fieldKey: field.key,
         label: field.label,
         values,
+        rowLabels: rowEntries.map(r => r.label),
         allSame,
         allEmpty,
         uniqueValues: uniqueNonEmpty,
@@ -405,15 +447,23 @@ export function Step3Validation({
 
   const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
 
-  // Apply bulk correction for parent ID inconsistencies (uses filtered groups)
+  // Count groups with name mismatches (excluded from bulk consolidation)
+  const nameMismatchCount = useMemo(() => 
+    parentIdInconsistencyGroups.filter(g => g.hasNameMismatch).length,
+    [parentIdInconsistencyGroups]
+  );
+
+  // Apply bulk correction for parent ID inconsistencies (uses filtered groups, skips name mismatches)
   const applyBulkParentIdCorrection = useCallback(() => {
     const targetGroups = filteredParentGroups.length > 0 ? filteredParentGroups : parentIdInconsistencyGroups;
-    if (targetGroups.length === 0) return;
+    // Filter out groups with name mismatches
+    const safeGroups = targetGroups.filter(g => !g.hasNameMismatch);
+    if (safeGroups.length === 0) return;
     
     const corrections: { row: number; column: string; value: string }[] = [];
     let totalAffectedChildren = 0;
     
-    for (const group of targetGroups) {
+    for (const group of safeGroups) {
       for (const affectedRow of group.affectedRows) {
         corrections.push({
           row: affectedRow.row,
@@ -424,11 +474,12 @@ export function Step3Validation({
       }
     }
     
+    const skipped = targetGroups.length - safeGroups.length;
     if (corrections.length > 0) {
       onBulkCorrect(corrections, 'bulk');
       toast({
         title: 'Eltern-IDs konsolidiert',
-        description: `${targetGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+        description: `${safeGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.${skipped > 0 ? ` ${skipped} Gruppen übersprungen (Namensunterschied).` : ''}`,
       });
     }
   }, [filteredParentGroups, parentIdInconsistencyGroups, onBulkCorrect, toast]);
@@ -1297,14 +1348,26 @@ export function Step3Validation({
                   {isParentFiltered ? filteredParentChildren : totalParentIdInconsistencies} Kinder
                 </Badge>
               </div>
-              <Button 
-                onClick={applyBulkParentIdCorrection}
-                className="gap-2 bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Alle {isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length} konsolidieren
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {nameMismatchCount > 0 && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {nameMismatchCount} übersprungen (Namensunterschied)
+                  </Badge>
+                )}
+                <Button 
+                  onClick={applyBulkParentIdCorrection}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Alle {(() => {
+                    const total = isParentFiltered ? filteredParentGroups.length : parentIdInconsistencyGroups.length;
+                    const safe = total - (isParentFiltered ? filteredParentGroups.filter(g => g.hasNameMismatch).length : nameMismatchCount);
+                    return safe;
+                  })()} konsolidieren
+                </Button>
+              </div>
             </div>
             <CardDescription>
               Gleiche Eltern wurden mit unterschiedlichen IDs erfasst. Mit einem Klick alle auf die korrekte ID vereinheitlichen.
@@ -1525,9 +1588,16 @@ export function Step3Validation({
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
+                                {/* Name mismatch critical warning */}
+                                {group.hasNameMismatch && (
+                                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
+                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="font-medium">Unterschiedliche Namen erkannt — keine automatische Konsolidierung möglich</span>
+                                  </div>
+                                )}
                                 {/* Warning badge if there are field differences */}
-                                {(() => {
-                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows);
+                                {!group.hasNameMismatch && (() => {
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
                                   const diffCount = fc.filter(f => !f.allSame).length;
                                   return diffCount > 0 ? (
                                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
@@ -1572,7 +1642,7 @@ export function Step3Validation({
 
           {/* Inline details expansion – 2-Karten-Layout + Feldvergleich */}
                           {isExpanded && (() => {
-                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows);
+                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
                             return (
                             <div className="border-t bg-muted/20 p-3 space-y-3">
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1580,12 +1650,26 @@ export function Step3Validation({
                               </p>
                               <div className="grid grid-cols-2 gap-2">
                                 {/* Linke Karte: Aktueller Stand */}
-                                <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
+                                 <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
                                   <div className="flex items-center justify-between">
                                     <span className="font-semibold">Aktueller Stand</span>
-                                    <span className="text-muted-foreground text-[10px]">{group.affectedRows.length} Einträge</span>
+                                    <span className="text-muted-foreground text-[10px]">{(group.referenceRow ? 1 : 0) + group.affectedRows.length} Einträge</span>
                                   </div>
                                   <div className="space-y-1 border-t pt-1.5">
+                                    {/* Reference row first */}
+                                    {group.referenceRow && (() => {
+                                      const refStudentName = getStudentNameForRow(group.referenceRow!);
+                                      return (
+                                        <div className="flex items-center gap-1.5 flex-wrap bg-blue-500/5 rounded px-1 py-0.5">
+                                          <span className="text-muted-foreground truncate">
+                                            Referenz (Z. {group.referenceRow}){refStudentName ? ` – ${refStudentName}` : ''}:
+                                          </span>
+                                          <code className="px-1.5 py-0.5 rounded font-mono bg-blue-500/10 text-blue-600 font-bold">
+                                            {group.correctId}
+                                          </code>
+                                        </div>
+                                      );
+                                    })()}
                                     {group.affectedRows.map(r => (
                                       <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
                                         <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
@@ -1652,10 +1736,10 @@ export function Step3Validation({
                                             <span className="font-medium text-amber-700 dark:text-amber-400">{field.label} – Unterschiede</span>
                                           </div>
                                           <div className="grid gap-0.5 pl-4">
-                                            {group.affectedRows.map((r, i) => (
-                                              <div key={r.row} className="flex items-center gap-2">
-                                                <span className="text-muted-foreground w-24 shrink-0 truncate text-[11px]">
-                                                  {r.studentName || `Zeile ${r.row}`}:
+                                            {field.rowLabels.map((label, i) => (
+                                              <div key={i} className="flex items-center gap-2">
+                                                <span className="text-muted-foreground w-32 shrink-0 truncate text-[11px]">
+                                                  {label}:
                                                 </span>
                                                 <span className={`text-[11px] ${field.values[i] !== field.uniqueValues[0] ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-foreground'}`}>
                                                   {field.values[i] || '–'}

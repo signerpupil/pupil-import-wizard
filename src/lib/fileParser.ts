@@ -1378,7 +1378,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const resolvedByHigherStrategy = new Set<string>();
 
   // Single unified pool across all ERZ slots
-  type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string };
+  type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string; vorname: string; name: string };
   const parentMapByAhv = new Map<string, ParentEntry>();
   const parentMapByNameStrasse = new Map<string, ParentEntry>();
 
@@ -1390,7 +1390,9 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     id: string,
     rowIndex: number,
     idField: string,
-    label: string
+    label: string,
+    parentVorname: string,
+    parentName: string
   ) => {
     const existing = map.get(key);
     
@@ -1423,7 +1425,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         }
       }
     } else {
-      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label });
+      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label, vorname: parentVorname, name: parentName });
     }
   };
 
@@ -1443,13 +1445,13 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
       // Strategy 1: AHV (most reliable)
       if (ahv) {
-        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv', id, rowIndex, check.idField, check.label);
+        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv', id, rowIndex, check.idField, check.label, vorname, name);
       }
 
       // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
       if (name && vorname && strasse) {
         const key = `NAME_STRASSE:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}|${normalizeForComparison(strasse)}`;
-        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse', id, rowIndex, check.idField, check.label);
+        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse', id, rowIndex, check.idField, check.label, vorname, name);
       }
     }
   }
