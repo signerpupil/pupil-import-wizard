@@ -1378,7 +1378,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
   const resolvedByHigherStrategy = new Set<string>();
 
   // Single unified pool across all ERZ slots
-  type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string };
+  type ParentEntry = { id: string; firstRow: number; identifier: string; slotLabel: string; vorname: string; name: string };
   const parentMapByAhv = new Map<string, ParentEntry>();
   const parentMapByNameStrasse = new Map<string, ParentEntry>();
 
