@@ -447,15 +447,23 @@ export function Step3Validation({
 
   const totalParentPages = Math.ceil(filteredParentGroups.length / PARENTS_PER_PAGE);
 
-  // Apply bulk correction for parent ID inconsistencies (uses filtered groups)
+  // Count groups with name mismatches (excluded from bulk consolidation)
+  const nameMismatchCount = useMemo(() => 
+    parentIdInconsistencyGroups.filter(g => g.hasNameMismatch).length,
+    [parentIdInconsistencyGroups]
+  );
+
+  // Apply bulk correction for parent ID inconsistencies (uses filtered groups, skips name mismatches)
   const applyBulkParentIdCorrection = useCallback(() => {
     const targetGroups = filteredParentGroups.length > 0 ? filteredParentGroups : parentIdInconsistencyGroups;
-    if (targetGroups.length === 0) return;
+    // Filter out groups with name mismatches
+    const safeGroups = targetGroups.filter(g => !g.hasNameMismatch);
+    if (safeGroups.length === 0) return;
     
     const corrections: { row: number; column: string; value: string }[] = [];
     let totalAffectedChildren = 0;
     
-    for (const group of targetGroups) {
+    for (const group of safeGroups) {
       for (const affectedRow of group.affectedRows) {
         corrections.push({
           row: affectedRow.row,
@@ -466,11 +474,12 @@ export function Step3Validation({
       }
     }
     
+    const skipped = targetGroups.length - safeGroups.length;
     if (corrections.length > 0) {
       onBulkCorrect(corrections, 'bulk');
       toast({
         title: 'Eltern-IDs konsolidiert',
-        description: `${targetGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.`,
+        description: `${safeGroups.length} Eltern mit insgesamt ${totalAffectedChildren} Kindern korrigiert.${skipped > 0 ? ` ${skipped} Gruppen übersprungen (Namensunterschied).` : ''}`,
       });
     }
   }, [filteredParentGroups, parentIdInconsistencyGroups, onBulkCorrect, toast]);
