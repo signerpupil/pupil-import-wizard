@@ -1390,7 +1390,9 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     id: string,
     rowIndex: number,
     idField: string,
-    label: string
+    label: string,
+    parentVorname: string,
+    parentName: string
   ) => {
     const existing = map.get(key);
     
