@@ -264,6 +264,10 @@ export function Step3Validation({
       
       if (!correctId) return;
       
+      // Extract reference row number from message: "hat in Zeile (\d+)"
+      const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
+      const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+      
       // Extract match reason: "[Erkannt via: AHV-Nummer – Hohe Zuverlässigkeit]"
       const matchReasonMatch = firstError.message.match(/\[Erkannt via: ([^\]]+)\]/);
       const matchReason = matchReasonMatch ? matchReasonMatch[1] : '';
@@ -288,6 +292,27 @@ export function Step3Validation({
       const parentName = [vorname, name].filter(Boolean).join(' ') || undefined;
       const addressParts = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean);
       const parentAddress = addressParts.join(', ') || undefined;
+
+      // Safety check: detect name mismatch between reference row and affected rows
+      let hasNameMismatch = false;
+      if (referenceRow != null) {
+        const refRow = rows[referenceRow - 1];
+        if (refRow) {
+          const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+          const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+          for (const ar of affectedRows) {
+            const arRow = rows[ar.row - 1];
+            if (!arRow) continue;
+            const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+            const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+            if ((refVorname && arVorname && refVorname !== arVorname) ||
+                (refName && arName && refName !== arName)) {
+              hasNameMismatch = true;
+              break;
+            }
+          }
+        }
+      }
       
       groups.push({
         identifier,
@@ -297,7 +322,9 @@ export function Step3Validation({
         severity: groupErrors.some(e => e.severity === 'warning') ? 'warning' : 'error',
         parentName,
         parentAddress,
+        referenceRow,
         affectedRows,
+        hasNameMismatch,
       });
     });
     
