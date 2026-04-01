@@ -1451,7 +1451,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
       if (name && vorname && strasse) {
         const key = `NAME_STRASSE:${normalizeForComparison(name)}|${normalizeForComparison(vorname)}|${normalizeForComparison(strasse)}`;
-        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse', id, rowIndex, check.idField, check.label);
+        addError(parentMapByNameStrasse, key, `${vorname} ${name}, ${strasse}`, 'name_strasse', id, rowIndex, check.idField, check.label, vorname, name);
       }
     }
   }
