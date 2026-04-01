@@ -1650,12 +1650,26 @@ export function Step3Validation({
                               </p>
                               <div className="grid grid-cols-2 gap-2">
                                 {/* Linke Karte: Aktueller Stand */}
-                                <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
+                                 <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
                                   <div className="flex items-center justify-between">
                                     <span className="font-semibold">Aktueller Stand</span>
-                                    <span className="text-muted-foreground text-[10px]">{group.affectedRows.length} Einträge</span>
+                                    <span className="text-muted-foreground text-[10px]">{(group.referenceRow ? 1 : 0) + group.affectedRows.length} Einträge</span>
                                   </div>
                                   <div className="space-y-1 border-t pt-1.5">
+                                    {/* Reference row first */}
+                                    {group.referenceRow && (() => {
+                                      const refStudentName = getStudentNameForRow(group.referenceRow!);
+                                      return (
+                                        <div className="flex items-center gap-1.5 flex-wrap bg-blue-500/5 rounded px-1 py-0.5">
+                                          <span className="text-muted-foreground truncate">
+                                            Referenz (Z. {group.referenceRow}){refStudentName ? ` – ${refStudentName}` : ''}:
+                                          </span>
+                                          <code className="px-1.5 py-0.5 rounded font-mono bg-blue-500/10 text-blue-600 font-bold">
+                                            {group.correctId}
+                                          </code>
+                                        </div>
+                                      );
+                                    })()}
                                     {group.affectedRows.map(r => (
                                       <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
                                         <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
