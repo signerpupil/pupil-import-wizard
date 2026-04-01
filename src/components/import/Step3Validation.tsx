@@ -1588,9 +1588,16 @@ export function Step3Validation({
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
+                                {/* Name mismatch critical warning */}
+                                {group.hasNameMismatch && (
+                                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
+                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="font-medium">Unterschiedliche Namen erkannt — keine automatische Konsolidierung möglich</span>
+                                  </div>
+                                )}
                                 {/* Warning badge if there are field differences */}
-                                {(() => {
-                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows);
+                                {!group.hasNameMismatch && (() => {
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
                                   const diffCount = fc.filter(f => !f.allSame).length;
                                   return diffCount > 0 ? (
                                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
