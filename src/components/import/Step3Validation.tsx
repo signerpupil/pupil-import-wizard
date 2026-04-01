@@ -49,11 +49,13 @@ interface ParentIdInconsistencyGroup {
   severity?: 'error' | 'warning'; // warning = name_only strategy
   parentName?: string;   // Vorname + Name of the parent
   parentAddress?: string; // Strasse + PLZ + Ort
+  referenceRow?: number; // The row number of the first occurrence (reference)
   affectedRows: {
     row: number;
     currentId: string;
     studentName: string | null;
   }[];
+  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
 }
 
 interface Step3ValidationProps {
