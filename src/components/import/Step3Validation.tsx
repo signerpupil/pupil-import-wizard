@@ -353,7 +353,8 @@ export function Step3Validation({
     affectedRows: { row: number; currentId: string; studentName: string | null }[],
     column: string,
     allRows: ParsedRow[],
-    referenceRow?: number
+    referenceRow?: number,
+    correctId?: string
   ) {
     const prefix = column.replace(/_ID$/, '_');
     const FIELDS_TO_COMPARE = [
@@ -373,12 +374,35 @@ export function Step3Validation({
 
     // Build the list of rows to compare: reference row first, then affected rows
     const rowEntries: { row: number; label: string }[] = [];
-    if (referenceRow != null) {
-      const refStudentName = getStudentNameForRow(referenceRow);
-      rowEntries.push({ row: referenceRow, label: `Referenz (Zeile ${referenceRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    
+    // Determine reference row: use provided value, or fallback by searching for correctId
+    let effectiveRefRow = referenceRow;
+    if (effectiveRefRow == null && correctId) {
+      const affectedRowSet = new Set(affectedRows.map(r => r.row));
+      for (let i = 0; i < allRows.length; i++) {
+        const rowNum = i + 1;
+        if (affectedRowSet.has(rowNum)) continue;
+        const val = String(allRows[i]?.[column] ?? '').trim();
+        if (val === correctId) {
+          effectiveRefRow = rowNum;
+          break;
+        }
+      }
     }
+    
+    if (effectiveRefRow != null) {
+      const refStudentName = getStudentNameForRow(effectiveRefRow);
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    }
+    
+    // Disambiguate affected row names
+    const nameCount = new Map<string, number>();
+    affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+    
     for (const r of affectedRows) {
-      rowEntries.push({ row: r.row, label: r.studentName || `Zeile ${r.row}` });
+      const name = r.studentName || `Zeile ${r.row}`;
+      const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
@@ -1565,11 +1589,11 @@ export function Step3Validation({
                                       <TooltipTrigger asChild>
                                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
                                           <Info className="h-3 w-3" />
-                                          Aus Zeile {group.affectedRows[0]?.row} (erster Eintrag)
+                                          Aus Zeile {group.referenceRow ?? group.affectedRows[0]?.row} (Referenz)
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="max-w-xs text-xs">
-                                        Die «korrekte ID» ist der Wert aus dem <strong>ersten Auftreten</strong> dieses Elternteils in der Datei (Zeile {group.affectedRows[0]?.row}).<br />
+                                        Die «korrekte ID» ist der Wert aus dem <strong>ersten Auftreten</strong> dieses Elternteils in der Datei (Zeile {group.referenceRow ?? group.affectedRows[0]?.row}).<br />
                                         Erkannt via: {group.matchReason}
                                       </TooltipContent>
                                     </Tooltip>
@@ -1578,13 +1602,22 @@ export function Step3Validation({
                                 <div className="mt-1.5 text-xs text-muted-foreground">
                                   <span className="font-medium">{group.affectedRows.length} betroffene {group.affectedRows.length === 1 ? 'Kind' : 'Kinder'}:</span>
                                   <span className="ml-1">
-                                    {group.affectedRows.slice(0, 3).map((r, i) => (
-                                      <span key={r.row}>
-                                        {i > 0 && ', '}
-                                        {r.studentName || `Zeile ${r.row}`}
-                                        {r.currentId !== group.correctId && <span className="text-destructive"> ✕</span>}
-                                      </span>
-                                    ))}
+                                    {(() => {
+                                      const shown = group.affectedRows.slice(0, 3);
+                                      const nameCount = new Map<string, number>();
+                                      shown.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return shown.map((r, i) => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        return (
+                                          <span key={r.row}>
+                                            {i > 0 && ', '}
+                                            {needsDisambig ? `${name} (Z. ${r.row})` : name}
+                                            {r.currentId !== group.correctId && <span className="text-destructive"> ✕</span>}
+                                          </span>
+                                        );
+                                      });
+                                    })()}
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
@@ -1597,7 +1630,7 @@ export function Step3Validation({
                                 )}
                                 {/* Warning badge if there are field differences */}
                                 {!group.hasNameMismatch && (() => {
-                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
                                   const diffCount = fc.filter(f => !f.allSame).length;
                                   return diffCount > 0 ? (
                                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
@@ -1642,7 +1675,7 @@ export function Step3Validation({
 
           {/* Inline details expansion – 2-Karten-Layout + Feldvergleich */}
                           {isExpanded && (() => {
-                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
+                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
                             return (
                             <div className="border-t bg-muted/20 p-3 space-y-3">
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -1670,14 +1703,23 @@ export function Step3Validation({
                                         </div>
                                       );
                                     })()}
-                                    {group.affectedRows.map(r => (
-                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                        <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
-                                          {r.currentId}
-                                        </code>
-                                      </div>
-                                    ))}
+                                    {(() => {
+                                      const nameCount = new Map<string, number>();
+                                      group.affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return group.affectedRows.map(r => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
+                                        return (
+                                          <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
+                                              {r.currentId}
+                                            </code>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                                 {/* Rechte Karte: Nach Konsolidierung */}
@@ -1690,23 +1732,32 @@ export function Step3Validation({
                                     <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
                                   </div>
                                   <div className="space-y-1 pt-0.5">
-                                    {group.affectedRows.map(r => (
-                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                        {r.currentId !== group.correctId ? (
-                                          <div className="flex items-center gap-1">
-                                            <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
-                                            <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
-                                            <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                                    {(() => {
+                                      const nameCount = new Map<string, number>();
+                                      group.affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return group.affectedRows.map(r => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
+                                        return (
+                                          <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            {r.currentId !== group.correctId ? (
+                                              <div className="flex items-center gap-1">
+                                                <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
+                                                <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
+                                                <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1">
+                                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                                <span className="text-green-700">bereits korrekt</span>
+                                              </div>
+                                            )}
                                           </div>
-                                        ) : (
-                                          <div className="flex items-center gap-1">
-                                            <CheckCircle className="h-3 w-3 text-green-500" />
-                                            <span className="text-green-700">bereits korrekt</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                               </div>
