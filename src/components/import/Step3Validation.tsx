@@ -1642,7 +1642,7 @@ export function Step3Validation({
 
           {/* Inline details expansion – 2-Karten-Layout + Feldvergleich */}
                           {isExpanded && (() => {
-                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows);
+                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow);
                             return (
                             <div className="border-t bg-muted/20 p-3 space-y-3">
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
