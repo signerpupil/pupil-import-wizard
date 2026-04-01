@@ -1445,7 +1445,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
       // Strategy 1: AHV (most reliable)
       if (ahv) {
-        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv', id, rowIndex, check.idField, check.label);
+        addError(parentMapByAhv, `AHV:${ahv}`, `AHV: ${ahv}`, 'ahv', id, rowIndex, check.idField, check.label, vorname, name);
       }
 
       // Strategy 2: Name + Vorname + Strasse (with diacritic normalization)
