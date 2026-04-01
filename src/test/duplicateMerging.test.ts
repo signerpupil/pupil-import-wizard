@@ -653,3 +653,78 @@ describe("ID Conflict Detection (same ID, different person)", () => {
     expect(conflictWarnings.length).toBe(0);
   });
 });
+
+describe("Name Mismatch Detection (Michael vs Michaela)", () => {
+  it("should detect inconsistent parent IDs via same AHV for Michael/Michaela Brunner", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Brunner", S_Vorname: "Luca", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Michael", P_ERZ1_AHV: "756.5555.5555.55",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+      },
+      {
+        S_ID: "2", S_Name: "Brunner", S_Vorname: "Sara", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "P-200", P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Michaela", P_ERZ1_AHV: "756.5555.5555.55",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+
+    // Same AHV → should flag inconsistent IDs
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+    expect(inconsistentIds.length).toBeGreaterThan(0);
+    expect(inconsistentIds.some(e => e.row === 2)).toBe(true);
+  });
+
+  it("should detect name mismatch between Michael and Michaela in consolidation groups", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Brunner", S_Vorname: "Luca", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Michael", P_ERZ1_AHV: "756.5555.5555.55",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+      },
+      {
+        S_ID: "2", S_Name: "Brunner", S_Vorname: "Sara", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "P-200", P_ERZ1_Name: "Brunner", P_ERZ1_Vorname: "Michaela", P_ERZ1_AHV: "756.5555.5555.55",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+      },
+    ];
+
+    const errors = validateData(rows, testColumns);
+    const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+
+    // Simulate the hasNameMismatch logic from Step3Validation.tsx
+    if (inconsistentIds.length > 0) {
+      const firstError = inconsistentIds[0];
+      const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
+      const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+
+      const column = "P_ERZ1_ID";
+      const prefix = column.replace(/_ID$/, '_');
+
+      let hasNameMismatch = false;
+      if (referenceRow != null) {
+        const refRow = rows[referenceRow - 1];
+        if (refRow) {
+          const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+          const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+          for (const e of inconsistentIds) {
+            const arRow = rows[e.row - 1];
+            if (!arRow) continue;
+            const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+            const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+            if ((refVorname && arVorname && refVorname !== arVorname) ||
+                (refName && arName && refName !== arName)) {
+              hasNameMismatch = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Michael ≠ Michaela → hasNameMismatch MUST be true
+      expect(hasNameMismatch).toBe(true);
+    }
+  });
+});
