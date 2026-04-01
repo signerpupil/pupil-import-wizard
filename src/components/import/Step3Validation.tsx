@@ -1679,14 +1679,23 @@ export function Step3Validation({
                                         </div>
                                       );
                                     })()}
-                                    {group.affectedRows.map(r => (
-                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                        <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
-                                          {r.currentId}
-                                        </code>
-                                      </div>
-                                    ))}
+                                    {(() => {
+                                      const nameCount = new Map<string, number>();
+                                      group.affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return group.affectedRows.map(r => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
+                                        return (
+                                          <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
+                                              {r.currentId}
+                                            </code>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                                 {/* Rechte Karte: Nach Konsolidierung */}
