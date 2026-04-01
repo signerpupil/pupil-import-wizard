@@ -1565,11 +1565,11 @@ export function Step3Validation({
                                       <TooltipTrigger asChild>
                                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
                                           <Info className="h-3 w-3" />
-                                          Aus Zeile {group.affectedRows[0]?.row} (erster Eintrag)
+                                          Aus Zeile {group.referenceRow ?? group.affectedRows[0]?.row} (Referenz)
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="max-w-xs text-xs">
-                                        Die «korrekte ID» ist der Wert aus dem <strong>ersten Auftreten</strong> dieses Elternteils in der Datei (Zeile {group.affectedRows[0]?.row}).<br />
+                                        Die «korrekte ID» ist der Wert aus dem <strong>ersten Auftreten</strong> dieses Elternteils in der Datei (Zeile {group.referenceRow ?? group.affectedRows[0]?.row}).<br />
                                         Erkannt via: {group.matchReason}
                                       </TooltipContent>
                                     </Tooltip>
