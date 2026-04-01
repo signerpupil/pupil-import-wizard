@@ -353,7 +353,8 @@ export function Step3Validation({
     affectedRows: { row: number; currentId: string; studentName: string | null }[],
     column: string,
     allRows: ParsedRow[],
-    referenceRow?: number
+    referenceRow?: number,
+    correctId?: string
   ) {
     const prefix = column.replace(/_ID$/, '_');
     const FIELDS_TO_COMPARE = [
@@ -376,16 +377,16 @@ export function Step3Validation({
     
     // Determine reference row: use provided value, or fallback by searching for correctId
     let effectiveRefRow = referenceRow;
-    if (effectiveRefRow == null) {
-      // Fallback: find first row in allRows whose column value matches correctId
-      const correctIdMatch = affectedRows.length > 0 ? undefined : undefined; // need column
-      const colName = column; // e.g. P_ERZ1_ID
+    if (effectiveRefRow == null && correctId) {
+      const affectedRowSet = new Set(affectedRows.map(r => r.row));
       for (let i = 0; i < allRows.length; i++) {
-        const val = String(allRows[i]?.[colName] ?? '').trim();
-        if (val === affectedRows[0]?.currentId) continue; // skip rows with wrong ID
-        // Find a row that has the correctId — we need to check all rows
-        // Actually we don't have correctId here, so let's find any row NOT in affectedRows that has a different value
-        break;
+        const rowNum = i + 1;
+        if (affectedRowSet.has(rowNum)) continue;
+        const val = String(allRows[i]?.[column] ?? '').trim();
+        if (val === correctId) {
+          effectiveRefRow = rowNum;
+          break;
+        }
       }
     }
     
