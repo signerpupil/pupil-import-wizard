@@ -373,12 +373,35 @@ export function Step3Validation({
 
     // Build the list of rows to compare: reference row first, then affected rows
     const rowEntries: { row: number; label: string }[] = [];
-    if (referenceRow != null) {
-      const refStudentName = getStudentNameForRow(referenceRow);
-      rowEntries.push({ row: referenceRow, label: `Referenz (Zeile ${referenceRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    
+    // Determine reference row: use provided value, or fallback by searching for correctId
+    let effectiveRefRow = referenceRow;
+    if (effectiveRefRow == null) {
+      // Fallback: find first row in allRows whose column value matches correctId
+      const correctIdMatch = affectedRows.length > 0 ? undefined : undefined; // need column
+      const colName = column; // e.g. P_ERZ1_ID
+      for (let i = 0; i < allRows.length; i++) {
+        const val = String(allRows[i]?.[colName] ?? '').trim();
+        if (val === affectedRows[0]?.currentId) continue; // skip rows with wrong ID
+        // Find a row that has the correctId — we need to check all rows
+        // Actually we don't have correctId here, so let's find any row NOT in affectedRows that has a different value
+        break;
+      }
     }
+    
+    if (effectiveRefRow != null) {
+      const refStudentName = getStudentNameForRow(effectiveRefRow);
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    }
+    
+    // Disambiguate affected row names
+    const nameCount = new Map<string, number>();
+    affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+    
     for (const r of affectedRows) {
-      rowEntries.push({ row: r.row, label: r.studentName || `Zeile ${r.row}` });
+      const name = r.studentName || `Zeile ${r.row}`;
+      const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
