@@ -1578,13 +1578,22 @@ export function Step3Validation({
                                 <div className="mt-1.5 text-xs text-muted-foreground">
                                   <span className="font-medium">{group.affectedRows.length} betroffene {group.affectedRows.length === 1 ? 'Kind' : 'Kinder'}:</span>
                                   <span className="ml-1">
-                                    {group.affectedRows.slice(0, 3).map((r, i) => (
-                                      <span key={r.row}>
-                                        {i > 0 && ', '}
-                                        {r.studentName || `Zeile ${r.row}`}
-                                        {r.currentId !== group.correctId && <span className="text-destructive"> ✕</span>}
-                                      </span>
-                                    ))}
+                                    {(() => {
+                                      const shown = group.affectedRows.slice(0, 3);
+                                      const nameCount = new Map<string, number>();
+                                      shown.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return shown.map((r, i) => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        return (
+                                          <span key={r.row}>
+                                            {i > 0 && ', '}
+                                            {needsDisambig ? `${name} (Z. ${r.row})` : name}
+                                            {r.currentId !== group.correctId && <span className="text-destructive"> ✕</span>}
+                                          </span>
+                                        );
+                                      });
+                                    })()}
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
