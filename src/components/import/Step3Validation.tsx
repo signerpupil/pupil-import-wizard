@@ -1708,23 +1708,32 @@ export function Step3Validation({
                                     <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
                                   </div>
                                   <div className="space-y-1 pt-0.5">
-                                    {group.affectedRows.map(r => (
-                                      <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-muted-foreground truncate">{r.studentName || `Zeile ${r.row}`}:</span>
-                                        {r.currentId !== group.correctId ? (
-                                          <div className="flex items-center gap-1">
-                                            <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
-                                            <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
-                                            <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                                    {(() => {
+                                      const nameCount = new Map<string, number>();
+                                      group.affectedRows.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      return group.affectedRows.map(r => {
+                                        const name = r.studentName || `Zeile ${r.row}`;
+                                        const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
+                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
+                                        return (
+                                          <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            {r.currentId !== group.correctId ? (
+                                              <div className="flex items-center gap-1">
+                                                <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>
+                                                <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
+                                                <code className="px-1 py-0.5 bg-green-500/10 text-green-700 rounded font-mono text-[10px]">{group.correctId}</code>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1">
+                                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                                <span className="text-green-700">bereits korrekt</span>
+                                              </div>
+                                            )}
                                           </div>
-                                        ) : (
-                                          <div className="flex items-center gap-1">
-                                            <CheckCircle className="h-3 w-3 text-green-500" />
-                                            <span className="text-green-700">bereits korrekt</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 </div>
                               </div>
