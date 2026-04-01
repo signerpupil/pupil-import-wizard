@@ -325,7 +325,8 @@ export function Step3Validation({
   function getParentFieldComparison(
     affectedRows: { row: number; currentId: string; studentName: string | null }[],
     column: string,
-    allRows: ParsedRow[]
+    allRows: ParsedRow[],
+    referenceRow?: number
   ) {
     const prefix = column.replace(/_ID$/, '_');
     const FIELDS_TO_COMPARE = [
@@ -342,8 +343,19 @@ export function Step3Validation({
       { key: 'Rolle',            label: 'Rolle' },
       { key: 'Beruf',            label: 'Beruf' },
     ];
+
+    // Build the list of rows to compare: reference row first, then affected rows
+    const rowEntries: { row: number; label: string }[] = [];
+    if (referenceRow != null) {
+      const refStudentName = getStudentNameForRow(referenceRow);
+      rowEntries.push({ row: referenceRow, label: `Referenz (Zeile ${referenceRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+    }
+    for (const r of affectedRows) {
+      rowEntries.push({ row: r.row, label: r.studentName || `Zeile ${r.row}` });
+    }
+
     return FIELDS_TO_COMPARE.map(field => {
-      const values = affectedRows.map(r => {
+      const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
         return String(row?.[`${prefix}${field.key}`] ?? '').trim();
       });
@@ -354,6 +366,7 @@ export function Step3Validation({
         fieldKey: field.key,
         label: field.label,
         values,
+        rowLabels: rowEntries.map(r => r.label),
         allSame,
         allEmpty,
         uniqueValues: uniqueNonEmpty,
