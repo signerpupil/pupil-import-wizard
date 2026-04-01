@@ -1,66 +1,43 @@
 
 
-# Mapping-Audit: Ergebnisse und Korrekturen
+# Analyse: Eltern-ID Konsolidierung zeigt "alle gleich" trotz unterschiedlicher Eltern
 
-## Gefundene Fehler
+## Gefundenes Problem
 
-### KRITISCH: Zielwerte nicht in gültiger Liste vorhanden
+Der Feldvergleich ("Felder der Elternperson") in der Konsolidierungs-UI vergleicht nur die **betroffenen Zeilen** untereinander, aber **nicht die Referenzzeile** (die Zeile mit der "korrekten" ID). Wenn es nur 1 betroffene Zeile gibt, zeigt der Vergleich immer "alle gleich" — selbst wenn die Referenzzeile komplett andere Elterndaten hat (z.B. anderen Vornamen).
 
-Diese Mappings zeigen auf Werte, die **nicht** in `VALID_NATIONALITIES` existieren und daher bei der Validierung scheitern:
+Das heisst: Wenn die `name_strasse`-Strategie zwei Einträge matcht (gleicher Nachname + gleicher Vorname + gleiche Strasse), und es nur 1 betroffene Zeile + 1 Referenzzeile gibt, können Unterschiede in ANDEREN Feldern (z.B. E-Mail, Telefon, Rolle) unsichtbar bleiben.
 
-1. **`'RW': 'Ruanda'`** — Die gültige Liste hat `'Rwanda'` (nicht 'Ruanda')
-2. **`'Ruanda-Urundi': 'Ruanda'`** — Gleicher Fehler, muss `'Rwanda'` sein
-3. **`'KG': 'Kirgistan'`** — Die gültige Liste hat `'Kirgisistan'` (nicht 'Kirgistan')
+**Für das Vorname-Problem**: Die Erkennungslogik selbst kann verschiedene Vornamen bei "Mittlere Zuverlässigkeit" eigentlich NICHT matchen (der Key enthält den Vornamen). Das Problem liegt darin, dass die UI den Referenz-Eintrag nicht vergleicht und daher Unterschiede nicht sichtbar macht. Zusätzlich fehlt ein Sicherheitscheck, der die tatsächlichen Felddaten vor der Konsolidierung nochmals prüft.
 
-### FEHLER: Sprach-Mappings überschreiben gültige BISTA-Werte (Dead Code)
+## Lösung
 
-4. **`'Mongolisch': 'Ostasiatische Sprachen'`** — 'Mongolisch' ist bereits ein gültiger BISTA-Wert. Das Mapping wird nie erreicht und ist irreführend. Entfernen.
-5. **`'Tibetisch': 'Ostasiatische Sprachen'`** — 'Tibetisch' ist bereits ein gültiger BISTA-Wert. Gleiches Problem. Entfernen.
+### 1. Referenzzeile in den Vergleich einbeziehen (`Step3Validation.tsx`)
 
-### FEHLER: Falsche linguistische Zuordnung
+- Referenzzeilennummer aus der Fehlermeldung extrahieren (`hat in Zeile (\d+)`) und in `ParentIdInconsistencyGroup` speichern
+- `getParentFieldComparison` erweitern: Referenzzeile als ersten Eintrag in den Vergleich aufnehmen
+- UI: Referenzzeile als "Referenz (Zeile X)" in der linken Karte anzeigen
 
-6. **`'Moldawisch': 'Übrige osteuropäische Sprachen'`** — Moldawisch ist linguistisch identisch mit Rumänisch. Korrekt: `'Rumänisch'`
-7. **`'Romani'/'Romanes': 'Übrige osteuropäische Sprachen'`** — Romani ist eine indoarische Sprache (verwandt mit Hindi/Sanskrit). Korrekt: `'Indoarische und drawidische Sprachen'`
+### 2. Sicherheitscheck für kritische Felder (`Step3Validation.tsx`)
 
-### FRAGWÜRDIG: Mehrdeutige historische Regionen
+- Vor der Konsolidierung prüfen, ob **Vorname** und **Nachname** zwischen Referenzzeile und betroffenen Zeilen übereinstimmen
+- Bei Abweichung im Vornamen: 
+  - Konsolidierung **blockieren** (Button deaktiviert)
+  - Prominente Warnung anzeigen: "Unterschiedliche Vornamen erkannt — keine automatische Konsolidierung möglich"
+  - Nur "Ignorieren" erlauben
 
-Diese Mappings sind vereinfachend, da sie Regionen abdecken, die mehrere heutige Staaten umfassen. Empfehlung: Beibehalten aber mit Kommentar versehen:
+### 3. "Alle konsolidieren" Batch-Aktion absichern
 
-8. **`'Kurdistan': 'Irak'`** — Umfasst Teile von Irak, Türkei, Syrien, Iran
-9. **`'Indochina': 'Vietnam'`** — Umfasst Vietnam, Laos, Kambodscha
-10. **`'Französisch-Westafrika': 'Senegal'`** — Umfasste 8 Länder (Senegal war Verwaltungssitz)
-11. **`'Französisch-Äquatorialafrika': 'Kongo (Republik)'`** — Umfasste 4 Länder
+- Gruppen mit Vorname-Abweichung automatisch aus der Batch-Aktion ausschliessen
+- Badge-Hinweis im Header: "X Gruppen übersprungen (Namensunterschied)"
 
-### HINWEIS: Korrekte aber ungewöhnliche Zuordnungen (verifiziert)
+### 4. Erkennungslogik absichern (`fileParser.ts`)
 
-- `'Berberisch': 'Afrikanische Sprachen'` — Korrekt (Afroasiatische Sprachfamilie, Nordafrika)
-- `'Estnisch': 'Andere nordeuropäische Sprachen'` — Korrekt (Finno-ugrisch, Nordeuropa)
-- `'Kapverdisch': 'Portugiesisch'` — Korrekt (Portugiesisch-basiertes Kreol)
-- `'Krio': 'Afrikanische Sprachen'` — Korrekt (Kreolsprache Sierra Leones)
-- `'Santali': 'Indoarische und drawidische Sprachen'` — Akzeptabel (Munda-Sprache, aber BISTA fasst Südasien zusammen)
+- In der `name_strasse`-Strategie nach dem Map-Lookup einen **Post-Check** einbauen: Vorname des aktuellen Eintrags gegen den gespeicherten Vorname vergleichen (redundant, aber als Sicherheitsnetz)
+- `ParentEntry`-Typ um `vorname` und `name` Felder erweitern, damit der Vergleich möglich ist
 
-## Umsetzung
+### Betroffene Dateien
 
-### Datei: `src/lib/fileParser.ts`
-
-**3 Nationality-Fixes:**
-- `'RW': 'Ruanda'` → `'RW': 'Rwanda'`
-- `'Ruanda-Urundi': 'Ruanda'` → `'Ruanda-Urundi': 'Rwanda'`
-- `'KG': 'Kirgistan'` → `'KG': 'Kirgisistan'`
-
-**2 Sprach-Einträge entfernen (Dead Code):**
-- `'Mongolisch': 'Ostasiatische Sprachen'` entfernen
-- `'Tibetisch': 'Ostasiatische Sprachen'` entfernen (Zeile 493 im Phase-4-Block; Tibetisch bleibt als gültiger BISTA-Wert erhalten)
-
-**2 Sprach-Zuordnungen korrigieren:**
-- `'Moldawisch': 'Übrige osteuropäische Sprachen'` → `'Moldawisch': 'Rumänisch'`
-- `'Romani': 'Übrige osteuropäische Sprachen'` → `'Romani': 'Indoarische und drawidische Sprachen'`
-- `'Romanes': 'Übrige osteuropäische Sprachen'` → `'Romanes': 'Indoarische und drawidische Sprachen'`
-
-**Kommentare bei mehrdeutigen Regionen hinzufügen:**
-- Bei Kurdistan, Indochina, Französisch-Westafrika, Französisch-Äquatorialafrika erklärende Kommentare ergänzen
-
-### Datei: `src/test/newRules.test.ts`
-
-- Tests für die korrigierten Werte aktualisieren (Romani, Moldawisch)
+- `src/components/import/Step3Validation.tsx` — Referenzzeile extrahieren, Feldvergleich erweitern, Sicherheitscheck, Batch-Absicherung
+- `src/lib/fileParser.ts` — `ParentEntry` erweitern, Post-Check in `addError`
 
