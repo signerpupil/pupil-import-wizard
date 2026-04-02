@@ -556,6 +556,10 @@ export function Step3Validation({
       const fromMatch = error.message.match(/"([^"]+)" \(Zeile (\d+)\)/);
       const toMatch = error.message.match(/→ "([^"]+)"/);
       const studentMatch = error.message.match(/Schüler\/in: ([^)]+)/);
+      const fromRowData = fromMatch ? rows[parseInt(fromMatch[2]) - 1] : null;
+      const fromStudentVorname = fromRowData ? String(fromRowData['S_Vorname'] ?? '') : '';
+      const fromStudentNachname = fromRowData ? String(fromRowData['S_Name'] ?? '') : '';
+      const fromStudentFull = [fromStudentVorname, fromStudentNachname].filter(Boolean).join(' ');
       entries.push({
         error,
         changeType: typeMatch?.[1] ?? 'Unbekannt',
@@ -563,6 +567,7 @@ export function Step3Validation({
         fromRow: fromMatch ? parseInt(fromMatch[2]) : error.row,
         toName: toMatch?.[1] ?? error.value,
         studentName: studentMatch?.[1] ?? (getStudentNameForRow(error.row) ?? `Zeile ${error.row}`),
+        fromStudentName: fromStudentFull || (fromMatch ? `Zeile ${fromMatch[2]}` : ''),
         column: error.column,
       });
     }
