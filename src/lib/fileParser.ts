@@ -1096,7 +1096,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'France': 'Frankreich',
   'Italy': 'Italien',
   'Spain': 'Spanien',
-  'Portugal': 'Portugal',
+  
   'Netherlands': 'Niederlande',
   'Belgium': 'Belgien',
   'Denmark': 'Dänemark',
