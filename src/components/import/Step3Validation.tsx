@@ -366,6 +366,10 @@ export function Step3Validation({
     
     return groups;
   }, [uncorrectedErrors, getStudentNameForRow, rows]);
+// Helper: strip diacritical marks for comparison
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
 
   // applyBulkParentIdCorrection is defined after filteredParentGroups (see below)
