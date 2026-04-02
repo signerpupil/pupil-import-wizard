@@ -2330,17 +2330,18 @@ function validateFieldType(
         };
       }
       if (!isValidLanguage(value)) {
-        const similar = findSimilarLanguage(value);
+        const match = findSimilarLanguage(value);
+        const isSafeMatch = match && (match.matchType === 'explicit' || match.matchType === 'exact');
         return {
           row: rowNum,
           column: columnName,
           value,
-          message: similar
-            ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${similar}"?`
+          message: match
+            ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${match.value}"?`
             : `"${value}" ist keine gültige BISTA-Sprache (kein BISTA-Code vorhanden)`,
           type: 'format',
-          severity: similar ? 'warning' : 'error',
-          correctedValue: similar ?? undefined,
+          severity: match ? 'warning' : 'error',
+          correctedValue: isSafeMatch ? match.value : undefined,
         };
       }
       break;
