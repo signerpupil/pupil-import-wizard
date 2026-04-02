@@ -2306,7 +2306,7 @@ function checkSiblingConsistency(rows: ParsedRow[]): ValidationError[] {
             for (const idx of idxs) {
               const studentName = `${rows[idx]['S_Vorname'] ?? ''} ${rows[idx]['S_Name'] ?? ''}`.trim();
               errors.push({
-                row: idx + 1,
+                row: idx + 2,
                 column: field,
                 value: val,
                 message: `Geschwister-Inkonsistenz: ${field} ist "${val}", aber andere Kinder von ${idField}="${parentId}" haben "${majorityValue}"${studentName ? ` (${studentName})` : ''}`,
