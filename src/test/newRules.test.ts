@@ -386,3 +386,43 @@ describe('Extended email typo corrections', () => {
     expect(formatEmail('test@iclod.com')).toBe('test@icloud.com');
   });
 });
+
+// ============================================
+// Language placeholder clearing
+// ============================================
+
+describe('Language placeholder clearing', () => {
+  const placeholders = ['Keine', 'keine angabe', 'N/A', 'na', '-', 'nichts', 'kein', 'keine sprache'];
+
+  it.each(placeholders)(
+    'clears S_Umgangssprache placeholder "%s"',
+    (placeholder) => {
+      const row = makeRow({ S_Umgangssprache: placeholder });
+      const errors = validateData([row], baseCols);
+      const langErrors = errors.filter(e => e.column === 'S_Umgangssprache');
+      expect(langErrors.length).toBe(1);
+      expect(langErrors[0].correctedValue).toBe('');
+      expect(langErrors[0].severity).toBe('warning');
+      expect(langErrors[0].message).toContain('geleert');
+    }
+  );
+
+  it.each(placeholders)(
+    'clears S_Muttersprache placeholder "%s"',
+    (placeholder) => {
+      const row = makeRow({ S_Muttersprache: placeholder, S_Umgangssprache: 'Deutsch' });
+      const errors = validateData([row], baseCols);
+      const langErrors = errors.filter(e => e.column === 'S_Muttersprache');
+      expect(langErrors.length).toBe(1);
+      expect(langErrors[0].correctedValue).toBe('');
+      expect(langErrors[0].severity).toBe('warning');
+    }
+  );
+
+  it('does NOT clear valid language "Deutsch"', () => {
+    const row = makeRow({ S_Umgangssprache: 'Deutsch' });
+    const errors = validateData([row], baseCols);
+    const langErrors = errors.filter(e => e.column === 'S_Umgangssprache');
+    expect(langErrors.length).toBe(0);
+  });
+});
