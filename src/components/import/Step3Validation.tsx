@@ -286,28 +286,31 @@ export function Step3Validation({
         studentName: getStudentNameForRow(e.row),
       }));
 
-      // Extract parent name & address from first row that has data for this column
+      // Extract parent name & address — use referencePrefix for reference row, prefix for affected rows
       // column is e.g. "P_ERZ1_ID" → prefix is "P_ERZ1_"
       const prefix = column.replace(/_ID$/, '_');
-      const firstRowIndex = groupErrors[0].row - 1; // rows is 0-indexed
-      const sampleRow = rows[firstRowIndex] ?? {};
-      const vorname = sampleRow[`${prefix}Vorname`] ?? '';
-      const name = sampleRow[`${prefix}Name`] ?? '';
-      const strasse = sampleRow[`${prefix}Strasse`] ?? '';
-      const plz = sampleRow[`${prefix}PLZ`] ?? '';
-      const ort = sampleRow[`${prefix}Ort`] ?? '';
+      // For display: prefer reference row data if available (with correct prefix)
+      const effectiveDisplayPrefix = referencePrefix || prefix;
+      const displayRow = referenceRow != null ? (rows[referenceRow - 1] ?? {}) : (rows[groupErrors[0].row - 1] ?? {});
+      const vorname = displayRow[`${effectiveDisplayPrefix}Vorname`] ?? '';
+      const name = displayRow[`${effectiveDisplayPrefix}Name`] ?? '';
+      const strasse = displayRow[`${effectiveDisplayPrefix}Strasse`] ?? '';
+      const plz = displayRow[`${effectiveDisplayPrefix}PLZ`] ?? '';
+      const ort = displayRow[`${effectiveDisplayPrefix}Ort`] ?? '';
 
       const parentName = [vorname, name].filter(Boolean).join(' ') || undefined;
       const addressParts = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean);
       const parentAddress = addressParts.join(', ') || undefined;
 
       // Safety check: detect name mismatch between reference row and affected rows
+      // Use referencePrefix for the reference row, prefix for affected rows
       let hasNameMismatch = false;
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
+        const refPfx = referencePrefix || prefix;
         if (refRow) {
-          const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-          const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+          const refVorname = String(refRow[`${refPfx}Vorname`] ?? '').trim().toLowerCase();
+          const refName = String(refRow[`${refPfx}Name`] ?? '').trim().toLowerCase();
           for (const ar of affectedRows) {
             const arRow = rows[ar.row - 1];
             if (!arRow) continue;
@@ -331,6 +334,7 @@ export function Step3Validation({
         parentName,
         parentAddress,
         referenceRow,
+        referencePrefix,
         affectedRows,
         hasNameMismatch,
       });
