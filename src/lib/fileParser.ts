@@ -2302,7 +2302,20 @@ function validateFieldType(
         return { row: rowNum, column: columnName, value, message: 'Ungültiges Telefonformat' };
       }
       break;
-    case 'language':
+    case 'language': {
+      // "Keine", "keine Angabe", "N/A" etc. → clear the field
+      const EMPTY_LANGUAGE_VALUES = ['keine', 'keine angabe', 'keine sprache', 'n/a', 'na', '-', 'nichts', 'kein'];
+      if (EMPTY_LANGUAGE_VALUES.includes(value.toLowerCase().trim())) {
+        return {
+          row: rowNum,
+          column: columnName,
+          value,
+          message: `"${value}" wird als leeres Feld interpretiert (Feld wird geleert)`,
+          type: 'format',
+          severity: 'warning',
+          correctedValue: '',
+        };
+      }
       if (!isValidLanguage(value)) {
         const similar = findSimilarLanguage(value);
         return {
@@ -2318,6 +2331,7 @@ function validateFieldType(
         };
       }
       break;
+    }
     case 'nationality':
       if (!isValidNationality(value)) {
         const correction = findNationalityCorrection(value);
