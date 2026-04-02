@@ -150,7 +150,7 @@ export function Step3Validation({
    * consolidation, PLZ↔Ort mismatches and sibling inconsistencies.
    */
   const isErrorStillValid = useCallback((error: ValidationError): boolean => {
-    const currentRow = rows[error.row - 1];
+    const currentRow = rows[error.row - 2];
     if (!currentRow) return false;
 
     // --- 1. Generic value-changed check (covers ID conflicts, duplicates, format errors) ---
@@ -217,7 +217,7 @@ export function Step3Validation({
 
   // Helper function to get student name - must be defined BEFORE useMemo that uses it
   const getStudentNameForRow = useCallback((rowNumber: number) => {
-    const row = rows[rowNumber - 1];
+    const row = rows[rowNumber - 2];
     if (!row) return null;
     const name = row['S_Name'] || row['S_name'] || '';
     const vorname = row['S_Vorname'] || row['S_vorname'] || '';
@@ -299,7 +299,7 @@ export function Step3Validation({
       const prefix = column.replace(/_ID$/, '_');
       // For display: prefer reference row data if available (with correct prefix)
       const effectiveDisplayPrefix = referencePrefix || prefix;
-      const displayRow = referenceRow != null ? (rows[referenceRow - 1] ?? {}) : (rows[groupErrors[0].row - 1] ?? {});
+      const displayRow = referenceRow != null ? (rows[referenceRow - 2] ?? {}) : (rows[groupErrors[0].row - 2] ?? {});
       const vorname = displayRow[`${effectiveDisplayPrefix}Vorname`] ?? '';
       const name = displayRow[`${effectiveDisplayPrefix}Name`] ?? '';
       const strasse = displayRow[`${effectiveDisplayPrefix}Strasse`] ?? '';
@@ -318,7 +318,7 @@ export function Step3Validation({
       let hasDiacriticNameDiff = false;
       let diacriticNameVariants: { prefix: string; row: number; name: string; vorname: string }[] = [];
       if (referenceRow != null) {
-        const refRow = rows[referenceRow - 1];
+        const refRow = rows[referenceRow - 2];
         if (refRow) {
           // Use the group's reference parent name (from effectiveDisplayPrefix) as ground truth
           const refVornameBase = String(refRow[`${effectiveDisplayPrefix}Vorname`] ?? '').trim();
@@ -330,7 +330,7 @@ export function Step3Validation({
           const arMatchedPrefixes = new Map<number, string>();
           const parentPrefixes = ['P_ERZ1_', 'P_ERZ2_'];
           for (const ar of affectedRows) {
-            const arRow = rows[ar.row - 1];
+            const arRow = rows[ar.row - 2];
             if (!arRow) continue;
             
             if (!refVornameBase && !refNameBase) continue;
@@ -385,7 +385,7 @@ export function Step3Validation({
             diacriticNameVariants.push({ prefix: effectiveDisplayPrefix, row: referenceRow, name: refNameBase, vorname: refVornameBase });
             // Add affected rows that differ from reference
             for (const ar of affectedRows) {
-              const arRow = rows[ar.row - 1];
+              const arRow = rows[ar.row - 2];
               if (!arRow) continue;
               const arPrefix = arMatchedPrefixes.get(ar.row) || ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
@@ -505,7 +505,7 @@ function stripDiacritics(s: string): string {
 
     return FIELDS_TO_COMPARE.map(field => {
       const values = rowEntries.map(r => {
-        const row = allRows[r.row - 1];
+        const row = allRows[r.row - 2];
         // Use per-row prefix (reference or affected)
         return String(row?.[`${r.prefix}${field.key}`] ?? '').trim();
       });
@@ -923,7 +923,7 @@ function stripDiacritics(s: string): string {
     // Get ALL columns from the data for full comparison
     const allColumns = new Set<string>();
     currentGroup.rows.forEach(rowNum => {
-      const rowData = rows[rowNum - 1];
+      const rowData = rows[rowNum - 2];
       if (rowData) {
         Object.keys(rowData).forEach(key => allColumns.add(key));
       }
@@ -944,7 +944,7 @@ function stripDiacritics(s: string): string {
         return uncorrectedErrors.some(e => e.row === rowNum && e.column === currentError.column);
       })
       .map(rowNum => {
-        const rowData = rows[rowNum - 1];
+        const rowData = rows[rowNum - 2];
         const studentName = getStudentNameForRow(rowNum);
         
         const fullData: Record<string, string> = {};
@@ -1085,7 +1085,7 @@ function stripDiacritics(s: string): string {
   const applyMasterRecord = useCallback(() => {
     if (!duplicateInfo || !selectedMasterRow) return;
     
-    const masterRowData = rows[selectedMasterRow - 1];
+    const masterRowData = rows[selectedMasterRow - 2];
     if (!masterRowData) return;
     
     const corrections: { row: number; column: string; value: string }[] = [];
@@ -1766,7 +1766,7 @@ function stripDiacritics(s: string): string {
                                         </p>
                                         {allEditRows.map(({ row: editRow, label, ahvCol }) => {
                                           const ahvKey = `${editRow}:${ahvCol}`;
-                                          const currentAhv = String(rows[editRow - 1]?.[ahvCol] ?? '');
+                                          const currentAhv = String(rows[editRow - 2]?.[ahvCol] ?? '');
                                           const isEditing = editingAhv.has(ahvKey);
                                           const editVal = editingAhv.get(ahvKey) ?? '';
                                           const ahvValid = /^756\.\d{4}\.\d{4}\.\d{2}$/.test(editVal);
@@ -2162,8 +2162,8 @@ function stripDiacritics(s: string): string {
                   const entryKey = `${entry.error.row}:${entry.error.column}`;
                   const isExpanded = expandedNameChanges.has(entryKey);
                   // Get row data for both rows to show identical fields
-                  const fromRow = rows[entry.fromRow - 1] ?? {};
-                  const toRow = rows[entry.error.row - 1] ?? {};
+                  const fromRow = rows[entry.fromRow - 2] ?? {};
+                  const toRow = rows[entry.error.row - 2] ?? {};
                   // Determine which column prefix to check for other name fields
                   const colPrefix = entry.column.replace(/Name$/, '');
                   const vornameCol = `${colPrefix}Vorname`;

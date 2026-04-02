@@ -130,8 +130,8 @@ export default function Index() {
       setCorrectedRows(prev => {
         const updated = [...prev];
         corrections.forEach(c => {
-          if (updated[c.row - 1]) {
-            updated[c.row - 1] = { ...updated[c.row - 1], [c.column]: c.correctedValue };
+          if (updated[c.row - 2]) {
+            updated[c.row - 2] = { ...updated[c.row - 2], [c.column]: c.correctedValue };
           }
         });
         return updated;
@@ -321,8 +321,8 @@ export default function Index() {
     setCorrectedRows(prev => {
       const updated = [...prev];
       corrections.forEach(c => {
-        if (updated[c.row - 1]) {
-          updated[c.row - 1] = { ...updated[c.row - 1], [c.column]: c.value };
+        if (updated[c.row - 2]) {
+          updated[c.row - 2] = { ...updated[c.row - 2], [c.column]: c.value };
         }
       });
       return updated;

@@ -134,7 +134,7 @@ describe('Re-validation: ID conflict resolution', () => {
 
     // Mark the original error as corrected
     const oldErrors = initialErrors.map(e =>
-      e.row === 2 && e.column === 'S_ID' && e.type === 'id_conflict'
+      e.row === 3 && e.column === 'S_ID' && e.type === 'id_conflict'
         ? { ...e, correctedValue: '100_D01' }
         : e
     );
@@ -499,7 +499,7 @@ describe('Re-validation: Full cycle simulation', () => {
 
     // Mark original error as corrected
     const markedErrors = initialErrors.map(e =>
-      e.row === 2 && e.column === 'S_ID' && e.type === 'id_conflict'
+      e.row === 3 && e.column === 'S_ID' && e.type === 'id_conflict'
         ? { ...e, correctedValue: '100_D01' }
         : e
     );
@@ -533,7 +533,7 @@ describe('Re-validation: Full cycle simulation', () => {
     
     // Row 2 should have sibling inconsistency (PLZ differs) AND PLZ↔Ort mismatch (3000≠Zürich)
     const siblingErr = initialErrors.filter(e => e.message.includes('Geschwister'));
-    const plzErr = initialErrors.filter(e => e.message.includes('PLZ') && e.row === 2);
+    const plzErr = initialErrors.filter(e => e.message.includes('PLZ') && e.row === 3);
     expect(siblingErr.length).toBeGreaterThanOrEqual(1);
     expect(plzErr.length).toBeGreaterThanOrEqual(1);
 
@@ -546,6 +546,6 @@ describe('Re-validation: Full cycle simulation', () => {
 
     // Both should be gone
     expect(freshErrors.filter(e => e.message.includes('Geschwister'))).toHaveLength(0);
-    expect(freshErrors.filter(e => e.message.includes('PLZ') && e.row === 2 && e.column === 'S_Ort')).toHaveLength(0);
+    expect(freshErrors.filter(e => e.message.includes('PLZ') && e.row === 3 && e.column === 'S_Ort')).toHaveLength(0);
   });
 });

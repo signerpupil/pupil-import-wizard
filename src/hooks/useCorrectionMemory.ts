@@ -194,7 +194,7 @@ export function useCorrectionMemory(importType: ImportType) {
 
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex];
-      const rowNumber = rowIndex + 1;
+      const rowNumber = rowIndex + 2;
 
       for (const rule of rulesToApply) {
         const cellValue = row[rule.column];
