@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages, Globe } from 'lucide-react';
+import { AlertCircle, CheckCircle, Edit2, Save, Zap, Loader2, ChevronLeft, ChevronRight, X, Cpu, AlertTriangle, Copy, Users, Search, ChevronDown, ChevronUp, UserCog, Phone, Hash, Mail, MapPin, User, CalendarDays, CreditCard, ArrowRight, Scissors, Info, Languages, Globe, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NavigationButtons } from './NavigationButtons';
@@ -544,6 +544,7 @@ export function Step3Validation({
     fromRow: number;
     toName: string;
     studentName: string;
+    fromStudentName: string;
     column: string;
   }
 
@@ -555,6 +556,10 @@ export function Step3Validation({
       const fromMatch = error.message.match(/"([^"]+)" \(Zeile (\d+)\)/);
       const toMatch = error.message.match(/→ "([^"]+)"/);
       const studentMatch = error.message.match(/Schüler\/in: ([^)]+)/);
+      const fromRowData = fromMatch ? rows[parseInt(fromMatch[2]) - 1] : null;
+      const fromStudentVorname = fromRowData ? String(fromRowData['S_Vorname'] ?? '') : '';
+      const fromStudentNachname = fromRowData ? String(fromRowData['S_Name'] ?? '') : '';
+      const fromStudentFull = [fromStudentVorname, fromStudentNachname].filter(Boolean).join(' ');
       entries.push({
         error,
         changeType: typeMatch?.[1] ?? 'Unbekannt',
@@ -562,6 +567,7 @@ export function Step3Validation({
         fromRow: fromMatch ? parseInt(fromMatch[2]) : error.row,
         toName: toMatch?.[1] ?? error.value,
         studentName: studentMatch?.[1] ?? (getStudentNameForRow(error.row) ?? `Zeile ${error.row}`),
+        fromStudentName: fromStudentFull || (fromMatch ? `Zeile ${fromMatch[2]}` : ''),
         column: error.column,
       });
     }
@@ -2012,8 +2018,20 @@ export function Step3Validation({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="font-mono text-xs shrink-0">{entry.column}</Badge>
                           <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
-                          <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
-                          <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                          {entry.fromStudentName && entry.fromStudentName !== entry.studentName ? (
+                            <>
+                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.fromRow}:</span>
+                              <span className="text-xs font-medium truncate">{entry.fromStudentName}</span>
+                              <span className="text-xs text-muted-foreground">|</span>
+                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.error.row}:</span>
+                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
+                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                            </>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
                           <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
@@ -2111,9 +2129,35 @@ export function Step3Validation({
                              </div>
                            </div>
                          </div>
-                         <p className="text-xs text-muted-foreground">
-                           ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
-                         </p>
+                         <div className="flex items-center gap-2 flex-wrap">
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               onErrorCorrect(entry.error.row, entry.error.column, entry.fromName, 'manual');
+                               toast({ title: 'Name übernommen', description: `«${entry.fromName}» wurde in Zeile ${entry.error.row} gesetzt.` });
+                             }}
+                             className="gap-1.5 text-xs"
+                             title={`Den Namen aus Zeile ${entry.fromRow} in Zeile ${entry.error.row} übernehmen`}
+                           >
+                             <Check className="h-3.5 w-3.5" />
+                             «{entry.fromName}» übernehmen
+                           </Button>
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
+                             className="gap-1.5 text-xs"
+                             title={`Den Namen «${entry.toName}» in Zeile ${entry.error.row} beibehalten`}
+                           >
+                             <Check className="h-3.5 w-3.5" />
+                             «{entry.toName}» beibehalten
+                           </Button>
+                           <span className="text-xs text-muted-foreground ml-1">
+                             ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
+                           </span>
+                         </div>
                        </div>
                      )}
                   </div>
