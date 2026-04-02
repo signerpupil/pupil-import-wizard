@@ -787,3 +787,108 @@ describe("Name Mismatch Detection – blocks consolidation for different first n
     expect(detectNameMismatch(rows, errors, "P_ERZ1_ID")).toBe(false);
   });
 });
+
+describe("Parent ID consolidation with 3+ children", () => {
+  it("detects inconsistent parent ID across 3 siblings", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Meier", S_Vorname: "Luca", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Thomas", P_ERZ1_AHV: "756.9999.9999.99",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+        P_ERZ2_ID: "P-200", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Sandra",
+        P_ERZ2_Strasse: "Hauptstrasse 1",
+      },
+      {
+        S_ID: "2", S_Name: "Meier", S_Vorname: "Anna", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "P-101", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Thomas", P_ERZ1_AHV: "756.9999.9999.99",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+        P_ERZ2_ID: "P-201", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Sandra",
+        P_ERZ2_Strasse: "Hauptstrasse 1",
+      },
+      {
+        S_ID: "3", S_Name: "Meier", S_Vorname: "Tim", S_AHV: "756.3333.3333.33",
+        P_ERZ1_ID: "P-102", P_ERZ1_Name: "Meier", P_ERZ1_Vorname: "Thomas", P_ERZ1_AHV: "756.9999.9999.99",
+        P_ERZ1_Strasse: "Hauptstrasse 1",
+        P_ERZ2_ID: "P-202", P_ERZ2_Name: "Meier", P_ERZ2_Vorname: "Sandra",
+        P_ERZ2_Strasse: "Hauptstrasse 1",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    // Should detect inconsistencies for rows 2 and 3 (both ERZ1 and ERZ2)
+    const erz1Errors = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+    const erz2Errors = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ2_ID");
+    expect(erz1Errors.length).toBeGreaterThanOrEqual(2); // rows 2 and 3
+    expect(erz2Errors.length).toBeGreaterThanOrEqual(2);
+    // Names match → no mismatch, consolidation should be allowed
+    expect(detectNameMismatch(rows, errors, "P_ERZ1_ID")).toBe(false);
+    expect(detectNameMismatch(rows, errors, "P_ERZ2_ID")).toBe(false);
+  });
+
+  it("detects inconsistency across 4 siblings with mixed IDs", () => {
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Weber", S_Vorname: "A", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Hans",
+        P_ERZ1_Strasse: "Weg 1",
+        P_ERZ2_ID: "P-200", P_ERZ2_Name: "Weber", P_ERZ2_Vorname: "Maria",
+        P_ERZ2_Strasse: "Weg 1",
+      },
+      {
+        S_ID: "2", S_Name: "Weber", S_Vorname: "B", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Hans",
+        P_ERZ1_Strasse: "Weg 1",
+        P_ERZ2_ID: "P-200", P_ERZ2_Name: "Weber", P_ERZ2_Vorname: "Maria",
+        P_ERZ2_Strasse: "Weg 1",
+      },
+      {
+        S_ID: "3", S_Name: "Weber", S_Vorname: "C", S_AHV: "756.3333.3333.33",
+        P_ERZ1_ID: "P-999", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Hans",
+        P_ERZ1_Strasse: "Weg 1",
+        P_ERZ2_ID: "P-200", P_ERZ2_Name: "Weber", P_ERZ2_Vorname: "Maria",
+        P_ERZ2_Strasse: "Weg 1",
+      },
+      {
+        S_ID: "4", S_Name: "Weber", S_Vorname: "D", S_AHV: "756.4444.4444.44",
+        P_ERZ1_ID: "P-888", P_ERZ1_Name: "Weber", P_ERZ1_Vorname: "Hans",
+        P_ERZ1_Strasse: "Weg 1",
+        P_ERZ2_ID: "P-201", P_ERZ2_Name: "Weber", P_ERZ2_Vorname: "Maria",
+        P_ERZ2_Strasse: "Weg 1",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const erz1Errors = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
+    // Rows 3 and 4 have different ERZ1 IDs
+    expect(erz1Errors.length).toBeGreaterThanOrEqual(1);
+    // Same person → no mismatch
+    expect(detectNameMismatch(rows, errors, "P_ERZ1_ID")).toBe(false);
+  });
+
+  it("Pass 2 pair matching includes slot label → no false name mismatch on cross-slot", () => {
+    // Parents swapped between ERZ1/ERZ2 slots across children
+    const rows: ParsedRow[] = [
+      {
+        S_ID: "1", S_Name: "Dhital", S_Vorname: "Robin", S_AHV: "756.1111.1111.11",
+        P_ERZ1_ID: "P-100", P_ERZ1_Name: "Stefanova", P_ERZ1_Vorname: "Kristina",
+        P_ERZ1_Strasse: "Bergweg 5",
+        P_ERZ2_ID: "P-200", P_ERZ2_Name: "Dhital", P_ERZ2_Vorname: "Ram",
+        P_ERZ2_Strasse: "Bergweg 5",
+      },
+      {
+        S_ID: "2", S_Name: "Dhital", S_Vorname: "Sara", S_AHV: "756.2222.2222.22",
+        P_ERZ1_ID: "P-200b", P_ERZ1_Name: "Dhital", P_ERZ1_Vorname: "Ram",
+        P_ERZ1_Strasse: "Bergweg 5",
+        P_ERZ2_ID: "P-100b", P_ERZ2_Name: "Stefanova", P_ERZ2_Vorname: "Kristina",
+        P_ERZ2_Strasse: "Bergweg 5",
+      },
+    ];
+    const errors = validateData(rows, testColumns);
+    const inconsistent = errors.filter(e => e.message.includes("Inkonsistente ID"));
+    
+    if (inconsistent.length > 0) {
+      // The error message should contain slot label "(Erziehungsberechtigte/r N)"
+      expect(inconsistent[0].message).toMatch(/\(Erziehungsberechtigte\/r \d\)/);
+      // With correct slot label extraction, same-name parents should NOT trigger mismatch
+      expect(detectNameMismatch(rows, errors, inconsistent[0].column)).toBe(false);
+    }
+  });
+});
