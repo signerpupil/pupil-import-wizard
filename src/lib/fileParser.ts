@@ -2348,17 +2348,18 @@ function validateFieldType(
     }
     case 'nationality':
       if (!isValidNationality(value)) {
-        const correction = findNationalityCorrection(value);
+        const natMatch = findNationalityCorrection(value);
+        const isSafeNatMatch = natMatch && (natMatch.matchType === 'explicit' || natMatch.matchType === 'exact');
         return {
           row: rowNum,
           column: columnName,
           value,
-          message: correction
-            ? `"${value}" → "${correction}" (veraltete Bezeichnung)`
+          message: natMatch
+            ? `"${value}" → "${natMatch.value}"${isSafeNatMatch ? ' (veraltete Bezeichnung)' : ' (Vorschlag – bitte prüfen)'}`
             : `"${value}" ist keine gültige Nationalität`,
           type: 'format',
-          severity: correction ? 'warning' : 'error',
-          correctedValue: correction ?? undefined,
+          severity: natMatch ? 'warning' : 'error',
+          correctedValue: isSafeNatMatch ? natMatch.value : undefined,
         };
       }
       break;
