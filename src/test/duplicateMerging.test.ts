@@ -40,7 +40,7 @@ describe("Duplicate Detection", () => {
     // Same AHV but different names → id_conflict
     const ahvConflicts = errors.filter(e => e.column === "S_AHV" && (e.type === 'id_conflict' || e.message.includes("Duplikat") || e.message.includes("ID-Konflikt")));
     expect(ahvConflicts.length).toBe(1);
-    expect(ahvConflicts[0].row).toBe(4); // Second occurrence is flagged
+    expect(ahvConflicts[0].row).toBe(3); // Second occurrence is flagged
     expect(ahvConflicts[0].value).toBe("756.1234.5678.90");
   });
 
@@ -56,7 +56,7 @@ describe("Duplicate Detection", () => {
     // Same ID, same name but different AHV → id_conflict (different AHV means different person)
     const idErrors = errors.filter(e => e.column === "S_ID" && (e.type === 'id_conflict' || e.type === 'duplicate'));
     expect(idErrors.length).toBe(1);
-    expect(idErrors[0].row).toBe(4);
+    expect(idErrors[0].row).toBe(3);
   });
 
   it("should detect multiple duplicates of the same value", () => {
@@ -95,7 +95,7 @@ describe("Parent ID Consistency Check", () => {
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
     // The second row should have the inconsistency error
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should not flag consistent parent IDs", () => {
@@ -132,7 +132,7 @@ describe("Parent ID Consistency Check", () => {
     
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should detect inconsistency when same parent is in ERZ1 in one row and ERZ2 in another", () => {
@@ -151,7 +151,7 @@ describe("Parent ID Consistency Check", () => {
     
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should detect inconsistent parent IDs when names differ only by diacritics", () => {
@@ -173,7 +173,7 @@ describe("Parent ID Consistency Check", () => {
     // "Juhász Krisztián" and "Juhasz Krisztian" should be recognized as the same person via Name+Strasse
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should auto-correct names without diacritics to the accented version", () => {
@@ -197,7 +197,7 @@ describe("Parent ID Consistency Check", () => {
     const nameCorrection = diacriticCorrections.find(e => e.column === "P_ERZ1_Name");
     expect(nameCorrection).toBeDefined();
     expect(nameCorrection!.correctedValue).toBe("Juhász");
-    expect(nameCorrection!.row).toBe(4);
+    expect(nameCorrection!.row).toBe(3);
     
     const vornameCorrection = diacriticCorrections.find(e => e.column === "P_ERZ1_Vorname");
     expect(vornameCorrection).toBeDefined();
@@ -226,7 +226,7 @@ describe("Parent ID Consistency Check", () => {
     const diacriticCorrections = errors.filter(e => e.message.includes("Diakritische Korrektur") && e.column === "P_ERZ1_Name");
     expect(diacriticCorrections.length).toBe(1);
     expect(diacriticCorrections[0].correctedValue).toBe("Môos");
-    expect(diacriticCorrections[0].row).toBe(4);
+    expect(diacriticCorrections[0].row).toBe(3);
 });
 
 describe("Name-only Address Disambiguation", () => {
@@ -247,7 +247,7 @@ describe("Name-only Address Disambiguation", () => {
     const errors = validateData(rows, testColumns);
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID"));
     expect(inconsistentIds.length).toBeGreaterThan(0);
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should warn when same name, different address, no phone match, but same other EB", () => {
@@ -269,7 +269,7 @@ describe("Name-only Address Disambiguation", () => {
     const errors = validateData(rows, testColumns);
     const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === "P_ERZ1_ID");
     expect(inconsistentIds.length).toBeGreaterThan(0);
-    expect(inconsistentIds.some(e => e.row === 4)).toBe(true);
+    expect(inconsistentIds.some(e => e.row === 3)).toBe(true);
   });
 
   it("should NOT warn when same name, different address, no phone match, different other EB", () => {
