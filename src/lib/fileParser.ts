@@ -2589,7 +2589,7 @@ export function exportToCSV(
   const correctionMap = buildCorrectionMap(errors);
 
   // Filter rows if onlyErrorFree, keeping track of original row numbers
-  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 1 }));
+  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 2 }));
   if (onlyErrorFree && errors.length > 0) {
     const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
     exportRowsWithIndex = exportRowsWithIndex.filter(({ rowNum }) => !errorRows.has(rowNum));
@@ -2650,7 +2650,7 @@ export async function exportToExcel(
   const correctionMap = buildCorrectionMap(errors);
 
   // Filter rows if onlyErrorFree, keeping track of original row numbers
-  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 1 }));
+  let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 2 }));
   if (onlyErrorFree && errors.length > 0) {
     const errorRows = new Set(errors.filter(e => !e.correctedValue).map(e => e.row));
     exportRowsWithIndex = exportRowsWithIndex.filter(({ rowNum }) => !errorRows.has(rowNum));
