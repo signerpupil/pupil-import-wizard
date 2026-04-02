@@ -1816,6 +1816,69 @@ function stripDiacritics(s: string): string {
                                     </>
                                   );
                                 })()}
+                                {/* Diacritic name difference — allow unification */}
+                                {!group.hasNameMismatch && group.hasDiacriticNameDiff && group.diacriticNameVariants && group.diacriticNameVariants.length > 1 && (() => {
+                                  // Deduplicate variants by name+vorname
+                                  const uniqueVariants = new Map<string, typeof group.diacriticNameVariants[0]>();
+                                  for (const v of group.diacriticNameVariants!) {
+                                    const key = `${v.name}|${v.vorname}`;
+                                    if (!uniqueVariants.has(key)) uniqueVariants.set(key, v);
+                                  }
+                                  const variants = Array.from(uniqueVariants.values());
+                                  if (variants.length < 2) return null;
+                                  
+                                  // Collect all rows that need updating for each variant choice
+                                  const allRows = group.diacriticNameVariants!;
+                                  
+                                  return (
+                                    <div className="mt-1.5 bg-amber-50 dark:bg-amber-950/20 rounded border border-amber-200 dark:border-amber-800 p-2 space-y-1.5">
+                                      <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                                        <Languages className="h-3 w-3" /> Namensschreibweise vereinheitlichen
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Unterschiedliche Schreibweisen (Akzente/Diakritika) erkannt. Wählen Sie die korrekte Schreibweise:
+                                      </p>
+                                      <div className="flex flex-wrap gap-1.5 mt-1">
+                                        {variants.map((v) => {
+                                          const displayName = `${v.vorname} ${v.name}`;
+                                          return (
+                                            <Button
+                                              key={`${v.name}|${v.vorname}`}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-7 gap-1.5 text-xs border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const corrections: { row: number; column: string; value: string }[] = [];
+                                                for (const target of allRows) {
+                                                  if (target.name !== v.name) {
+                                                    corrections.push({ row: target.row, column: `${target.prefix}Name`, value: v.name });
+                                                  }
+                                                  if (target.vorname !== v.vorname) {
+                                                    corrections.push({ row: target.row, column: `${target.prefix}Vorname`, value: v.vorname });
+                                                  }
+                                                }
+                                                if (corrections.length > 0) {
+                                                  for (const c of corrections) {
+                                                    onErrorCorrect(c.row, c.column, c.value, 'manual');
+                                                  }
+                                                  toast({ 
+                                                    title: 'Name vereinheitlicht', 
+                                                    description: `${corrections.length} Felder auf "${displayName}" gesetzt.` 
+                                                  });
+                                                }
+                                              }}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                              {displayName}
+                                              <span className="text-muted-foreground">(Z. {v.row})</span>
+                                            </Button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                                 {/* Warning badge if there are field differences */}
                                 {!group.hasNameMismatch && (() => {
                                   const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId, group.referencePrefix);
