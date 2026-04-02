@@ -270,6 +270,18 @@ const BISTA_NORMALIZED = new Map<string, string>(
 
 // Auto-Korrekturen für bekannte nicht-BISTA Sprachen
 export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
+  // Schweizerdeutsche Dialekte → Deutsch
+  'Schweizerdeutsch': 'Deutsch',
+  'Schwyzerdütsch': 'Deutsch',
+  'Züridütsch': 'Deutsch',
+  'Berndeutsch': 'Deutsch',
+  'Baseldeutsch': 'Deutsch',
+  'Bündnerdeutsch': 'Deutsch',
+  'Walliserdeutsch': 'Deutsch',
+  'Mundart': 'Deutsch',
+  'Dialekt': 'Deutsch',
+  'Schweizer Deutsch': 'Deutsch',
+  'Swiss German': 'Deutsch',
   'Tigrinya': 'Afrikanische Sprachen',
   'Dari': 'Westasiatische Sprachen',
   'Bangala': 'Indoarische und drawidische Sprachen',
@@ -655,9 +667,10 @@ function findSimilarLanguage(value: string): string | null {
   }
   // 2. Exact match via normalized (case-insensitive)
   if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // 3. Prefix match (first 5 chars)
+  // 3. Prefix match (first 5 chars) — only if lengths are similar (max 3 difference)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
+      if (Math.abs(key.length - normalized.length) > 3) continue;
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
         return lang;
       }
