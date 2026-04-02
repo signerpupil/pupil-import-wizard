@@ -1462,6 +1462,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     erz1Id: string; erz2Id: string;
     firstRow: number;
     erz1Name: string; erz2Name: string;
+    erz1SlotLabel: string; erz2SlotLabel: string;
   };
   const parentPairMap = new Map<string, NameOnlyEntry>();
 
@@ -1492,10 +1493,10 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
     if (existing) {
       // Check ERZ1 ID consistency
-      for (const [currentId, field, label, existingId] of [
-        [erz1Id, erz1.idField, erz1.label, existing.erz1Id],
-        [erz2Id, erz2.idField, erz2.label, existing.erz2Id],
-      ] as [string, string, string, string][]) {
+      for (const [currentId, field, label, existingId, existingSlotLabel] of [
+        [erz1Id, erz1.idField, erz1.label, existing.erz1Id, existing.erz1SlotLabel],
+        [erz2Id, erz2.idField, erz2.label, existing.erz2Id, existing.erz2SlotLabel],
+      ] as [string, string, string, string, string][]) {
         // Match IDs considering ERZ1/ERZ2 swap
         const matchesErz1 = currentId === existing.erz1Id;
         const matchesErz2 = currentId === existing.erz2Id;
@@ -1512,7 +1513,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
               row: rowIndex + 1,
               column: field,
               value: currentId,
-              message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+              message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} (${existingSlotLabel}) die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
               severity: 'warning',
             });
           }
@@ -1524,6 +1525,8 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         firstRow: rowIndex + 1,
         erz1Name: `${erz1Vorname} ${erz1Name}`,
         erz2Name: `${erz2Vorname} ${erz2Name}`,
+        erz1SlotLabel: erz1.label,
+        erz2SlotLabel: erz2.label,
       });
     }
   }

@@ -307,21 +307,37 @@ export function Step3Validation({
       let hasNameMismatch = false;
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
-        const refPfx = referencePrefix || prefix;
         if (refRow) {
-          const refVorname = String(refRow[`${refPfx}Vorname`] ?? '').trim().toLowerCase();
-          const refName = String(refRow[`${refPfx}Name`] ?? '').trim().toLowerCase();
-          for (const ar of affectedRows) {
-            const arRow = rows[ar.row - 1];
-            if (!arRow) continue;
-            const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-            const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
-            if ((refVorname && arVorname && refVorname !== arVorname) ||
-                (refName && arName && refName !== arName)) {
-              hasNameMismatch = true;
+          // If referencePrefix is known, use it directly.
+          // If not (e.g. Pass 2 pair matching without slot label), try both ERZ1 and ERZ2 prefixes.
+          const prefixesToTry = referencePrefix 
+            ? [referencePrefix] 
+            : ['P_ERZ1_', 'P_ERZ2_'];
+          
+          let matchFoundWithAnyPrefix = false;
+          for (const tryPfx of prefixesToTry) {
+            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim().toLowerCase();
+            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim().toLowerCase();
+            if (!refVorname && !refName) continue;
+            
+            let allMatch = true;
+            for (const ar of affectedRows) {
+              const arRow = rows[ar.row - 1];
+              if (!arRow) continue;
+              const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+              const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+              if ((refVorname && arVorname && refVorname !== arVorname) ||
+                  (refName && arName && refName !== arName)) {
+                allMatch = false;
+                break;
+              }
+            }
+            if (allMatch) {
+              matchFoundWithAnyPrefix = true;
               break;
             }
           }
+          hasNameMismatch = !matchFoundWithAnyPrefix;
         }
       }
       
