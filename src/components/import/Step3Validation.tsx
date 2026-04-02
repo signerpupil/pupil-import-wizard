@@ -381,7 +381,7 @@ export function Step3Validation({
 
   // Helper: compare parent fields across all affected rows for a consolidation group
   function getParentFieldComparison(
-    affectedRows: { row: number; currentId: string; studentName: string | null }[],
+    affectedRows: { row: number; currentId: string; studentName: string | null; column: string }[],
     column: string,
     allRows: ParsedRow[],
     referenceRow?: number,
@@ -406,7 +406,7 @@ export function Step3Validation({
     ];
 
     // Build the list of rows to compare: reference row first, then affected rows
-    const rowEntries: { row: number; label: string; isReference: boolean }[] = [];
+    const rowEntries: { row: number; label: string; isReference: boolean; prefix: string }[] = [];
     
     // Determine reference row: use provided value, or fallback by searching for correctId
     let effectiveRefRow = referenceRow;
@@ -425,7 +425,7 @@ export function Step3Validation({
     
     if (effectiveRefRow != null) {
       const refStudentName = getStudentNameForRow(effectiveRefRow);
-      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true });
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true, prefix: refPfx });
     }
     
     // Disambiguate affected row names
@@ -435,15 +435,15 @@ export function Step3Validation({
     for (const r of affectedRows) {
       const name = r.studentName || `Zeile ${r.row}`;
       const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
-      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false });
+      const arPrefix = r.column.replace(/_ID$/, '_'); // per-row prefix
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false, prefix: arPrefix });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
       const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
-        // Use referencePrefix for the reference row, normal prefix for affected rows
-        const pfx = r.isReference ? refPfx : prefix;
-        return String(row?.[`${pfx}${field.key}`] ?? '').trim();
+        // Use per-row prefix (reference or affected)
+        return String(row?.[`${r.prefix}${field.key}`] ?? '').trim();
       });
       const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
       const allEmpty = values.every(v => v === '');
