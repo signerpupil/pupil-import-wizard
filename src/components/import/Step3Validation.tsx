@@ -1624,13 +1624,94 @@ export function Step3Validation({
                                     {group.affectedRows.length > 3 && ` +${group.affectedRows.length - 3} weitere`}
                                   </span>
                                 </div>
-                                {/* Name mismatch critical warning */}
-                                {group.hasNameMismatch && (
-                                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
-                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="font-medium">Unterschiedliche Namen erkannt — keine automatische Konsolidierung möglich</span>
-                                  </div>
-                                )}
+                                {/* Name mismatch critical warning + inline AHV edit */}
+                                {group.hasNameMismatch && (() => {
+                                  const prefix = group.column.replace(/_ID$/, '');
+                                  const ahvColumn = `${prefix}_AHV`;
+                                  const allEditRows = [
+                                    ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})` }] : []),
+                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})` })),
+                                  ];
+                                  return (
+                                    <>
+                                      <div className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
+                                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="font-medium">Unterschiedliche Namen erkannt — keine automatische Konsolidierung möglich</span>
+                                      </div>
+                                      <div className="mt-1.5 bg-muted/40 rounded border p-2 space-y-1.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                                          <Edit2 className="h-3 w-3" /> AHV-Nummer korrigieren
+                                        </p>
+                                        {allEditRows.map(({ row: editRow, label }) => {
+                                          const ahvKey = `${editRow}:${ahvColumn}`;
+                                          const currentAhv = String(rows[editRow - 1]?.[ahvColumn] ?? '');
+                                          const isEditing = editingAhv.has(ahvKey);
+                                          const editVal = editingAhv.get(ahvKey) ?? '';
+                                          const ahvValid = /^756\.\d{4}\.\d{4}\.\d{2}$/.test(editVal);
+                                          return (
+                                            <div key={ahvKey} className="flex items-center gap-2 text-xs">
+                                              <span className="text-muted-foreground truncate min-w-[120px]">{label}</span>
+                                              {!isEditing ? (
+                                                <>
+                                                  <code className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-background border">{currentAhv || '–'}</code>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 p-0"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setEditingAhv(prev => new Map(prev).set(ahvKey, currentAhv));
+                                                    }}
+                                                  >
+                                                    <Edit2 className="h-3 w-3" />
+                                                  </Button>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Input
+                                                    value={editVal}
+                                                    onChange={(e) => {
+                                                      const v = e.target.value;
+                                                      setEditingAhv(prev => new Map(prev).set(ahvKey, v));
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className={`h-7 w-48 font-mono text-xs ${editVal && !ahvValid ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                                    placeholder="756.XXXX.XXXX.XX"
+                                                  />
+                                                  <Button
+                                                    size="sm"
+                                                    variant="default"
+                                                    className="h-7 gap-1 px-2"
+                                                    disabled={!ahvValid}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      onErrorCorrect(editRow, ahvColumn, editVal, 'manual');
+                                                      setEditingAhv(prev => { const m = new Map(prev); m.delete(ahvKey); return m; });
+                                                      toast({ title: 'AHV korrigiert', description: `Zeile ${editRow}: ${ahvColumn} → ${editVal}` });
+                                                    }}
+                                                  >
+                                                    <Save className="h-3 w-3" /> OK
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-7 w-7 p-0"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setEditingAhv(prev => { const m = new Map(prev); m.delete(ahvKey); return m; });
+                                                    }}
+                                                  >
+                                                    <X className="h-3 w-3" />
+                                                  </Button>
+                                                </>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                                 {/* Warning badge if there are field differences */}
                                 {!group.hasNameMismatch && (() => {
                                   const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
