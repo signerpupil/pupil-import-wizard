@@ -162,7 +162,7 @@ function validateData(
           row: i,
           column: idColumn.name,
           value: key,
-          message: `Duplikat gefunden (erste Zeile: ${seen.get(key)! + 1})`,
+          message: `Duplikat gefunden (erste Zeile: ${seen.get(key)! + 2})`,
           type: 'duplicate',
           severity: 'warning',
         });
