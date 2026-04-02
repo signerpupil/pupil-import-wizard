@@ -450,7 +450,7 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '8956': ['Killwangen'],
   '8957': ['Spreitenbach'],
   '8962': ['Bergdietikon'],
-  '8964': ['Rudolfstetten'],
+  '8964': ['Rudolfstetten', 'Rudolfstetten-Friedlisberg'],
   '8965': ['Berikon'],
   '8966': ['Oberwil-Lieli'],
   '8967': ['Widen'],
