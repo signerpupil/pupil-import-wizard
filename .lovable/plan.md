@@ -1,68 +1,47 @@
 
 
-# Audit: Alle Automatisierungsregeln auf Risiken prüfen
+# Fix: Eltern-ID Konsolidierung vereint Kinder nicht über ERZ-Slots hinweg
 
-## Identifizierte Probleme
+## Problem
 
-### 1. KRITISCH: Sprach-Fuzzy-Matching zu aggressiv (Prefix + Levenshtein)
-**Datei:** `src/lib/fileParser.ts`, Zeilen 670-701
+Wenn derselbe Elternteil bei verschiedenen Kindern in **unterschiedlichen ERZ-Slots** erscheint (z.B. Flandra Lataj ist ERZ2 bei Alea, ERZ1 bei Jon, ERZ2 bei Aron), werden diese als **separate Gruppen** behandelt. Der Gruppierungsschlüssel `${error.column}:${identifier}` trennt nach Spalte (P_ERZ1_ID vs P_ERZ2_ID), obwohl es sich um denselben Elternteil handelt.
 
-Der Prefix-Match (Schritt 3) prüft zwar jetzt Längendifferenz ≤3, aber das ist für kurze Sprachen immer noch gefährlich:
-- "Tamil" (5 Zeichen) könnte auf "Tibetisch" matchen (Prefix "tamil" vs "tibet" → nein, aber Levenshtein könnte greifen)
-- `maxDistance()` erlaubt bis zu 3 Edits bei Wörtern >8 Zeichen → "Montenegrinisch" könnte auf "Montenegrisch" passen (ok), aber auch unerwartete Matches
+**Konkretes Beispiel aus den Daten:**
+- Alea Lataj → ERZ2 = Flandra Lataj (ID: MM1KH49CIGNB4606) — **Referenz**
+- Jon Lataj → ERZ1 = Flandra Lataj (ID: MMYJG3JER8OA5197) — Fehler auf `P_ERZ1_ID`
+- Aron Kryeziu → ERZ2 = Flandra Lataj (ID: MMNGD28GK0DR7163) — Fehler auf `P_ERZ2_ID`
 
-**Fix:** Levenshtein-Fuzzy für Sprachen nur als **Vorschlag (ohne `correctedValue`)** ausgeben, nie automatisch korrigieren. Der Benutzer soll entscheiden.
+→ Statt einer Gruppe "Flandra Lataj – 2 betroffene Kinder" gibt es zwei separate Gruppen mit je 1 Kind.
 
-### 2. KRITISCH: Nationalitäten-Fuzzy-Matching setzt `correctedValue` automatisch
-**Datei:** `src/lib/fileParser.ts`, Zeilen 1227-1249
+## Lösung
 
-Der Levenshtein-Match bei Nationalitäten (Schritt 3+4 in `findNationalityCorrection`) setzt automatisch einen `correctedValue`. Bei echten Personendaten ist das riskant:
-- "Mali" (4 Zeichen, maxDist=1) → könnte "Malawi" matchen (dist=2, passt nicht)
-- "Niger" → "Nigeria" (dist=2, maxDist=2 bei len=5) → **falsche Zuordnung möglich!**
-- "Kongo" → könnte "Kongo (Republik)" oder "Dem. Rep. Kongo" treffen
+### Datei: `src/components/import/Step3Validation.tsx`
 
-**Fix:** Levenshtein-basierte Nationalitäten-Korrekturen nur als Vorschlag ohne automatische Korrektur. Explizite Mappings (Schritt 1+2) sind sicher und bleiben.
+**Änderung: Gruppierung nach Eltern-Identität statt nach Spalte**
 
-### 3. MITTEL: E-Mail-Korrektur entfernt Umlaute ohne Rückfrage
-**Datei:** `src/lib/formatters.ts`, Zeile 187
+Den Gruppierungsschlüssel von `${error.column}:${identifier}` auf nur `${identifier}` ändern (oder genauer: den normalisierten Elternteil-Identifier). Dadurch werden alle Fehler für denselben Elternteil — unabhängig davon, ob sie in P_ERZ1_ID oder P_ERZ2_ID auftreten — in **einer einzigen Gruppe** zusammengefasst.
 
-`formatEmail` entfernt Diakritika via NFD-Normalisierung. Eine E-Mail wie `müller@example.ch` wird zu `muller@example.ch`. Das kann korrekt sein (viele Server akzeptieren keine Umlaute), ist aber eine Annahme.
+Konkret:
+1. **Gruppierungsschlüssel** (Zeile 250): Nur den `identifier` verwenden, nicht `error.column` einbeziehen
+2. **Spalte pro Zeile speichern**: Da die betroffenen Zeilen unterschiedliche Spalten haben können (P_ERZ1_ID vs P_ERZ2_ID), muss die `column`-Information in die `affectedRows`-Einträge verschoben werden statt auf Gruppenebene
+3. **`ParentIdInconsistencyGroup` Interface anpassen**: `column` wird optional auf Gruppenebene (oder ein Array), und jede `affectedRow` bekommt ein eigenes `column`-Feld
+4. **Konsolidierung anpassen**: `applyBulkParentIdCorrection` und der Details-View müssen pro Zeile die korrekte Spalte verwenden (nicht eine globale column pro Gruppe)
 
-**Fix:** Akzeptabel — internationalisierte E-Mails mit Umlauten sind in der Schweiz selten, und die Korrektur wird dem Benutzer angezeigt.
+### Interface-Änderung
 
-### 4. MITTEL: Name-Formatierung (ALL CAPS → Proper Case)
-**Datei:** `src/lib/formatters.ts`, Zeilen 243-250
+```text
+ParentIdInconsistencyGroup.affectedRows[]:
+  + column: string  // z.B. "P_ERZ1_ID" oder "P_ERZ2_ID" — pro Zeile
 
-`formatName` konvertiert ALL CAPS und all lowercase zu Proper Case. Das ist bei Doppelnamen mit Adelspräfixen korrekt implementiert (NOBLE_PREFIXES). Akzeptabel.
+ParentIdInconsistencyGroup:
+  column → wird zum "primären" column der Referenz (für Display)
+```
 
-### 5. NIEDRIG: Gender-Mapping "H" → "M" und "F" → "W"
-**Datei:** `src/lib/formatters.ts`, Zeilen 221-232
+### Betroffene Stellen
 
-"H" (Herr) → "M" und "F" (Frau/Female) → "W" sind plausibel für CH-Kontext. Akzeptabel.
-
-### 6. OK: Explizite Sprach-/Nationalitäten-Mappings
-Die hunderten expliziten Mappings (z.B. Schweizerdeutsch→Deutsch, Tibet→China, USA→Vereinigte Staaten) sind korrekt und sicher — das sind bewusste 1:1 Zuordnungen.
-
----
-
-## Geplante Änderungen
-
-### Datei: `src/lib/fileParser.ts`
-
-**Änderung 1: `findSimilarLanguage` — Levenshtein-Matches nicht mehr als `correctedValue` setzen**
-
-In der `case 'language'` Logik (Zeile ~2330-2343): Wenn der Match via Levenshtein (nicht explizites Mapping) kam, soll `correctedValue` **nicht** gesetzt werden. Der Vorschlag bleibt in der Nachricht, aber der Benutzer muss manuell korrigieren.
-
-Dazu: `findSimilarLanguage` gibt zusätzlich zurück, **wie** der Match gefunden wurde (explicit vs fuzzy). Bei fuzzy → kein automatischer `correctedValue`.
-
-**Änderung 2: `findNationalityCorrection` — Levenshtein-Matches nicht automatisch korrigieren**
-
-Gleiche Logik: Explizite Mappings und exakte Case-insensitive Matches werden automatisch korrigiert. Levenshtein-Fuzzy-Matches werden nur als Vorschlag angezeigt (kein `correctedValue`).
-
-### Zusammenfassung
-- Explizite Mappings (hunderte Einträge) → **bleiben automatisch** ✓
-- Case-insensitive exakte Matches → **bleiben automatisch** ✓  
-- Prefix-Match → **nur Vorschlag, keine Auto-Korrektur** (Risiko zu hoch)
-- Levenshtein-Fuzzy → **nur Vorschlag, keine Auto-Korrektur** (Risiko zu hoch)
-- Alle anderen Regeln (AHV, Datum, Telefon, PLZ, Geschlecht) → **bleiben wie sie sind** (deterministisch und sicher)
+- **Gruppierung** (Zeile 230-358): Neuer Schlüssel + column pro affectedRow
+- **Konsolidierung** (Zeile 513-541): `onBulkCorrect` muss pro Zeile die richtige Spalte nehmen
+- **Dismiss** (Zeile 366-380): Gleiches Prinzip
+- **Detail-Rendering** (IdConflictBatchCard oder inline): Zeigt an, dass Slot-Wechsel vorliegt
+- **Name-Mismatch-Check** (Zeile 306-341): Muss beide Prefixes pro affectedRow berücksichtigen
 
