@@ -1727,7 +1727,7 @@ export function Step3Validation({
                                 })()}
                                 {/* Warning badge if there are field differences */}
                                 {!group.hasNameMismatch && (() => {
-                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId, group.referencePrefix);
                                   const diffCount = fc.filter(f => !f.allSame).length;
                                   return diffCount > 0 ? (
                                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
