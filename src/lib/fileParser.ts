@@ -1493,10 +1493,10 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
     if (existing) {
       // Check ERZ1 ID consistency
-      for (const [currentId, field, label, existingId] of [
-        [erz1Id, erz1.idField, erz1.label, existing.erz1Id],
-        [erz2Id, erz2.idField, erz2.label, existing.erz2Id],
-      ] as [string, string, string, string][]) {
+      for (const [currentId, field, label, existingId, existingSlotLabel] of [
+        [erz1Id, erz1.idField, erz1.label, existing.erz1Id, existing.erz1SlotLabel],
+        [erz2Id, erz2.idField, erz2.label, existing.erz2Id, existing.erz2SlotLabel],
+      ] as [string, string, string, string, string][]) {
         // Match IDs considering ERZ1/ERZ2 swap
         const matchesErz1 = currentId === existing.erz1Id;
         const matchesErz2 = currentId === existing.erz2Id;
