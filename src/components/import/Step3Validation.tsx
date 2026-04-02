@@ -382,7 +382,7 @@ export function Step3Validation({
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
-              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arPrefix = arMatchedPrefixes.get(ar.row) || ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
               const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
               if (arName !== refNameBase || arVorname !== refVornameBase) {
