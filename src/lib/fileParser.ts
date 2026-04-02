@@ -1264,7 +1264,16 @@ function normalizeForComparison(value: string): string {
 
 // Normalize phone number by removing all non-digit characters
 function normalizePhone(value: string): string {
-  return value.replace(/\D/g, '');
+  let digits = value.replace(/\D/g, '');
+  // Normalize Swiss country code: 0041... → 0...
+  if (digits.startsWith('0041')) {
+    digits = '0' + digits.slice(4);
+  }
+  // Also handle +41 (already stripped to 41...)
+  if (digits.startsWith('41') && digits.length >= 11) {
+    digits = '0' + digits.slice(2);
+  }
+  return digits;
 }
 
 // Count diacritical marks in a string (more = "richer")
@@ -1344,7 +1353,7 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
 
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 // Uses a UNIFIED pool across ERZ1 and ERZ2 so cross-slot inconsistencies are detected
-type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only';
+type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only' | 'name_phone' | 'name_pair';
 
 const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: string; warning?: string }> = {
   ahv: {
@@ -1355,6 +1364,14 @@ const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: strin
     label: 'Name + Vorname + Strasse',
     reliability: 'Mittlere Zuverlässigkeit',
     warning: '⚠ Namensgleichheit an derselben Adresse kann auf verschiedene Personen zutreffen (z.B. Vater und Sohn).',
+  },
+  name_phone: {
+    label: 'Name + Telefonnummer',
+    reliability: 'Mittlere Zuverlässigkeit',
+  },
+  name_pair: {
+    label: 'Name + Elternpaar',
+    reliability: 'Mittlere Zuverlässigkeit',
   },
   name_only: {
     label: 'Name + Vorname',
@@ -1606,11 +1623,19 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
           }
 
           if (isSamePerson) {
+            // Determine the specific disambiguation strategy used
+            let disambigStrategy: MatchStrategy = 'name_only';
+            if (phones.length > 0 && prev.phoneNumbers.length > 0 && phones.some(p => prev.phoneNumbers.includes(p))) {
+              disambigStrategy = 'name_phone';
+            } else if (otherErzNameKey && prev.otherErzNameKey && otherErzNameKey === prev.otherErzNameKey) {
+              disambigStrategy = 'name_pair';
+            }
+
             const displayName = `${vorname} ${name}`;
             const errorKey = `${rowIndex + 1}:${check.idField}:${displayName}`;
             if (!errorSet.has(errorKey)) {
               errorSet.add(errorKey);
-              const strategyInfo = STRATEGY_LABELS['name_only'];
+              const strategyInfo = STRATEGY_LABELS[disambigStrategy];
               const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
               errors.push({
                 row: rowIndex + 1,
