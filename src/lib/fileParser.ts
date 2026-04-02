@@ -2112,9 +2112,7 @@ export function validateData(
   const parentIdErrors = checkParentIdConsistency(rows);
   errors.push(...parentIdErrors);
 
-  // Check diacritic name inconsistencies and auto-correct
-  const diacriticErrors = checkDiacriticNameInconsistencies(rows);
-  errors.push(...diacriticErrors);
+  // Diacritic name inconsistency checks disabled (no auto-corrections for diacritics)
 
   // Check for parent name changes (marriage, double names, etc.) – no AHV required
   const nameChangeErrors = checkParentNameChanges(rows);
