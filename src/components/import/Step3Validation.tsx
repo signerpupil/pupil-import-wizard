@@ -55,6 +55,7 @@ interface ParentIdInconsistencyGroup {
     row: number;
     currentId: string;
     studentName: string | null;
+    column: string; // e.g., "P_ERZ1_ID" or "P_ERZ2_ID" — per-row, may differ across rows
   }[];
   hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
 }
@@ -247,7 +248,7 @@ export function Step3Validation({
       
       // Also extract the "correct" ID mentioned in the message
       const correctIdMatch = error.message.match(/die ID '([^']+)'/);
-      const key = `${error.column}:${identifier}`;
+      const key = identifier; // Group by identifier only (not by column), so cross-slot families merge
       
       const existing = groupedByIdentifier.get(key);
       if (existing) {
@@ -258,8 +259,8 @@ export function Step3Validation({
     }
     
     // Convert to groups
-    groupedByIdentifier.forEach((groupErrors, key) => {
-      const [column, identifier] = key.split(':', 2);
+    groupedByIdentifier.forEach((groupErrors, identifier) => {
+      const column = groupErrors[0].column; // primary column for display
       
       // Get correct ID from first error message
       const firstError = groupErrors[0];
@@ -284,6 +285,7 @@ export function Step3Validation({
         row: e.row,
         currentId: e.value,
         studentName: getStudentNameForRow(e.row),
+        column: e.column, // per-row column (P_ERZ1_ID or P_ERZ2_ID)
       }));
 
       // Extract parent name & address — use referencePrefix for reference row, prefix for affected rows
@@ -324,8 +326,9 @@ export function Step3Validation({
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
-              const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-              const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+              const arPrefix = ar.column.replace(/_ID$/, '_'); // per-row prefix
+              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim().toLowerCase();
+              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim().toLowerCase();
               if ((refVorname && arVorname && refVorname !== arVorname) ||
                   (refName && arName && refName !== arName)) {
                 allMatch = false;
@@ -366,7 +369,7 @@ export function Step3Validation({
   const dismissParentGroup = useCallback((group: ParentIdInconsistencyGroup) => {
     const corrections = group.affectedRows.map(r => ({
       row: r.row,
-      column: group.column,
+      column: r.column, // use per-row column
       value: r.currentId, // keep current value → marks as correctedValue = same → disappears from uncorrected
     }));
     onBulkCorrect(corrections, 'bulk');
@@ -378,7 +381,7 @@ export function Step3Validation({
 
   // Helper: compare parent fields across all affected rows for a consolidation group
   function getParentFieldComparison(
-    affectedRows: { row: number; currentId: string; studentName: string | null }[],
+    affectedRows: { row: number; currentId: string; studentName: string | null; column: string }[],
     column: string,
     allRows: ParsedRow[],
     referenceRow?: number,
@@ -403,7 +406,7 @@ export function Step3Validation({
     ];
 
     // Build the list of rows to compare: reference row first, then affected rows
-    const rowEntries: { row: number; label: string; isReference: boolean }[] = [];
+    const rowEntries: { row: number; label: string; isReference: boolean; prefix: string }[] = [];
     
     // Determine reference row: use provided value, or fallback by searching for correctId
     let effectiveRefRow = referenceRow;
@@ -422,7 +425,7 @@ export function Step3Validation({
     
     if (effectiveRefRow != null) {
       const refStudentName = getStudentNameForRow(effectiveRefRow);
-      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true });
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true, prefix: refPfx });
     }
     
     // Disambiguate affected row names
@@ -432,15 +435,15 @@ export function Step3Validation({
     for (const r of affectedRows) {
       const name = r.studentName || `Zeile ${r.row}`;
       const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
-      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false });
+      const arPrefix = r.column.replace(/_ID$/, '_'); // per-row prefix
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false, prefix: arPrefix });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
       const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
-        // Use referencePrefix for the reference row, normal prefix for affected rows
-        const pfx = r.isReference ? refPfx : prefix;
-        return String(row?.[`${pfx}${field.key}`] ?? '').trim();
+        // Use per-row prefix (reference or affected)
+        return String(row?.[`${r.prefix}${field.key}`] ?? '').trim();
       });
       const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
       const allEmpty = values.every(v => v === '');
@@ -523,7 +526,7 @@ export function Step3Validation({
       for (const affectedRow of group.affectedRows) {
         corrections.push({
           row: affectedRow.row,
-          column: group.column,
+          column: affectedRow.column, // use per-row column
           value: group.correctId,
         });
         totalAffectedChildren++;
@@ -1583,18 +1586,23 @@ export function Step3Validation({
                       </p>
                     ) : (
                        paginatedParentGroups.map((group, idx) => {
-                          const groupKey = `${group.column}:${group.identifier}`;
+                          const groupKey = `${group.identifier}`;
                           const isExpanded = expandedParentGroups.has(groupKey);
                           const prefix = group.column.replace(/_ID$/, '_');
+                          // Show all unique columns in the group
+                          const uniqueColumns = [...new Set(group.affectedRows.map(r => r.column))];
+                          if (!uniqueColumns.includes(group.column)) uniqueColumns.unshift(group.column);
                           const PERSON_FIELDS = ['Vorname', 'Name', 'Strasse', 'PLZ', 'Ort', 'AHV'];
                           return (
-                         <div key={`${group.column}-${group.identifier}-${idx}`} className="bg-background rounded-lg border overflow-hidden">
+                         <div key={`${group.identifier}-${idx}`} className="bg-background rounded-lg border overflow-hidden">
                            {/* Card header */}
                            <div className="p-3 space-y-2">
                            <div className="flex items-center justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <Badge variant="outline" className="shrink-0">{group.column}</Badge>
+                                  {uniqueColumns.map(col => (
+                                    <Badge key={col} variant="outline" className="shrink-0">{col}</Badge>
+                                  ))}
                                   {group.matchReason && (
                                     <Badge
                                       variant="secondary"
@@ -1661,13 +1669,14 @@ export function Step3Validation({
                                 </div>
                                 {/* Name mismatch critical warning + inline AHV edit */}
                                 {group.hasNameMismatch && (() => {
-                                  const prefix = group.column.replace(/_ID$/, '');
-                                  const ahvColumn = `${prefix}_AHV`;
-                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : prefix;
+                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : group.column.replace(/_ID$/, '');
                                   const refAhvColumn = `${refPrefix}_AHV`;
                                   const allEditRows = [
                                     ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})`, ahvCol: refAhvColumn }] : []),
-                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: ahvColumn })),
+                                    ...group.affectedRows.map(ar => {
+                                      const arPrefix = ar.column.replace(/_ID$/, '');
+                                      return { row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: `${arPrefix}_AHV` };
+                                    }),
                                   ];
                                   return (
                                     <>
