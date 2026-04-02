@@ -285,6 +285,7 @@ export function Step3Validation({
         row: e.row,
         currentId: e.value,
         studentName: getStudentNameForRow(e.row),
+        column: e.column, // per-row column (P_ERZ1_ID or P_ERZ2_ID)
       }));
 
       // Extract parent name & address — use referencePrefix for reference row, prefix for affected rows
