@@ -1080,8 +1080,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Brazil': 'Brasilien',
   'Argentina': 'Argentinien',
   'Colombia': 'Kolumbien',
-  'Chile': 'Chile',
-  'Peru': 'Peru',
   'Cuba': 'Kuba',
   'Venezuela': 'Venezuela',
   'Ecuador': 'Ecuador',
