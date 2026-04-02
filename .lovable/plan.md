@@ -1,36 +1,29 @@
 
 
-# Fix: Eltern-Konsolidierung – gleiche Kindernamen & fehlender Referenz-Vergleich
+# Inline AHV-Edit bei Name-Mismatch in Eltern-Konsolidierung
 
-## Gefundene Probleme
-
-### 1. Tooltip zeigt falsche Referenzzeile
-Zeile 1568: `Aus Zeile {group.affectedRows[0]?.row}` zeigt die erste **betroffene** Zeile statt die **Referenzzeile** (`group.referenceRow`). Die Referenzzeile ist der Eintrag mit der "korrekten" ID.
-
-### 2. "betroffene Kinder" zeigt identische Namen
-Wenn derselbe Schüler in mehreren Zeilen vorkommt (z.B. Duplikate), wird `getStudentNameForRow()` für beide Zeilen denselben Namen zurückgeben: "Sarina Khushy ✕, Sarina Khushy ✕". Es fehlt eine Unterscheidung durch Zeilennummer.
-
-### 3. "alle gleich" trotz unterschiedlicher Daten
-Die Referenzzeile wird zwar im Code via `group.referenceRow` extrahiert, aber in der Feldvergleichs-Berechnung (`getParentFieldComparison`) nur einbezogen, wenn `referenceRow != null`. Falls die Regex-Extraktion fehlschlägt oder der Wert `undefined` ist, werden nur die betroffenen Zeilen verglichen — die naturgemäss identisch sind (selber Elternteil, selbes Kind).
+## Problem
+Wenn zwei Personen dieselbe AHV teilen aber unterschiedliche Namen haben (z.B. Michael vs Michaela Brunner), wird die Konsolidierung blockiert. Der Benutzer hat aktuell keine Möglichkeit, die fehlerhafte AHV direkt zu korrigieren — er müsste dafür die Validierungsansicht verlassen.
 
 ## Lösung
+Bei `hasNameMismatch`-Gruppen einen Inline-Edit für die AHV-Nummer der betroffenen Zeilen anbieten, direkt unterhalb der Warnmeldung.
 
-### Datei: `src/components/import/Step3Validation.tsx`
+### Änderungen in `src/components/import/Step3Validation.tsx`
 
-**Fix 1 – Tooltip korrigieren (Zeile 1568, 1572):**
-- `group.affectedRows[0]?.row` → `group.referenceRow ?? group.affectedRows[0]?.row`
+1. **State für AHV-Inline-Edit**: Neuen State `editingAhv` als `Map<string, string>` (Key: `row:column`, Value: neuer AHV-Wert) für aktive Inline-Edits.
 
-**Fix 2 – Kindernamen disambiguieren (Zeile 1579-1588):**
-- Bei doppelten Kindernamen Zeilennummer anhängen: "Sarina Khushy (Z. 515)" statt nur "Sarina Khushy"
-- Logik: Prüfe ob `studentName` in der Liste mehr als einmal vorkommt → wenn ja, `(Z. {row})` anhängen
+2. **UI unter der Name-Mismatch-Warnung erweitern** (Zeile ~1625-1630):
+   - Für jede betroffene Zeile mit AHV eine editierbare Zeile anzeigen:
+     - Label: Kindername + Zeilennummer
+     - Aktueller AHV-Wert als editierbares Input-Feld
+     - "Speichern"-Button zum Anwenden der Korrektur
+   - AHV-Spaltenname aus dem `prefix` ableiten (z.B. `P_ERZ1_AHV`)
+   - Beim Speichern: `onErrorCorrect` aufrufen mit dem neuen AHV-Wert für die betroffene Zeile → die Validierung wird automatisch neu ausgelöst und der Mismatch verschwindet, wenn die AHV nun eindeutig ist
 
-**Fix 3 – Aktueller-Stand-Einträge disambiguieren (Zeile 1673-1680):**
-- Gleiche Logik für die Einträge in "Aktueller Stand" und "Nach Konsolidierung": bei identischen Schülernamen Zeilennummer ergänzen
+3. **Referenzzeile ebenfalls editierbar machen**: Falls die AHV der Referenzzeile falsch ist, auch dort einen Edit anbieten. Dazu `onErrorCorrect` direkt auf die Referenzzeile + AHV-Spalte aufrufen (auch wenn kein expliziter Fehler existiert, wird `setCorrectedRows` aktualisiert).
 
-**Fix 4 – Referenzzeile als Fallback sichern:**
-- Falls `referenceRow` undefiniert ist (Regex-Match fehlgeschlagen), als Fallback die `correctId` nutzen, um in `rows` nach der Referenzzeile zu suchen: erste Zeile finden, deren `[column]`-Wert === `correctId`
-- So ist die Referenzzeile immer im Vergleich enthalten
-
-## Betroffene Datei
-- `src/components/import/Step3Validation.tsx` — 4 punktuelle Änderungen
+4. **Visuelle Gestaltung**: 
+   - Input mit `font-mono` Styling, kleiner (text-xs)
+   - Roter Rahmen wenn ungültig (AHV-Format prüfen)
+   - Pencil-Icon als Edit-Trigger, bei Klick wird das Input sichtbar
 
