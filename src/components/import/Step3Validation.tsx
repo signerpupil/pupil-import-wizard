@@ -345,6 +345,9 @@ export function Step3Validation({
         }
       }
       
+      // Get reference child name
+      const referenceStudentName = referenceRow != null ? getStudentNameForRow(referenceRow) : undefined;
+
       groups.push({
         identifier,
         column,
@@ -355,6 +358,7 @@ export function Step3Validation({
         parentAddress,
         referenceRow,
         referencePrefix,
+        referenceStudentName,
         affectedRows,
         hasNameMismatch,
       });
