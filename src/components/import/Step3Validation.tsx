@@ -323,25 +323,41 @@ export function Step3Validation({
           
           let allMatchExact = true;
           let allMatchNormalized = true;
+          // Track which prefix matched for each affected row (for diacritic variant collection)
+          const arMatchedPrefixes = new Map<number, string>();
+          const parentPrefixes = ['P_ERZ1_', 'P_ERZ2_'];
           for (const ar of affectedRows) {
             const arRow = rows[ar.row - 1];
             if (!arRow) continue;
-            const arPrefix = ar.column.replace(/_ID$/, '_');
-            const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
-            const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
             
             if (!refVornameBase && !refNameBase) continue;
             
-            // Exact comparison (case-insensitive)
-            if ((refVornameBase && arVorname && refVornameBase.toLowerCase() !== arVorname.toLowerCase()) ||
-                (refNameBase && arName && refNameBase.toLowerCase() !== arName.toLowerCase())) {
-              allMatchExact = false;
+            // Try to find the group's parent in ANY parent slot of the affected row
+            let foundExact = false;
+            let foundNormalized = false;
+            let matchedPrefix = ar.column.replace(/_ID$/, '_');
+            for (const pfx of parentPrefixes) {
+              const arVorname = String(arRow[`${pfx}Vorname`] ?? '').trim();
+              const arName = String(arRow[`${pfx}Name`] ?? '').trim();
+              if (!arVorname && !arName) continue;
+              
+              const exactVorMatch = !refVornameBase || !arVorname || refVornameBase.toLowerCase() === arVorname.toLowerCase();
+              const exactNameMatch = !refNameBase || !arName || refNameBase.toLowerCase() === arName.toLowerCase();
+              if (exactVorMatch && exactNameMatch) {
+                foundExact = true;
+                matchedPrefix = pfx;
+                break;
+              }
+              const normVorMatch = !refVornameBase || !arVorname || stripDiacritics(refVornameBase.toLowerCase()) === stripDiacritics(arVorname.toLowerCase());
+              const normNameMatch = !refNameBase || !arName || stripDiacritics(refNameBase.toLowerCase()) === stripDiacritics(arName.toLowerCase());
+              if (normVorMatch && normNameMatch) {
+                foundNormalized = true;
+                matchedPrefix = pfx;
+              }
             }
-            // Diacritic-insensitive comparison
-            if ((refVornameBase && arVorname && stripDiacritics(refVornameBase.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
-                (refNameBase && arName && stripDiacritics(refNameBase.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
-              allMatchNormalized = false;
-            }
+            arMatchedPrefixes.set(ar.row, matchedPrefix);
+            if (!foundExact) allMatchExact = false;
+            if (!foundExact && !foundNormalized) allMatchNormalized = false;
           }
           
           let matchFoundWithAnyPrefix = false;
@@ -366,7 +382,7 @@ export function Step3Validation({
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
-              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arPrefix = arMatchedPrefixes.get(ar.row) || ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
               const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
               if (arName !== refNameBase || arVorname !== refVornameBase) {
