@@ -43,13 +43,14 @@ import { Switch } from '@/components/ui/switch';
 // Interface for parent ID inconsistency groups
 interface ParentIdInconsistencyGroup {
   identifier: string; // e.g., "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
-  column: string; // e.g., "P_ERZ1_ID"
+  column: string; // e.g., "P_ERZ1_ID" — prefix for the AFFECTED rows
   correctId: string; // The ID from the first occurrence
   matchReason: string; // e.g., "AHV-Nummer – Hohe Zuverlässigkeit"
   severity?: 'error' | 'warning'; // warning = name_only strategy
   parentName?: string;   // Vorname + Name of the parent
   parentAddress?: string; // Strasse + PLZ + Ort
   referenceRow?: number; // The row number of the first occurrence (reference)
+  referencePrefix?: string; // e.g., "P_ERZ2_" — prefix for the REFERENCE row (may differ from column prefix due to slot swaps)
   affectedRows: {
     row: number;
     currentId: string;
