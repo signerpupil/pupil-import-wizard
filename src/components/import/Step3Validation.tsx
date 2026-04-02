@@ -251,7 +251,10 @@ export function Step3Validation({
       
       // Also extract the "correct" ID mentioned in the message
       const correctIdMatch = error.message.match(/die ID '([^']+)'/);
-      const key = identifier; // Group by identifier only (not by column), so cross-slot families merge
+      // Group by identifier AND correctId: for pair-matched groups, ERZ1 and ERZ2
+      // have the same identifier but different correctIds → must be separate groups
+      const correctId = correctIdMatch ? correctIdMatch[1] : '';
+      const key = correctId ? `${identifier}::${correctId}` : identifier;
       
       const existing = groupedByIdentifier.get(key);
       if (existing) {
@@ -343,7 +346,7 @@ export function Step3Validation({
               
               const exactVorMatch = !refVornameBase || !arVorname || refVornameBase.toLowerCase() === arVorname.toLowerCase();
               const exactNameMatch = !refNameBase || !arName || refNameBase.toLowerCase() === arName.toLowerCase();
-              console.log(`[NAME-CHECK] Group="${identifier}" ar.row=${ar.row} ar.col=${ar.column} pfx=${pfx} ref="${refVornameBase} ${refNameBase}" vs ar="${arVorname} ${arName}" exactVor=${exactVorMatch} exactName=${exactNameMatch}`);
+              // Match found
               if (exactVorMatch && exactNameMatch) {
                 foundExact = true;
                 matchedPrefix = pfx;
@@ -359,7 +362,7 @@ export function Step3Validation({
             arMatchedPrefixes.set(ar.row, matchedPrefix);
             if (!foundExact) allMatchExact = false;
             if (!foundExact && !foundNormalized) allMatchNormalized = false;
-            console.log(`[NAME-CHECK] ar.row=${ar.row} foundExact=${foundExact} foundNorm=${foundNormalized}`);
+            
           }
           
           let matchFoundWithAnyPrefix = false;
