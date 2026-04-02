@@ -667,7 +667,7 @@ function detectNameMismatch(rows: ParsedRow[], errors: ValidationError[], column
   const prefix = column.replace(/_ID$/, '_');
 
   if (referenceRow == null) return false;
-  const refRow = rows[referenceRow - 1];
+  const refRow = rows[referenceRow - 2];
   if (!refRow) return false;
 
   // If referencePrefix is known, use it; otherwise try both slots
