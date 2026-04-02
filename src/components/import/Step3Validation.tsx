@@ -1657,9 +1657,9 @@ export function Step3Validation({
                                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                                           <Edit2 className="h-3 w-3" /> AHV-Nummer korrigieren
                                         </p>
-                                        {allEditRows.map(({ row: editRow, label }) => {
-                                          const ahvKey = `${editRow}:${ahvColumn}`;
-                                          const currentAhv = String(rows[editRow - 1]?.[ahvColumn] ?? '');
+                                        {allEditRows.map(({ row: editRow, label, ahvCol }) => {
+                                          const ahvKey = `${editRow}:${ahvCol}`;
+                                          const currentAhv = String(rows[editRow - 1]?.[ahvCol] ?? '');
                                           const isEditing = editingAhv.has(ahvKey);
                                           const editVal = editingAhv.get(ahvKey) ?? '';
                                           const ahvValid = /^756\.\d{4}\.\d{4}\.\d{2}$/.test(editVal);
@@ -1700,9 +1700,9 @@ export function Step3Validation({
                                                     disabled={!ahvValid}
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      onErrorCorrect(editRow, ahvColumn, editVal, 'manual');
+                                                      onErrorCorrect(editRow, ahvCol, editVal, 'manual');
                                                       setEditingAhv(prev => { const m = new Map(prev); m.delete(ahvKey); return m; });
-                                                      toast({ title: 'AHV korrigiert', description: `Zeile ${editRow}: ${ahvColumn} → ${editVal}` });
+                                                      toast({ title: 'AHV korrigiert', description: `Zeile ${editRow}: ${ahvCol} → ${editVal}` });
                                                     }}
                                                   >
                                                     <Save className="h-3 w-3" /> OK
