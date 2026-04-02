@@ -1,59 +1,40 @@
 
 
-# Fix: 34 fehlschlagende Nationalitäts-Tests in parameterized.test.ts
+# Fix: Referenz-Kind in Eltern-ID Konsolidierung anzeigen
 
 ## Problem
 
-`NATIONALITY_AUTO_CORRECTIONS` enthält ~34 Einträge, bei denen der Schlüssel **identisch** mit einem Eintrag in `VALID_NATIONALITIES` ist (z.B. `'Iran': 'Iran'`, `'Sudan': 'Sudan'`, `'Portugal': 'Portugal'`, `'Liechtenstein': 'Liechtenstein'`, `'Chile': 'Chile'`, etc.).
+Die Konsolidierungsgruppe für Flandra Lataj zeigt nur **2 betroffene Kinder** (Jon Lataj, Aron Kryeziu), obwohl **3 Kinder** zur Familie gehören. Alea Lataj (Zeile 36) fehlt, weil sie die **Referenzzeile** ist — sie hat bereits die korrekte ID und erscheint daher nicht in der Fehlerliste.
 
-Da `isValidNationality()` für diese Werte `true` zurückgibt, wird die Korrektur-Logik übersprungen → kein Error/keine `correctedValue` → Test erwartet `natErrors.length === 1`, bekommt aber `0`.
+Aus Nutzersicht ist das verwirrend: Man erwartet alle Kinder der Familie zu sehen, um den Kontext zu verstehen.
 
 ## Lösung
 
-**Entferne die redundanten Einträge** aus `NATIONALITY_AUTO_CORRECTIONS` in `src/lib/fileParser.ts`.
+Das Referenz-Kind als zusätzlichen Kontext in der UI anzeigen — **nicht** als "betroffen", sondern als Bezugspunkt.
 
-Einträge wo `key === value` UND `key` bereits in `VALID_NATIONALITIES` ist, sind sinnlos — sie würden nie ausgelöst. Konkret betrifft das alle Selbst-Mappings wie:
+### Datei: `src/components/import/Step3Validation.tsx`
 
+**1. Referenz-Kind-Name ermitteln (Zeile ~284-289)**
+- Beim Aufbau der Gruppe den Schüler-Namen der Referenzzeile extrahieren (`referenceStudentName`)
+- Dazu `getStudentNameForRow(referenceRow)` aufrufen und im Gruppen-Objekt speichern
+
+**2. Interface erweitern (Zeile ~44-60)**
+- `ParentIdInconsistencyGroup` um `referenceStudentName?: string` ergänzen
+
+**3. UI-Anzeige anpassen (Zeile ~1648-1669)**
+- Statt `"2 betroffene Kinder: Jon Lataj ✕, Aron Kryeziu ✕"` anzeigen:
+  - `"3 Kinder in Familie: Alea Lataj ✓ (Referenz), Jon Lataj ✕, Aron Kryeziu ✕"`
+- Zähler: `affectedRows.length + (referenceStudentName ? 1 : 0)` = Gesamtzahl Kinder
+- Referenz-Kind wird mit grünem Häkchen (✓) statt rotem Kreuz dargestellt
+- Label ändert sich von "betroffene Kinder" zu "Kinder in Familie"
+
+**4. Summary-Zähler unverändert lassen**
+- Die Batch-Zähler ("Betroffene Kinder" im Summary-Header) bleiben bei der Anzahl der **zu korrigierenden** Zeilen, da das die operative Kennzahl ist
+
+### Ergebnis
+
+```text
+Vorher:  "2 betroffene Kinder: Jon Lataj ✕, Aron Kryeziu ✕"
+Nachher: "3 Kinder in Familie: Alea Lataj ✓ (Referenz), Jon Lataj ✕, Aron Kryeziu ✕"
 ```
-'Iran': 'Iran',
-'Sudan': 'Sudan', 
-'Ghana': 'Ghana',
-'Nigeria': 'Nigeria',
-'Senegal': 'Senegal',
-'China': 'China',
-'Japan': 'Japan',
-'Thailand': 'Thailand',
-'Vietnam': 'Vietnam',
-'Myanmar': 'Myanmar',
-'Nepal': 'Nepal',
-'Sri Lanka': 'Sri Lanka',
-'Bangladesh': 'Bangladesh',
-'Pakistan': 'Pakistan',
-'Afghanistan': 'Afghanistan',
-'Chile': 'Chile',
-'Peru': 'Peru',
-'Venezuela': 'Venezuela',
-'Ecuador': 'Ecuador',
-'Honduras': 'Honduras',
-'Guatemala': 'Guatemala',
-'El Salvador': 'El Salvador',
-'Nicaragua': 'Nicaragua',
-'Panama': 'Panama',
-'Costa Rica': 'Costa Rica',
-'Haiti': 'Haiti',
-'Paraguay': 'Paraguay',
-'Uruguay': 'Uruguay',
-'Ukraine': 'Ukraine',
-'Portugal': 'Portugal',
-'Liechtenstein': 'Liechtenstein',
-```
-
-### Datei: `src/lib/fileParser.ts`
-
-- Alle Einträge in `NATIONALITY_AUTO_CORRECTIONS` entfernen, bei denen `key === value` und der key bereits in `VALID_NATIONALITIES` enthalten ist
-- Die englischen Varianten die auf **andere** Werte mappen bleiben erhalten (z.B. `'Germany': 'Deutschland'`)
-
-### Kein Funktionsverlust
-
-Diese Einträge haben **nie funktioniert** — `isValidNationality()` hat sie immer als gültig erkannt und die Korrektur übersprungen. Das Entfernen ändert also kein Laufzeitverhalten, bereinigt nur die Datenstruktur und lässt die Tests bestehen.
 
