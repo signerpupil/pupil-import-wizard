@@ -1651,12 +1651,24 @@ export function Step3Validation({
                                   </TooltipProvider>
                                 </div>
                                 <div className="mt-1.5 text-xs text-muted-foreground">
-                                  <span className="font-medium">{group.affectedRows.length} betroffene {group.affectedRows.length === 1 ? 'Kind' : 'Kinder'}:</span>
+                                  {(() => {
+                                    const totalChildren = group.affectedRows.length + (group.referenceStudentName ? 1 : 0);
+                                    return <span className="font-medium">{totalChildren} {totalChildren === 1 ? 'Kind' : 'Kinder'} in Familie:</span>;
+                                  })()}
                                   <span className="ml-1">
+                                    {group.referenceStudentName && (
+                                      <span>
+                                        {group.referenceStudentName}
+                                        <span className="text-green-600 dark:text-green-400"> ✓</span>
+                                        <span className="text-muted-foreground/70"> (Referenz)</span>
+                                        {group.affectedRows.length > 0 && ', '}
+                                      </span>
+                                    )}
                                     {(() => {
                                       const shown = group.affectedRows.slice(0, 3);
                                       const nameCount = new Map<string, number>();
-                                      shown.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      const allNames = [...(group.referenceStudentName ? [group.referenceStudentName] : []), ...shown.map(r => r.studentName || '')];
+                                      allNames.forEach(n => nameCount.set(n, (nameCount.get(n) || 0) + 1));
                                       return shown.map((r, i) => {
                                         const name = r.studentName || `Zeile ${r.row}`;
                                         const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
