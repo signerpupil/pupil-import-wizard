@@ -1264,6 +1264,38 @@ function isValidNationality(value: string): boolean {
 }
 
 function findNationalityCorrection(value: string): MatchResult {
+  const trimmed = value.trim();
+  
+  // Check for dual nationality with slash (e.g. "Schweiz / Italien", "Schweiz/Deutsch")
+  if (trimmed.includes('/')) {
+    const parts = trimmed.split('/').map(p => p.trim()).filter(p => p.length > 0);
+    if (parts.length === 2) {
+      const resolvedParts: string[] = [];
+      for (const part of parts) {
+        if (isValidNationality(part)) {
+          // Already valid - use canonical form
+          resolvedParts.push(NATIONALITY_NORMALIZED.get(part.toLowerCase().trim())!);
+        } else {
+          const correction = findSingleNationalityCorrection(part);
+          if (correction && correction.matchType === 'explicit') {
+            resolvedParts.push(correction.value);
+          } else {
+            // Can't reliably resolve this part - fall through to single value logic
+            resolvedParts.length = 0;
+            break;
+          }
+        }
+      }
+      if (resolvedParts.length === 2) {
+        return { value: `${resolvedParts[0]} / ${resolvedParts[1]}`, matchType: 'explicit' };
+      }
+    }
+  }
+  
+  return findSingleNationalityCorrection(trimmed);
+}
+
+function findSingleNationalityCorrection(value: string): MatchResult {
   const normalized = value.trim().toLowerCase();
   // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
