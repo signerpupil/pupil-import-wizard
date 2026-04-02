@@ -1081,8 +1081,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Argentina': 'Argentinien',
   'Colombia': 'Kolumbien',
   'Cuba': 'Kuba',
-  'Venezuela': 'Venezuela',
-  'Ecuador': 'Ecuador',
   'Bolivia': 'Bolivien',
   'Paraguay': 'Paraguay',
   'Uruguay': 'Uruguay',
