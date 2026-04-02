@@ -369,7 +369,7 @@ export function Step3Validation({
   const dismissParentGroup = useCallback((group: ParentIdInconsistencyGroup) => {
     const corrections = group.affectedRows.map(r => ({
       row: r.row,
-      column: group.column,
+      column: r.column, // use per-row column
       value: r.currentId, // keep current value → marks as correctedValue = same → disappears from uncorrected
     }));
     onBulkCorrect(corrections, 'bulk');
