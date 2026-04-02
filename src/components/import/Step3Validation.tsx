@@ -58,7 +58,9 @@ interface ParentIdInconsistencyGroup {
     studentName: string | null;
     column: string; // e.g., "P_ERZ1_ID" or "P_ERZ2_ID" — per-row, may differ across rows
   }[];
-  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
+  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows (after diacritic normalization)
+  hasDiacriticNameDiff?: boolean; // true if names match after stripping diacritics but differ in raw form
+  diacriticNameVariants?: { prefix: string; row: number; name: string; vorname: string }[]; // all name variants for unification UI
 }
 
 interface Step3ValidationProps {
