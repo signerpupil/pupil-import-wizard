@@ -526,7 +526,7 @@ export function Step3Validation({
       for (const affectedRow of group.affectedRows) {
         corrections.push({
           row: affectedRow.row,
-          column: group.column,
+          column: affectedRow.column, // use per-row column
           value: group.correctId,
         });
         totalAffectedChildren++;
