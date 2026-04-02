@@ -55,6 +55,7 @@ interface ParentIdInconsistencyGroup {
     row: number;
     currentId: string;
     studentName: string | null;
+    column: string; // e.g., "P_ERZ1_ID" or "P_ERZ2_ID" — per-row, may differ across rows
   }[];
   hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
 }
