@@ -1178,6 +1178,76 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Pakistahn': 'Pakistan',
   'Afgahnistan': 'Afghanistan',
   'Afganistahn': 'Afghanistan',
+
+  // ============================================
+  // Phase 5: Adjektivformen der Nationalität (CH-Schulen)
+  // ============================================
+  'Schweizer': 'Schweiz',
+  'Schweizerin': 'Schweiz',
+  'Schweizerisch': 'Schweiz',
+  'Deutsch': 'Deutschland',
+  'Deutsche': 'Deutschland',
+  'Deutscher': 'Deutschland',
+  'Französisch': 'Frankreich',
+  'Italienisch': 'Italien',
+  'Österreichisch': 'Österreich',
+  'Türkisch': 'Türkiye',
+  'Spanisch': 'Spanien',
+  'Portugiesisch': 'Portugal',
+  'Britisch': 'Vereinigtes Königreich',
+  'Amerikanisch': 'Vereinigte Staaten von Amerika',
+  'Kroatisch': 'Kroatien',
+  'Serbisch': 'Serbien',
+  'Bosnisch': 'Bosnien und Herzegowina',
+  'Albanisch': 'Albanien',
+  'Griechisch': 'Griechenland',
+  'Polnisch': 'Polen',
+  'Rumänisch': 'Rumänien',
+  'Ungarisch': 'Ungarn',
+  'Bulgarisch': 'Bulgarien',
+  'Russisch': 'Russland',
+  'Ukrainisch': 'Ukraine',
+  'Brasilianisch': 'Brasilien',
+  'Indisch': 'Indien',
+  'Chinesisch': 'China',
+  'Japanisch': 'Japan',
+  'Koreanisch': 'Korea (Republik Korea)',
+  'Thailändisch': 'Thailand',
+  'Vietnamesisch': 'Vietnam',
+  'Philippinisch': 'Philippinen',
+  'Ägyptisch': 'Ägypten',
+  'Marokkanisch': 'Marokko',
+  'Tunesisch': 'Tunesien',
+  'Nigerianisch': 'Nigeria',
+  'Somalisch': 'Somalia',
+  'Eritreisch': 'Eritrea',
+  'Äthiopisch': 'Äthiopien',
+  'Afghanisch': 'Afghanistan',
+  'Iranisch': 'Iran',
+  'Irakisch': 'Irak',
+  'Syrisch': 'Syrien',
+  'Libanesisch': 'Libanon',
+  'Kosovarisch': 'Kosovo',
+  'Nordmazedonisch': 'Nordmazedonien',
+  'Montenegrinisch': 'Montenegro',
+  'Slowenisch': 'Slowenien',
+  'Slowakisch': 'Slowakei',
+  'Tschechisch': 'Tschechien',
+  'Finnisch': 'Finnland',
+  'Schwedisch': 'Schweden',
+  'Norwegisch': 'Norwegen',
+  'Dänisch': 'Dänemark',
+  'Niederländisch': 'Niederlande',
+  'Belgisch': 'Belgien',
+  'Luxemburgisch': 'Luxemburg',
+  'Irisch': 'Irland',
+  'Schottisch': 'Vereinigtes Königreich',
+  'Kubanisch': 'Kuba',
+  'Mexikanisch': 'Mexiko',
+  'Kolumbianisch': 'Kolumbien',
+  'Peruanisch': 'Peru',
+  'Chilenisch': 'Chile',
+  'Argentinisch': 'Argentinien',
 };
 
 // Case-insensitive lookup
@@ -1194,6 +1264,38 @@ function isValidNationality(value: string): boolean {
 }
 
 function findNationalityCorrection(value: string): MatchResult {
+  const trimmed = value.trim();
+  
+  // Check for dual nationality with slash (e.g. "Schweiz / Italien", "Schweiz/Deutsch")
+  if (trimmed.includes('/')) {
+    const parts = trimmed.split('/').map(p => p.trim()).filter(p => p.length > 0);
+    if (parts.length === 2) {
+      const resolvedParts: string[] = [];
+      for (const part of parts) {
+        if (isValidNationality(part)) {
+          // Already valid - use canonical form
+          resolvedParts.push(NATIONALITY_NORMALIZED.get(part.toLowerCase().trim())!);
+        } else {
+          const correction = findSingleNationalityCorrection(part);
+          if (correction && correction.matchType === 'explicit') {
+            resolvedParts.push(correction.value);
+          } else {
+            // Can't reliably resolve this part - fall through to single value logic
+            resolvedParts.length = 0;
+            break;
+          }
+        }
+      }
+      if (resolvedParts.length === 2) {
+        return { value: `${resolvedParts[0]} / ${resolvedParts[1]}`, matchType: 'explicit' };
+      }
+    }
+  }
+  
+  return findSingleNationalityCorrection(trimmed);
+}
+
+function findSingleNationalityCorrection(value: string): MatchResult {
   const normalized = value.trim().toLowerCase();
   // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
@@ -2293,10 +2395,18 @@ function validateFieldType(
         return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', severity: 'warning' };
       }
       break;
-    case 'email':
+    case 'email': {
+      // Detect placeholder values that aren't real emails
+      const emailLower = value.toLowerCase().trim();
+      const EMAIL_PLACEHOLDERS = ['keine', '-', '--', 'n/a', 'na', 'nicht vorhanden', 'unbekannt', 'nein', 'kein', 'leer', 'null', 'none', 'no email', 'keine email', 'keine e-mail'];
+      if (EMAIL_PLACEHOLDERS.includes(emailLower) || /^verstorben/i.test(emailLower) || /^tod\b/i.test(emailLower) || /^†/i.test(emailLower)) {
+        return { row: rowNum, column: columnName, value, message: `Platzhalter "${value}" erkannt – Feld wird geleert`, severity: 'warning', correctedValue: '' };
+      }
       if (!isValidEmail(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültige E-Mail-Adresse' };
       }
+      break;
+    }
       break;
     case 'number':
       if (isNaN(Number(value))) {
