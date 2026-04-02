@@ -2129,9 +2129,35 @@ export function Step3Validation({
                              </div>
                            </div>
                          </div>
-                         <p className="text-xs text-muted-foreground">
-                           ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
-                         </p>
+                         <div className="flex items-center gap-2 flex-wrap">
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               onErrorCorrect(entry.error.row, entry.error.column, entry.fromName, 'manual');
+                               toast({ title: 'Name übernommen', description: `«${entry.fromName}» wurde in Zeile ${entry.error.row} gesetzt.` });
+                             }}
+                             className="gap-1.5 text-xs"
+                             title={`Den Namen aus Zeile ${entry.fromRow} in Zeile ${entry.error.row} übernehmen`}
+                           >
+                             <Check className="h-3.5 w-3.5" />
+                             «{entry.fromName}» übernehmen
+                           </Button>
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
+                             className="gap-1.5 text-xs"
+                             title={`Den Namen «${entry.toName}» in Zeile ${entry.error.row} beibehalten`}
+                           >
+                             <Check className="h-3.5 w-3.5" />
+                             «{entry.toName}» beibehalten
+                           </Button>
+                           <span className="text-xs text-muted-foreground ml-1">
+                             ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
+                           </span>
+                         </div>
                        </div>
                      )}
                   </div>
