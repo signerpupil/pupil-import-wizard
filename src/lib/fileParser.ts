@@ -1106,7 +1106,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Ireland': 'Irland',
   'Scotland': 'Vereinigtes Königreich',
   'Luxembourg': 'Luxemburg',
-  'Liechtenstein': 'Liechtenstein',
+  
 
   // ============================================
   // Phase 4: Tippfehler-Varianten (~30 neue)
