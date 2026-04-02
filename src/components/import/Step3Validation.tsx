@@ -259,8 +259,8 @@ export function Step3Validation({
     }
     
     // Convert to groups
-    groupedByIdentifier.forEach((groupErrors, key) => {
-      const [column, identifier] = key.split(':', 2);
+    groupedByIdentifier.forEach((groupErrors, identifier) => {
+      const column = groupErrors[0].column; // primary column for display
       
       // Get correct ID from first error message
       const firstError = groupErrors[0];
