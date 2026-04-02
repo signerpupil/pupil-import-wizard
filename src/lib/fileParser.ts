@@ -1035,7 +1035,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Tunisia': 'Tunesien',
   'Egypt': 'Ägypten',
   'Iraq': 'Irak',
-  'Iran': 'Iran',
+  
   'Lebanon': 'Libanon',
   'Libya': 'Libyen',
   'Algeria': 'Algerien',
