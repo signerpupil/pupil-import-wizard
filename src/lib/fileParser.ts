@@ -1516,7 +1516,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
           const errorKey = `${rowIndex + 1}:${field}:${displayName}`;
           if (!errorSet.has(errorKey)) {
             errorSet.add(errorKey);
-            const strategyInfo = STRATEGY_LABELS['name_only'];
+            const strategyInfo = STRATEGY_LABELS['name_pair'];
             const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
             errors.push({
               row: rowIndex + 1,
@@ -1525,6 +1525,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
               message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} (${existingSlotLabel}) die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
               severity: 'warning',
             });
+            resolvedByHigherStrategy.add(rowFieldKey);
           }
         }
       }
