@@ -1163,7 +1163,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Thailland': 'Thailand',
   'Filipinen': 'Philippinen',
   'Filppinen': 'Philippinen',
-  'Mexiko ': 'Mexiko',
+  
   'Brasillien': 'Brasilien',
   'Argentienien': 'Argentinien',
   'Venazuela': 'Venezuela',
