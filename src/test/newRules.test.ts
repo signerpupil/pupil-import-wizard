@@ -392,7 +392,7 @@ describe('Extended email typo corrections', () => {
 // ============================================
 
 describe('Language placeholder clearing', () => {
-  const placeholders = ['Keine', 'keine angabe', 'N/A', 'na', '-', 'nichts', 'kein', 'keine sprache'];
+  const placeholders = ['Keine', 'keine angabe', 'N/A', 'na', '-', 'nichts', 'kein', 'keine sprache', 'unbekannt', 'nicht bekannt', 'nicht angegeben'];
 
   it.each(placeholders)(
     'clears S_Umgangssprache placeholder "%s"',

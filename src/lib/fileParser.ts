@@ -2317,7 +2317,7 @@ function validateFieldType(
       break;
     case 'language': {
       // "Keine", "keine Angabe", "N/A" etc. → clear the field
-      const EMPTY_LANGUAGE_VALUES = ['keine', 'keine angabe', 'keine sprache', 'n/a', 'na', '-', 'nichts', 'kein'];
+      const EMPTY_LANGUAGE_VALUES = ['keine', 'keine angabe', 'keine sprache', 'n/a', 'na', '-', 'nichts', 'kein', 'unbekannt', 'nicht bekannt', 'nicht angegeben'];
       if (EMPTY_LANGUAGE_VALUES.includes(value.toLowerCase().trim())) {
         return {
           row: rowNum,
