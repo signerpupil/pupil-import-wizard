@@ -2018,8 +2018,20 @@ export function Step3Validation({
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="font-mono text-xs shrink-0">{entry.column}</Badge>
                           <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
-                          <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
-                          <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                          {entry.fromStudentName && entry.fromStudentName !== entry.studentName ? (
+                            <>
+                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.fromRow}:</span>
+                              <span className="text-xs font-medium truncate">{entry.fromStudentName}</span>
+                              <span className="text-xs text-muted-foreground">|</span>
+                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.error.row}:</span>
+                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
+                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
+                            </>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
                           <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
