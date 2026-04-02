@@ -667,9 +667,10 @@ function findSimilarLanguage(value: string): string | null {
   }
   // 2. Exact match via normalized (case-insensitive)
   if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
-  // 3. Prefix match (first 5 chars)
+  // 3. Prefix match (first 5 chars) — only if lengths are similar (max 3 difference)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
+      if (Math.abs(key.length - normalized.length) > 3) continue;
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
         return lang;
       }
