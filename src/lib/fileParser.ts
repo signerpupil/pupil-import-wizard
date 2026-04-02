@@ -659,20 +659,22 @@ function maxDistance(len: number): number {
   return 3;
 }
 
-function findSimilarLanguage(value: string): string | null {
+type MatchResult = { value: string; matchType: 'explicit' | 'exact' | 'fuzzy' } | null;
+
+function findSimilarLanguage(value: string): MatchResult {
   const normalized = value.toLowerCase().trim();
   // 1. Check explicit auto-corrections first (highest priority)
   if (LANGUAGE_CORRECTIONS_NORMALIZED.has(normalized)) {
-    return LANGUAGE_CORRECTIONS_NORMALIZED.get(normalized)!;
+    return { value: LANGUAGE_CORRECTIONS_NORMALIZED.get(normalized)!, matchType: 'explicit' };
   }
   // 2. Exact match via normalized (case-insensitive)
-  if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
+  if (BISTA_NORMALIZED.has(normalized)) return { value: BISTA_NORMALIZED.get(normalized)!, matchType: 'exact' };
   // 3. Prefix match (first 5 chars) — only if lengths are similar (max 3 difference)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
       if (Math.abs(key.length - normalized.length) > 3) continue;
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
-        return lang;
+        return { value: lang, matchType: 'fuzzy' };
       }
     }
   }
@@ -688,7 +690,7 @@ function findSimilarLanguage(value: string): string | null {
       bestMatch = lang;
     }
   }
-  if (bestMatch) return bestMatch;
+  if (bestMatch) return { value: bestMatch, matchType: 'fuzzy' };
   // 5. Levenshtein fuzzy match against auto-correction keys
   for (const [key, target] of LANGUAGE_CORRECTIONS_NORMALIZED) {
     if (Math.abs(key.length - normalized.length) > maxDist) continue;
@@ -698,7 +700,7 @@ function findSimilarLanguage(value: string): string | null {
       bestMatch = target;
     }
   }
-  return bestMatch;
+  return bestMatch ? { value: bestMatch, matchType: 'fuzzy' } : null;
 }
 
 // ==============================
