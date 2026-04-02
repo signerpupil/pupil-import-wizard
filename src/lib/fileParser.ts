@@ -1067,8 +1067,6 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Armenia': 'Armenien',
   'Azerbaijan': 'Aserbaidschan',
   'India': 'Indien',
-  'China': 'China',
-  'Japan': 'Japan',
   'Philippines': 'Philippinen',
   'Thailand': 'Thailand',
   'Indonesia': 'Indonesien',
