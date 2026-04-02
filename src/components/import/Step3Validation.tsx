@@ -544,6 +544,7 @@ export function Step3Validation({
     fromRow: number;
     toName: string;
     studentName: string;
+    fromStudentName: string;
     column: string;
   }
 
