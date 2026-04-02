@@ -268,9 +268,13 @@ export function Step3Validation({
       
       if (!correctId) return;
       
-      // Extract reference row number from message: "hat in Zeile (\d+)"
+      // Extract reference row number and slot from message: "hat in Zeile (\d+) (Erziehungsberechtigte/r (\d))"
       const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
       const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+      
+      // Extract reference slot number to build correct prefix for reference row
+      const refSlotMatch = firstError.message.match(/\(Erziehungsberechtigte\/r (\d)\)/);
+      const referencePrefix = refSlotMatch ? `P_ERZ${refSlotMatch[1]}_` : undefined;
       
       // Extract match reason: "[Erkannt via: AHV-Nummer – Hohe Zuverlässigkeit]"
       const matchReasonMatch = firstError.message.match(/\[Erkannt via: ([^\]]+)\]/);
