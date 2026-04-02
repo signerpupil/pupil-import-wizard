@@ -1999,7 +1999,7 @@ function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers
 
   // Compare each other row against the reference
   for (let i = 1; i < rowNumbers.length; i++) {
-    const row = rows[rowNumbers[i] - 1];
+    const row = rows[rowNumbers[i] - 2];
     if (!row) continue;
 
     const name = String(row[nameField] ?? '').trim().toLowerCase();
