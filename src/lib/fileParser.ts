@@ -1264,7 +1264,16 @@ function normalizeForComparison(value: string): string {
 
 // Normalize phone number by removing all non-digit characters
 function normalizePhone(value: string): string {
-  return value.replace(/\D/g, '');
+  let digits = value.replace(/\D/g, '');
+  // Normalize Swiss country code: 0041... → 0...
+  if (digits.startsWith('0041')) {
+    digits = '0' + digits.slice(4);
+  }
+  // Also handle +41 (already stripped to 41...)
+  if (digits.startsWith('41') && digits.length >= 11) {
+    digits = '0' + digits.slice(2);
+  }
+  return digits;
 }
 
 // Count diacritical marks in a string (more = "richer")
