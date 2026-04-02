@@ -51,6 +51,7 @@ interface ParentIdInconsistencyGroup {
   parentAddress?: string; // Strasse + PLZ + Ort
   referenceRow?: number; // The row number of the first occurrence (reference)
   referencePrefix?: string; // e.g., "P_ERZ2_" — prefix for the REFERENCE row (may differ from column prefix due to slot swaps)
+  referenceStudentName?: string; // Name of the child in the reference row (has the correct ID)
   affectedRows: {
     row: number;
     currentId: string;
@@ -344,6 +345,9 @@ export function Step3Validation({
         }
       }
       
+      // Get reference child name
+      const referenceStudentName = referenceRow != null ? getStudentNameForRow(referenceRow) : undefined;
+
       groups.push({
         identifier,
         column,
@@ -354,6 +358,7 @@ export function Step3Validation({
         parentAddress,
         referenceRow,
         referencePrefix,
+        referenceStudentName,
         affectedRows,
         hasNameMismatch,
       });
@@ -1646,12 +1651,24 @@ export function Step3Validation({
                                   </TooltipProvider>
                                 </div>
                                 <div className="mt-1.5 text-xs text-muted-foreground">
-                                  <span className="font-medium">{group.affectedRows.length} betroffene {group.affectedRows.length === 1 ? 'Kind' : 'Kinder'}:</span>
+                                  {(() => {
+                                    const totalChildren = group.affectedRows.length + (group.referenceStudentName ? 1 : 0);
+                                    return <span className="font-medium">{totalChildren} {totalChildren === 1 ? 'Kind' : 'Kinder'} in Familie:</span>;
+                                  })()}
                                   <span className="ml-1">
+                                    {group.referenceStudentName && (
+                                      <span>
+                                        {group.referenceStudentName}
+                                        <span className="text-green-600 dark:text-green-400"> ✓</span>
+                                        <span className="text-muted-foreground/70"> (Referenz)</span>
+                                        {group.affectedRows.length > 0 && ', '}
+                                      </span>
+                                    )}
                                     {(() => {
                                       const shown = group.affectedRows.slice(0, 3);
                                       const nameCount = new Map<string, number>();
-                                      shown.forEach(r => { const n = r.studentName || ''; nameCount.set(n, (nameCount.get(n) || 0) + 1); });
+                                      const allNames = [...(group.referenceStudentName ? [group.referenceStudentName] : []), ...shown.map(r => r.studentName || '')];
+                                      allNames.forEach(n => nameCount.set(n, (nameCount.get(n) || 0) + 1));
                                       return shown.map((r, i) => {
                                         const name = r.studentName || `Zeile ${r.row}`;
                                         const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
