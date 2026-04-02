@@ -1,29 +1,38 @@
 
 
-# Inline AHV-Edit bei Name-Mismatch in Eltern-Konsolidierung
+# Fix: Cross-Slot Elternvergleich verwendet falschen Prefix
 
 ## Problem
-Wenn zwei Personen dieselbe AHV teilen aber unterschiedliche Namen haben (z.B. Michael vs Michaela Brunner), wird die Konsolidierung blockiert. Der Benutzer hat aktuell keine Möglichkeit, die fehlerhafte AHV direkt zu korrigieren — er müsste dafür die Validierungsansicht verlassen.
+
+Die Eltern-ID Konsolidierung nutzt einen **einheitlichen Pool** über ERZ1 und ERZ2, um auch Slot-Wechsel zu erkennen (z.B. Person ist in Zeile 36 als ERZ2 und in Zeile 50 als ERZ1 erfasst). Das ist korrekt.
+
+**Der Bug:** Die UI verwendet immer den Prefix der **Fehlerspalte** (z.B. `P_ERZ1_`) für alle Zeilen — auch für die Referenzzeile. Wenn die Referenzzeile die Person aber als **ERZ2** hat, werden die falschen Elternfelder verglichen (ERZ1 statt ERZ2 der Referenzzeile).
+
+**Konkret im Screenshot:** Flandra Lataj ist in der betroffenen Zeile (Ion) als ERZ1 erfasst, aber in der Referenzzeile (Zeile 36, Alea) als ERZ2. Die UI zieht aber `P_ERZ1_Name/Vorname` aus Zeile 36 — das ist **Esat Kryeziu** (der andere Elternteil). Deshalb zeigt der Vergleich "unterschiedliche Namen" obwohl es dieselbe Person ist.
 
 ## Lösung
-Bei `hasNameMismatch`-Gruppen einen Inline-Edit für die AHV-Nummer der betroffenen Zeilen anbieten, direkt unterhalb der Warnmeldung.
 
-### Änderungen in `src/components/import/Step3Validation.tsx`
+### 1. Referenz-Slot aus Fehlermeldung extrahieren
+Die Fehlermeldung enthält bereits den Slot: `"hat in Zeile 36 (Erziehungsberechtigte/r 2)"`. Daraus den Referenz-Prefix ableiten (ERZ1 oder ERZ2).
 
-1. **State für AHV-Inline-Edit**: Neuen State `editingAhv` als `Map<string, string>` (Key: `row:column`, Value: neuer AHV-Wert) für aktive Inline-Edits.
+### 2. Interface erweitern
+`ParentIdInconsistencyGroup` um `referencePrefix?: string` ergänzen (z.B. `"P_ERZ2_"`), damit die UI weiss, in welchem Slot die Person in der Referenzzeile steht.
 
-2. **UI unter der Name-Mismatch-Warnung erweitern** (Zeile ~1625-1630):
-   - Für jede betroffene Zeile mit AHV eine editierbare Zeile anzeigen:
-     - Label: Kindername + Zeilennummer
-     - Aktueller AHV-Wert als editierbares Input-Feld
-     - "Speichern"-Button zum Anwenden der Korrektur
-   - AHV-Spaltenname aus dem `prefix` ableiten (z.B. `P_ERZ1_AHV`)
-   - Beim Speichern: `onErrorCorrect` aufrufen mit dem neuen AHV-Wert für die betroffene Zeile → die Validierung wird automatisch neu ausgelöst und der Mismatch verschwindet, wenn die AHV nun eindeutig ist
+### 3. Gruppierungscode anpassen (Zeile ~270)
+- Regex: `hat in Zeile (\d+) \(Erziehungsberechtigte\/r (\d)\)` → Slot-Nummer extrahieren
+- `referencePrefix = P_ERZ${slotNum}_`
 
-3. **Referenzzeile ebenfalls editierbar machen**: Falls die AHV der Referenzzeile falsch ist, auch dort einen Edit anbieten. Dazu `onErrorCorrect` direkt auf die Referenzzeile + AHV-Spalte aufrufen (auch wenn kein expliziter Fehler existiert, wird `setCorrectedRows` aktualisiert).
+### 4. `hasNameMismatch` korrigieren (Zeile ~300-318)
+- Für die Referenzzeile `referencePrefix` statt `prefix` verwenden, um die richtigen Felder zu lesen
 
-4. **Visuelle Gestaltung**: 
-   - Input mit `font-mono` Styling, kleiner (text-xs)
-   - Roter Rahmen wenn ungültig (AHV-Format prüfen)
-   - Pencil-Icon als Edit-Trigger, bei Klick wird das Input sichtbar
+### 5. `parentName`/`parentAddress` korrigieren (Zeile ~286-297)
+- Wenn `referenceRow` bekannt: Name/Adresse aus der Referenzzeile mit dem korrekten `referencePrefix` lesen (statt aus der betroffenen Zeile)
+
+### 6. `getParentFieldComparison` anpassen (Zeile ~354-430)
+- Neuen Parameter `referencePrefix?: string` akzeptieren
+- Für die Referenzzeile `referencePrefix` statt `prefix` zum Lesen der Felder verwenden
+- Alle Aufrufe (Zeile ~1717, ~1762) den neuen Parameter übergeben
+
+### Betroffene Datei
+- `src/components/import/Step3Validation.tsx` — 6 punktuelle Änderungen
 
