@@ -1,79 +1,44 @@
 
 
-# Analyse: "Tiefe Zuverlässigkeit" bei Familie Tippkemper
+# Fix: Doppelte Eltern-ID Fehler (4 statt 2 Kinder)
 
 ## Befund
 
-Die Datei enthält 2 Kinder (Jonathan, Noah) mit denselben Eltern (Bernd & Fabienne Tippkemper), aber **unterschiedlichen Hausnummern** (Kirchweg 28 vs. 26).
+Die Datei hat 2 Kinder (Mason Tyler & Liam Kofel) mit denselben Eltern (Kevin & Svenja Kofel). Die Adressen unterscheiden sich leicht ("Im Steinler 215" vs "Im Steindler 215").
 
-### Warum "tiefe Zuverlässigkeit"?
+### Warum 4 statt 2?
 
-Die Erkennung durchläuft 3 Strategien:
+Es werden **doppelte Fehler** generiert, weil zwei Erkennungs-Passes unabhängig voneinander feuern:
 
-1. **AHV-Match** → Keine Eltern-AHV vorhanden → übersprungen
-2. **Name + Strasse** → Kirchweg **28** ≠ Kirchweg **26** → übersprungen  
-3. **Name-only mit Disambiguierung** → Greift, weil der andere Elternteil (Fabienne) in beiden Zeilen übereinstimmt → **Match gefunden, aber mit Label "Tiefe Zuverlässigkeit"**
+- **Pass 2** (Elternpaar-Matching): Erkennt "Kevin Kofel & Svenja Kofel" als Paar → generiert 2 Fehler (P_ERZ1_ID + P_ERZ2_ID für Zeile 2)
+- **Pass 3** (Einzeleltern-Matching mit Disambiguierung): Erkennt "Kevin Kofel" und "Svenja Kofel" einzeln → generiert nochmal 2 Fehler für dieselben Felder
 
-Das Problem: Obwohl die Disambiguierung **erfolgreich** bestätigt hat, dass es dieselbe Person ist (via übereinstimmenden zweiten Elternteil), bleibt das Label pauschal auf "tiefe Zuverlässigkeit". Das ist irreführend.
+Pass 2 fügt die erkannten Zeilen **nicht** in `resolvedByHigherStrategy` ein, daher überspringt Pass 3 sie nicht.
 
-### Zusätzlich: Telefon-Bug
+In der UI werden dann 3 Gruppen angezeigt:
+1. "Kevin Kofel & Svenja Kofel" (Pass 2) — 2 Einträge  
+2. "Kevin Kofel" (Pass 3) — 1 Eintrag  
+3. "Svenja Kofel" (Pass 3) — 1 Eintrag  
 
-Die Telefonnummern sind identisch, werden aber nicht erkannt:
-- Row 1: `004179 734 87 05` → normalisiert: `00417973487​05`
-- Row 2: `079 734 87 05` → normalisiert: `07973487​05`
+→ **4 Kinder-Einträge** statt der erwarteten 2.
 
-`normalizePhone` entfernt nur Nicht-Ziffern, normalisiert aber nicht den Schweizer Ländercode `0041` → `0`.
+## Lösung
 
-## Lösung (2 Teile)
+### Datei: `src/lib/fileParser.ts` — Pass 2 (Zeile ~1517-1528)
 
-### 1. Telefon-Normalisierung: Schweizer Ländercode
-
-**Datei: `src/lib/fileParser.ts`** — Funktion `normalizePhone`
+Nach dem Generieren eines Fehlers in Pass 2 den `rowFieldKey` zu `resolvedByHigherStrategy` hinzufügen. Das blockiert Pass 3 für dasselbe `row:field`-Paar.
 
 ```typescript
-function normalizePhone(value: string): string {
-  let digits = value.replace(/\D/g, '');
-  // Normalize Swiss country code: 0041... → 0...
-  if (digits.startsWith('0041')) {
-    digits = '0' + digits.slice(4);
-  }
-  // Also handle +41 (already stripped to 41...)
-  if (digits.startsWith('41') && digits.length >= 11) {
-    digits = '0' + digits.slice(2);
-  }
-  return digits;
-}
+// Nach errorSet.add(...) und errors.push(...):
+resolvedByHigherStrategy.add(rowFieldKey);
 ```
 
-### 2. Disambiguierung → Zuverlässigkeit hochstufen
-
-**Datei: `src/lib/fileParser.ts`** — Pass 3 (Zeile ~1608-1622)
-
-Wenn die Disambiguierung via Telefon oder anderen Elternteil erfolgreich ist, das Confidence-Label anheben:
-
-- **Telefon-Match** → `"Name + Telefonnummer – Mittlere Zuverlässigkeit"`
-- **Anderer Elternteil stimmt überein** → `"Name + Elternpaar – Mittlere Zuverlässigkeit"`
-
-Dazu zwei neue Einträge in `STRATEGY_LABELS`:
-```typescript
-name_phone: {
-  label: 'Name + Telefonnummer',
-  reliability: 'Mittlere Zuverlässigkeit',
-},
-name_pair: {
-  label: 'Name + Elternpaar',
-  reliability: 'Mittlere Zuverlässigkeit',
-},
-```
-
-Die Error-Message und Severity werden entsprechend angepasst — statt immer `'warning'` und `'name_only'` wird der spezifische Disambiguierungsgrund verwendet.
+Zusätzlich sollte Pass 2 eine eigene Strategie `name_pair` verwenden (statt `name_only`), da das Elternpaar-Matching zuverlässiger ist als reine Namensübereinstimmung. Die neue Strategie `name_pair` wurde bereits im vorherigen Schritt zu `STRATEGY_LABELS` hinzugefügt.
 
 ### Ergebnis
 
 ```text
-Vorher:  "Tiefe Zuverlässigkeit" (name_only) — Nutzer unsicher
-Nachher: "Mittlere Zuverlässigkeit" (name_pair) — Elternpaar bestätigt
+Vorher:  4 Fehler → 3 Gruppen → 4 "Kinder" angezeigt
+Nachher: 2 Fehler → 1 Gruppe → 2 Kinder (korrekt)
 ```
-
-Telefonnummern mit `0041`-Prefix werden zusätzlich korrekt erkannt, was auch bei anderen Familien mit gemischtem Format greift.
 
