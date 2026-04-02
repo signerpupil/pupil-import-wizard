@@ -51,6 +51,7 @@ interface ParentIdInconsistencyGroup {
   parentAddress?: string; // Strasse + PLZ + Ort
   referenceRow?: number; // The row number of the first occurrence (reference)
   referencePrefix?: string; // e.g., "P_ERZ2_" — prefix for the REFERENCE row (may differ from column prefix due to slot swaps)
+  referenceStudentName?: string; // Name of the child in the reference row (has the correct ID)
   affectedRows: {
     row: number;
     currentId: string;
