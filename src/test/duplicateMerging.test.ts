@@ -654,7 +654,7 @@ describe("ID Conflict Detection (same ID, different person)", () => {
   });
 });
 
-// Helper: simulate hasNameMismatch logic from Step3Validation.tsx
+// Helper: simulate hasNameMismatch logic from Step3Validation.tsx (with fallback for missing referencePrefix)
 function detectNameMismatch(rows: ParsedRow[], errors: ValidationError[], column: string): boolean {
   const inconsistentIds = errors.filter(e => e.message.includes("Inkonsistente ID") && e.column === column);
   if (inconsistentIds.length === 0) return false;
@@ -662,26 +662,41 @@ function detectNameMismatch(rows: ParsedRow[], errors: ValidationError[], column
   const firstError = inconsistentIds[0];
   const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
   const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+  const refSlotMatch = firstError.message.match(/\(Erziehungsberechtigte\/r (\d)\)/);
+  const referencePrefix = refSlotMatch ? `P_ERZ${refSlotMatch[1]}_` : undefined;
   const prefix = column.replace(/_ID$/, '_');
 
   if (referenceRow == null) return false;
   const refRow = rows[referenceRow - 1];
   if (!refRow) return false;
 
-  const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-  const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+  // If referencePrefix is known, use it; otherwise try both slots
+  const prefixesToTry = referencePrefix ? [referencePrefix] : ['P_ERZ1_', 'P_ERZ2_'];
 
-  for (const e of inconsistentIds) {
-    const arRow = rows[e.row - 1];
-    if (!arRow) continue;
-    const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-    const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
-    if ((refVorname && arVorname && refVorname !== arVorname) ||
-        (refName && arName && refName !== arName)) {
-      return true;
+  let matchFoundWithAnyPrefix = false;
+  for (const tryPfx of prefixesToTry) {
+    const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim().toLowerCase();
+    const refName = String(refRow[`${tryPfx}Name`] ?? '').trim().toLowerCase();
+    if (!refVorname && !refName) continue;
+
+    let allMatch = true;
+    for (const e of inconsistentIds) {
+      const arRow = rows[e.row - 1];
+      if (!arRow) continue;
+      const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
+      const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+      if ((refVorname && arVorname && refVorname !== arVorname) ||
+          (refName && arName && refName !== arName)) {
+        allMatch = false;
+        break;
+      }
+    }
+    if (allMatch) {
+      matchFoundWithAnyPrefix = true;
+      break;
     }
   }
-  return false;
+  return !matchFoundWithAnyPrefix;
 }
 
 describe("Name Mismatch Detection – blocks consolidation for different first names with same AHV", () => {
