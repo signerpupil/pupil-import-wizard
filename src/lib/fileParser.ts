@@ -1040,7 +1040,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Libya': 'Libyen',
   'Algeria': 'Algerien',
   'Ethiopia': 'Äthiopien',
-  'Sudan': 'Sudan',
+  
   'Kenya': 'Kenia',
   'Ghana': 'Ghana',
   'Nigeria': 'Nigeria',
