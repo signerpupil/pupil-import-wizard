@@ -1216,15 +1216,15 @@ function isValidNationality(value: string): boolean {
   return NATIONALITY_NORMALIZED.has(value.trim().toLowerCase());
 }
 
-function findNationalityCorrection(value: string): string | null {
+function findNationalityCorrection(value: string): MatchResult {
   const normalized = value.trim().toLowerCase();
   // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
-    return NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!;
+    return { value: NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!, matchType: 'explicit' };
   }
   // 2. Case-insensitive match against valid list
   if (NATIONALITY_NORMALIZED.has(normalized)) {
-    return NATIONALITY_NORMALIZED.get(normalized)!;
+    return { value: NATIONALITY_NORMALIZED.get(normalized)!, matchType: 'exact' };
   }
   // 3. Levenshtein fuzzy match against valid nationalities
   let bestMatch: string | null = null;
@@ -1238,7 +1238,7 @@ function findNationalityCorrection(value: string): string | null {
       bestMatch = nat;
     }
   }
-  if (bestMatch) return bestMatch;
+  if (bestMatch) return { value: bestMatch, matchType: 'fuzzy' };
   // 4. Levenshtein fuzzy match against auto-correction keys
   for (const [key, target] of NATIONALITY_CORRECTIONS_NORMALIZED) {
     if (Math.abs(key.length - normalized.length) > maxDist) continue;
@@ -1248,7 +1248,7 @@ function findNationalityCorrection(value: string): string | null {
       bestMatch = target;
     }
   }
-  return bestMatch;
+  return bestMatch ? { value: bestMatch, matchType: 'fuzzy' } : null;
 }
 
 // Fields that should be checked for duplicates
