@@ -366,9 +366,11 @@ export function Step3Validation({
     column: string,
     allRows: ParsedRow[],
     referenceRow?: number,
-    correctId?: string
+    correctId?: string,
+    referencePrefix?: string
   ) {
     const prefix = column.replace(/_ID$/, '_');
+    const refPfx = referencePrefix || prefix; // prefix for the reference row (may differ due to slot swap)
     const FIELDS_TO_COMPARE = [
       { key: 'Name',             label: 'Name' },
       { key: 'Vorname',          label: 'Vorname' },
@@ -385,7 +387,7 @@ export function Step3Validation({
     ];
 
     // Build the list of rows to compare: reference row first, then affected rows
-    const rowEntries: { row: number; label: string }[] = [];
+    const rowEntries: { row: number; label: string; isReference: boolean }[] = [];
     
     // Determine reference row: use provided value, or fallback by searching for correctId
     let effectiveRefRow = referenceRow;
@@ -404,7 +406,7 @@ export function Step3Validation({
     
     if (effectiveRefRow != null) {
       const refStudentName = getStudentNameForRow(effectiveRefRow);
-      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true });
     }
     
     // Disambiguate affected row names
@@ -414,13 +416,15 @@ export function Step3Validation({
     for (const r of affectedRows) {
       const name = r.studentName || `Zeile ${r.row}`;
       const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
-      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name });
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
       const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
-        return String(row?.[`${prefix}${field.key}`] ?? '').trim();
+        // Use referencePrefix for the reference row, normal prefix for affected rows
+        const pfx = r.isReference ? refPfx : prefix;
+        return String(row?.[`${pfx}${field.key}`] ?? '').trim();
       });
       const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
       const allEmpty = values.every(v => v === '');
