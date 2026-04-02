@@ -346,7 +346,7 @@ export function Step3Validation({
               
               const exactVorMatch = !refVornameBase || !arVorname || refVornameBase.toLowerCase() === arVorname.toLowerCase();
               const exactNameMatch = !refNameBase || !arName || refNameBase.toLowerCase() === arName.toLowerCase();
-              console.log(`[NAME-CHECK] Group="${identifier}" ar.row=${ar.row} ar.col=${ar.column} pfx=${pfx} ref="${refVornameBase} ${refNameBase}" vs ar="${arVorname} ${arName}" exactVor=${exactVorMatch} exactName=${exactNameMatch}`);
+              // Match found
               if (exactVorMatch && exactNameMatch) {
                 foundExact = true;
                 matchedPrefix = pfx;
