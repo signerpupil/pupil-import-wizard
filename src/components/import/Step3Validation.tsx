@@ -248,7 +248,7 @@ export function Step3Validation({
       
       // Also extract the "correct" ID mentioned in the message
       const correctIdMatch = error.message.match(/die ID '([^']+)'/);
-      const key = `${error.column}:${identifier}`;
+      const key = identifier; // Group by identifier only (not by column), so cross-slot families merge
       
       const existing = groupedByIdentifier.get(key);
       if (existing) {
