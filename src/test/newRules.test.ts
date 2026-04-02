@@ -14,6 +14,7 @@ const baseCols: ColumnDefinition[] = [
   { name: 'S_PLZ', required: false, validationType: 'plz', category: 'student' },
   { name: 'S_Ort', required: false, validationType: 'text', category: 'student' },
   { name: 'S_Muttersprache', required: false, validationType: 'language', category: 'student' },
+  { name: 'S_Umgangssprache', required: false, validationType: 'language', category: 'student' },
   { name: 'S_Nationalitaet', required: false, validationType: 'nationality', category: 'student' },
   { name: 'P_ERZ1_ID', required: false, validationType: 'text', category: 'parent' },
   { name: 'P_ERZ1_AHV', required: false, validationType: 'ahv', category: 'parent' },
@@ -383,5 +384,45 @@ describe('Extended email typo corrections', () => {
 
   it('fixes @iclod.com → @icloud.com', () => {
     expect(formatEmail('test@iclod.com')).toBe('test@icloud.com');
+  });
+});
+
+// ============================================
+// Language placeholder clearing
+// ============================================
+
+describe('Language placeholder clearing', () => {
+  const placeholders = ['Keine', 'keine angabe', 'N/A', 'na', '-', 'nichts', 'kein', 'keine sprache'];
+
+  it.each(placeholders)(
+    'clears S_Umgangssprache placeholder "%s"',
+    (placeholder) => {
+      const row = makeRow({ S_Umgangssprache: placeholder });
+      const errors = validateData([row], baseCols);
+      const langErrors = errors.filter(e => e.column === 'S_Umgangssprache');
+      expect(langErrors.length).toBe(1);
+      expect(langErrors[0].correctedValue).toBe('');
+      expect(langErrors[0].severity).toBe('warning');
+      expect(langErrors[0].message).toContain('geleert');
+    }
+  );
+
+  it.each(placeholders)(
+    'clears S_Muttersprache placeholder "%s"',
+    (placeholder) => {
+      const row = makeRow({ S_Muttersprache: placeholder, S_Umgangssprache: 'Deutsch' });
+      const errors = validateData([row], baseCols);
+      const langErrors = errors.filter(e => e.column === 'S_Muttersprache');
+      expect(langErrors.length).toBe(1);
+      expect(langErrors[0].correctedValue).toBe('');
+      expect(langErrors[0].severity).toBe('warning');
+    }
+  );
+
+  it('does NOT clear valid language "Deutsch"', () => {
+    const row = makeRow({ S_Umgangssprache: 'Deutsch' });
+    const errors = validateData([row], baseCols);
+    const langErrors = errors.filter(e => e.column === 'S_Umgangssprache');
+    expect(langErrors.length).toBe(0);
   });
 });
