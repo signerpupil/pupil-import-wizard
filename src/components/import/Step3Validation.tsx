@@ -362,7 +362,7 @@ export function Step3Validation({
             arMatchedPrefixes.set(ar.row, matchedPrefix);
             if (!foundExact) allMatchExact = false;
             if (!foundExact && !foundNormalized) allMatchNormalized = false;
-            console.log(`[NAME-CHECK] ar.row=${ar.row} foundExact=${foundExact} foundNorm=${foundNormalized}`);
+            
           }
           
           let matchFoundWithAnyPrefix = false;
