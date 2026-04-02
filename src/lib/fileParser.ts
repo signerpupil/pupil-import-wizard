@@ -1061,7 +1061,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Romania': 'Rumänien',
   'Bulgaria': 'Bulgarien',
   'Poland': 'Polen',
-  'Ukraine': 'Ukraine',
+  
   'Russia': 'Russland',
   'Georgia': 'Georgien',
   'Armenia': 'Armenien',
