@@ -308,7 +308,8 @@ export function Step3Validation({
       const parentAddress = addressParts.join(', ') || undefined;
 
       // Safety check: detect name mismatch between reference row and affected rows
-      // Use referencePrefix for the reference row, prefix for affected rows
+      // Compare each affected row's parent name against the GROUP's known parent identity
+      // This handles cross-slot scenarios (e.g. ERZ1 in ref row, ERZ2 in affected row)
       // Diacritical differences (e.g. Harambasic vs Harambašic) are NOT treated as name mismatches
       let hasNameMismatch = false;
       let hasDiacriticNameDiff = false;
@@ -316,11 +317,12 @@ export function Step3Validation({
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
         if (refRow) {
-          // Compare each affected row against its OWN corresponding slot in the reference row
-          // (not a fixed prefix), so ERZ2 rows compare against ref ERZ2, not ref ERZ1
+          // Use the group's reference parent name (from effectiveDisplayPrefix) as ground truth
+          const refVornameBase = String(refRow[`${effectiveDisplayPrefix}Vorname`] ?? '').trim();
+          const refNameBase = String(refRow[`${effectiveDisplayPrefix}Name`] ?? '').trim();
+          
           let allMatchExact = true;
           let allMatchNormalized = true;
-          let hasDiacriticDiffDetected = false;
           for (const ar of affectedRows) {
             const arRow = rows[ar.row - 1];
             if (!arRow) continue;
@@ -328,24 +330,16 @@ export function Step3Validation({
             const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
             const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
             
-            // Use the affected row's own prefix to find the corresponding reference name
-            const refVornameForSlot = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
-            const refNameForSlot = String(refRow[`${arPrefix}Name`] ?? '').trim();
-            
-            // If ref slot is empty, try the referencePrefix as fallback
-            const effectiveRefVorname = refVornameForSlot || (referencePrefix ? String(refRow[`${referencePrefix}Vorname`] ?? '').trim() : '');
-            const effectiveRefName = refNameForSlot || (referencePrefix ? String(refRow[`${referencePrefix}Name`] ?? '').trim() : '');
-            
-            if (!effectiveRefVorname && !effectiveRefName) continue;
+            if (!refVornameBase && !refNameBase) continue;
             
             // Exact comparison (case-insensitive)
-            if ((effectiveRefVorname && arVorname && effectiveRefVorname.toLowerCase() !== arVorname.toLowerCase()) ||
-                (effectiveRefName && arName && effectiveRefName.toLowerCase() !== arName.toLowerCase())) {
+            if ((refVornameBase && arVorname && refVornameBase.toLowerCase() !== arVorname.toLowerCase()) ||
+                (refNameBase && arName && refNameBase.toLowerCase() !== arName.toLowerCase())) {
               allMatchExact = false;
             }
             // Diacritic-insensitive comparison
-            if ((effectiveRefVorname && arVorname && stripDiacritics(effectiveRefVorname.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
-                (effectiveRefName && arName && stripDiacritics(effectiveRefName.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
+            if ((refVornameBase && arVorname && stripDiacritics(refVornameBase.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
+                (refNameBase && arName && stripDiacritics(refNameBase.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
               allMatchNormalized = false;
             }
           }
@@ -366,28 +360,16 @@ export function Step3Validation({
             hasDiacriticNameDiff = true;
             // Collect variants per affected row using their own prefix
             diacriticNameVariants = [];
-            // Add reference entries for each unique prefix
-            const seenRefPrefixes = new Set<string>();
-            for (const ar of affectedRows) {
-              const arPrefix = ar.column.replace(/_ID$/, '_');
-              if (!seenRefPrefixes.has(arPrefix)) {
-                seenRefPrefixes.add(arPrefix);
-                const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
-                const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
-                if (refVorname || refName) {
-                  diacriticNameVariants.push({ prefix: arPrefix, row: referenceRow, name: refName, vorname: refVorname });
-                }
-              }
-            }
+            // Add reference entry using the group's known parent name
+            diacriticNameVariants.push({ prefix: effectiveDisplayPrefix, row: referenceRow, name: refNameBase, vorname: refVornameBase });
+            // Add affected rows that differ from reference
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
               const arPrefix = ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
               const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
-              const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
-              const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
-              if (arName !== refName || arVorname !== refVorname) {
+              if (arName !== refNameBase || arVorname !== refVornameBase) {
                 diacriticNameVariants.push({ prefix: arPrefix, row: ar.row, name: arName, vorname: arVorname });
               }
             }
