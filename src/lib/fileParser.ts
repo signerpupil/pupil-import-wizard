@@ -1462,6 +1462,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     erz1Id: string; erz2Id: string;
     firstRow: number;
     erz1Name: string; erz2Name: string;
+    erz1SlotLabel: string; erz2SlotLabel: string;
   };
   const parentPairMap = new Map<string, NameOnlyEntry>();
 
