@@ -43,13 +43,14 @@ import { Switch } from '@/components/ui/switch';
 // Interface for parent ID inconsistency groups
 interface ParentIdInconsistencyGroup {
   identifier: string; // e.g., "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
-  column: string; // e.g., "P_ERZ1_ID"
+  column: string; // e.g., "P_ERZ1_ID" — prefix for the AFFECTED rows
   correctId: string; // The ID from the first occurrence
   matchReason: string; // e.g., "AHV-Nummer – Hohe Zuverlässigkeit"
   severity?: 'error' | 'warning'; // warning = name_only strategy
   parentName?: string;   // Vorname + Name of the parent
   parentAddress?: string; // Strasse + PLZ + Ort
   referenceRow?: number; // The row number of the first occurrence (reference)
+  referencePrefix?: string; // e.g., "P_ERZ2_" — prefix for the REFERENCE row (may differ from column prefix due to slot swaps)
   affectedRows: {
     row: number;
     currentId: string;
@@ -267,9 +268,13 @@ export function Step3Validation({
       
       if (!correctId) return;
       
-      // Extract reference row number from message: "hat in Zeile (\d+)"
+      // Extract reference row number and slot from message: "hat in Zeile (\d+) (Erziehungsberechtigte/r (\d))"
       const refRowMatch = firstError.message.match(/hat in Zeile (\d+)/);
       const referenceRow = refRowMatch ? parseInt(refRowMatch[1]) : undefined;
+      
+      // Extract reference slot number to build correct prefix for reference row
+      const refSlotMatch = firstError.message.match(/\(Erziehungsberechtigte\/r (\d)\)/);
+      const referencePrefix = refSlotMatch ? `P_ERZ${refSlotMatch[1]}_` : undefined;
       
       // Extract match reason: "[Erkannt via: AHV-Nummer – Hohe Zuverlässigkeit]"
       const matchReasonMatch = firstError.message.match(/\[Erkannt via: ([^\]]+)\]/);
@@ -281,28 +286,31 @@ export function Step3Validation({
         studentName: getStudentNameForRow(e.row),
       }));
 
-      // Extract parent name & address from first row that has data for this column
+      // Extract parent name & address — use referencePrefix for reference row, prefix for affected rows
       // column is e.g. "P_ERZ1_ID" → prefix is "P_ERZ1_"
       const prefix = column.replace(/_ID$/, '_');
-      const firstRowIndex = groupErrors[0].row - 1; // rows is 0-indexed
-      const sampleRow = rows[firstRowIndex] ?? {};
-      const vorname = sampleRow[`${prefix}Vorname`] ?? '';
-      const name = sampleRow[`${prefix}Name`] ?? '';
-      const strasse = sampleRow[`${prefix}Strasse`] ?? '';
-      const plz = sampleRow[`${prefix}PLZ`] ?? '';
-      const ort = sampleRow[`${prefix}Ort`] ?? '';
+      // For display: prefer reference row data if available (with correct prefix)
+      const effectiveDisplayPrefix = referencePrefix || prefix;
+      const displayRow = referenceRow != null ? (rows[referenceRow - 1] ?? {}) : (rows[groupErrors[0].row - 1] ?? {});
+      const vorname = displayRow[`${effectiveDisplayPrefix}Vorname`] ?? '';
+      const name = displayRow[`${effectiveDisplayPrefix}Name`] ?? '';
+      const strasse = displayRow[`${effectiveDisplayPrefix}Strasse`] ?? '';
+      const plz = displayRow[`${effectiveDisplayPrefix}PLZ`] ?? '';
+      const ort = displayRow[`${effectiveDisplayPrefix}Ort`] ?? '';
 
       const parentName = [vorname, name].filter(Boolean).join(' ') || undefined;
       const addressParts = [strasse, [plz, ort].filter(Boolean).join(' ')].filter(Boolean);
       const parentAddress = addressParts.join(', ') || undefined;
 
       // Safety check: detect name mismatch between reference row and affected rows
+      // Use referencePrefix for the reference row, prefix for affected rows
       let hasNameMismatch = false;
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
+        const refPfx = referencePrefix || prefix;
         if (refRow) {
-          const refVorname = String(refRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
-          const refName = String(refRow[`${prefix}Name`] ?? '').trim().toLowerCase();
+          const refVorname = String(refRow[`${refPfx}Vorname`] ?? '').trim().toLowerCase();
+          const refName = String(refRow[`${refPfx}Name`] ?? '').trim().toLowerCase();
           for (const ar of affectedRows) {
             const arRow = rows[ar.row - 1];
             if (!arRow) continue;
@@ -326,6 +334,7 @@ export function Step3Validation({
         parentName,
         parentAddress,
         referenceRow,
+        referencePrefix,
         affectedRows,
         hasNameMismatch,
       });
@@ -357,9 +366,11 @@ export function Step3Validation({
     column: string,
     allRows: ParsedRow[],
     referenceRow?: number,
-    correctId?: string
+    correctId?: string,
+    referencePrefix?: string
   ) {
     const prefix = column.replace(/_ID$/, '_');
+    const refPfx = referencePrefix || prefix; // prefix for the reference row (may differ due to slot swap)
     const FIELDS_TO_COMPARE = [
       { key: 'Name',             label: 'Name' },
       { key: 'Vorname',          label: 'Vorname' },
@@ -376,7 +387,7 @@ export function Step3Validation({
     ];
 
     // Build the list of rows to compare: reference row first, then affected rows
-    const rowEntries: { row: number; label: string }[] = [];
+    const rowEntries: { row: number; label: string; isReference: boolean }[] = [];
     
     // Determine reference row: use provided value, or fallback by searching for correctId
     let effectiveRefRow = referenceRow;
@@ -395,7 +406,7 @@ export function Step3Validation({
     
     if (effectiveRefRow != null) {
       const refStudentName = getStudentNameForRow(effectiveRefRow);
-      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}` });
+      rowEntries.push({ row: effectiveRefRow, label: `Referenz (Zeile ${effectiveRefRow})${refStudentName ? ` – ${refStudentName}` : ''}`, isReference: true });
     }
     
     // Disambiguate affected row names
@@ -405,13 +416,15 @@ export function Step3Validation({
     for (const r of affectedRows) {
       const name = r.studentName || `Zeile ${r.row}`;
       const needsDisambig = r.studentName && (nameCount.get(r.studentName) || 0) > 1;
-      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name });
+      rowEntries.push({ row: r.row, label: needsDisambig ? `${name} (Z. ${r.row})` : name, isReference: false });
     }
 
     return FIELDS_TO_COMPARE.map(field => {
       const values = rowEntries.map(r => {
         const row = allRows[r.row - 1];
-        return String(row?.[`${prefix}${field.key}`] ?? '').trim();
+        // Use referencePrefix for the reference row, normal prefix for affected rows
+        const pfx = r.isReference ? refPfx : prefix;
+        return String(row?.[`${pfx}${field.key}`] ?? '').trim();
       });
       const uniqueNonEmpty = [...new Set(values.filter(v => v !== ''))];
       const allEmpty = values.every(v => v === '');
@@ -1628,9 +1641,11 @@ export function Step3Validation({
                                 {group.hasNameMismatch && (() => {
                                   const prefix = group.column.replace(/_ID$/, '');
                                   const ahvColumn = `${prefix}_AHV`;
+                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : prefix;
+                                  const refAhvColumn = `${refPrefix}_AHV`;
                                   const allEditRows = [
-                                    ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})` }] : []),
-                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})` })),
+                                    ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})`, ahvCol: refAhvColumn }] : []),
+                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: ahvColumn })),
                                   ];
                                   return (
                                     <>
@@ -1642,9 +1657,9 @@ export function Step3Validation({
                                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                                           <Edit2 className="h-3 w-3" /> AHV-Nummer korrigieren
                                         </p>
-                                        {allEditRows.map(({ row: editRow, label }) => {
-                                          const ahvKey = `${editRow}:${ahvColumn}`;
-                                          const currentAhv = String(rows[editRow - 1]?.[ahvColumn] ?? '');
+                                        {allEditRows.map(({ row: editRow, label, ahvCol }) => {
+                                          const ahvKey = `${editRow}:${ahvCol}`;
+                                          const currentAhv = String(rows[editRow - 1]?.[ahvCol] ?? '');
                                           const isEditing = editingAhv.has(ahvKey);
                                           const editVal = editingAhv.get(ahvKey) ?? '';
                                           const ahvValid = /^756\.\d{4}\.\d{4}\.\d{2}$/.test(editVal);
@@ -1685,9 +1700,9 @@ export function Step3Validation({
                                                     disabled={!ahvValid}
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      onErrorCorrect(editRow, ahvColumn, editVal, 'manual');
+                                                      onErrorCorrect(editRow, ahvCol, editVal, 'manual');
                                                       setEditingAhv(prev => { const m = new Map(prev); m.delete(ahvKey); return m; });
-                                                      toast({ title: 'AHV korrigiert', description: `Zeile ${editRow}: ${ahvColumn} → ${editVal}` });
+                                                      toast({ title: 'AHV korrigiert', description: `Zeile ${editRow}: ${ahvCol} → ${editVal}` });
                                                     }}
                                                   >
                                                     <Save className="h-3 w-3" /> OK
@@ -1714,7 +1729,7 @@ export function Step3Validation({
                                 })()}
                                 {/* Warning badge if there are field differences */}
                                 {!group.hasNameMismatch && (() => {
-                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
+                                  const fc = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId, group.referencePrefix);
                                   const diffCount = fc.filter(f => !f.allSame).length;
                                   return diffCount > 0 ? (
                                     <div className="mt-1 flex items-center gap-1 text-xs text-amber-700">
@@ -1759,7 +1774,7 @@ export function Step3Validation({
 
           {/* Inline details expansion – 2-Karten-Layout + Feldvergleich */}
                           {isExpanded && (() => {
-                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId);
+                            const fieldComparison = getParentFieldComparison(group.affectedRows, group.column, rows, group.referenceRow, group.correctId, group.referencePrefix);
                             return (
                             <div className="border-t bg-muted/20 p-3 space-y-3">
                               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
