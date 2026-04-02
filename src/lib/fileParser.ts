@@ -2395,10 +2395,18 @@ function validateFieldType(
         return { row: rowNum, column: columnName, value, message: 'AHV-Prüfziffer ungültig – Manuelle Prüfung erforderlich', severity: 'warning' };
       }
       break;
-    case 'email':
+    case 'email': {
+      // Detect placeholder values that aren't real emails
+      const emailLower = value.toLowerCase().trim();
+      const EMAIL_PLACEHOLDERS = ['keine', '-', '--', 'n/a', 'na', 'nicht vorhanden', 'unbekannt', 'nein', 'kein', 'leer', 'null', 'none', 'no email', 'keine email', 'keine e-mail'];
+      if (EMAIL_PLACEHOLDERS.includes(emailLower) || /^verstorben/i.test(emailLower) || /^tod\b/i.test(emailLower) || /^†/i.test(emailLower)) {
+        return { row: rowNum, column: columnName, value, message: `Platzhalter "${value}" erkannt – Feld wird geleert`, severity: 'warning', correctedValue: '' };
+      }
       if (!isValidEmail(value)) {
         return { row: rowNum, column: columnName, value, message: 'Ungültige E-Mail-Adresse' };
       }
+      break;
+    }
       break;
     case 'number':
       if (isNaN(Number(value))) {
