@@ -1623,11 +1623,19 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
           }
 
           if (isSamePerson) {
+            // Determine the specific disambiguation strategy used
+            let disambigStrategy: MatchStrategy = 'name_only';
+            if (phones.length > 0 && prev.phoneNumbers.length > 0 && phones.some(p => prev.phoneNumbers.includes(p))) {
+              disambigStrategy = 'name_phone';
+            } else if (otherErzNameKey && prev.otherErzNameKey && otherErzNameKey === prev.otherErzNameKey) {
+              disambigStrategy = 'name_pair';
+            }
+
             const displayName = `${vorname} ${name}`;
             const errorKey = `${rowIndex + 1}:${check.idField}:${displayName}`;
             if (!errorSet.has(errorKey)) {
               errorSet.add(errorKey);
-              const strategyInfo = STRATEGY_LABELS['name_only'];
+              const strategyInfo = STRATEGY_LABELS[disambigStrategy];
               const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
               errors.push({
                 row: rowIndex + 1,
