@@ -14,6 +14,7 @@ const baseCols: ColumnDefinition[] = [
   { name: 'S_PLZ', required: false, validationType: 'plz', category: 'student' },
   { name: 'S_Ort', required: false, validationType: 'text', category: 'student' },
   { name: 'S_Muttersprache', required: false, validationType: 'language', category: 'student' },
+  { name: 'S_Umgangssprache', required: false, validationType: 'language', category: 'student' },
   { name: 'S_Nationalitaet', required: false, validationType: 'nationality', category: 'student' },
   { name: 'P_ERZ1_ID', required: false, validationType: 'text', category: 'parent' },
   { name: 'P_ERZ1_AHV', required: false, validationType: 'ahv', category: 'parent' },
