@@ -421,7 +421,7 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '8902': ['Urdorf'],
   '8903': ['Birmensdorf ZH'],
   '8904': ['Aesch ZH'],
-  '8905': ['Arni AG'],
+  '8905': ['Arni AG', 'Islisberg', 'Arni-Islisberg'],
   '8906': ['Bonstetten'],
   '8907': ['Wettswil am Albis', 'Wettswil a. Albis'],
   '8908': ['Hedingen'],
