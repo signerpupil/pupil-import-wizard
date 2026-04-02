@@ -1513,7 +1513,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
               row: rowIndex + 1,
               column: field,
               value: currentId,
-              message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+              message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} (${existingSlotLabel}) die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
               severity: 'warning',
             });
           }
