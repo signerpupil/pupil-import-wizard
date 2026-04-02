@@ -251,7 +251,10 @@ export function Step3Validation({
       
       // Also extract the "correct" ID mentioned in the message
       const correctIdMatch = error.message.match(/die ID '([^']+)'/);
-      const key = identifier; // Group by identifier only (not by column), so cross-slot families merge
+      // Group by identifier AND correctId: for pair-matched groups, ERZ1 and ERZ2
+      // have the same identifier but different correctIds → must be separate groups
+      const correctId = correctIdMatch ? correctIdMatch[1] : '';
+      const key = correctId ? `${identifier}::${correctId}` : identifier;
       
       const existing = groupedByIdentifier.get(key);
       if (existing) {
