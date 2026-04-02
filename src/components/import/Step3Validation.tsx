@@ -360,28 +360,16 @@ export function Step3Validation({
             hasDiacriticNameDiff = true;
             // Collect variants per affected row using their own prefix
             diacriticNameVariants = [];
-            // Add reference entries for each unique prefix
-            const seenRefPrefixes = new Set<string>();
-            for (const ar of affectedRows) {
-              const arPrefix = ar.column.replace(/_ID$/, '_');
-              if (!seenRefPrefixes.has(arPrefix)) {
-                seenRefPrefixes.add(arPrefix);
-                const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
-                const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
-                if (refVorname || refName) {
-                  diacriticNameVariants.push({ prefix: arPrefix, row: referenceRow, name: refName, vorname: refVorname });
-                }
-              }
-            }
+            // Add reference entry using the group's known parent name
+            diacriticNameVariants.push({ prefix: effectiveDisplayPrefix, row: referenceRow, name: refNameBase, vorname: refVornameBase });
+            // Add affected rows that differ from reference
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
               const arPrefix = ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
               const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
-              const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
-              const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
-              if (arName !== refName || arVorname !== refVorname) {
+              if (arName !== refNameBase || arVorname !== refVornameBase) {
                 diacriticNameVariants.push({ prefix: arPrefix, row: ar.row, name: arName, vorname: arVorname });
               }
             }
