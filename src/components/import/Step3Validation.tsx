@@ -1586,18 +1586,23 @@ export function Step3Validation({
                       </p>
                     ) : (
                        paginatedParentGroups.map((group, idx) => {
-                          const groupKey = `${group.column}:${group.identifier}`;
+                          const groupKey = `${group.identifier}`;
                           const isExpanded = expandedParentGroups.has(groupKey);
                           const prefix = group.column.replace(/_ID$/, '_');
+                          // Show all unique columns in the group
+                          const uniqueColumns = [...new Set(group.affectedRows.map(r => r.column))];
+                          if (!uniqueColumns.includes(group.column)) uniqueColumns.unshift(group.column);
                           const PERSON_FIELDS = ['Vorname', 'Name', 'Strasse', 'PLZ', 'Ort', 'AHV'];
                           return (
-                         <div key={`${group.column}-${group.identifier}-${idx}`} className="bg-background rounded-lg border overflow-hidden">
+                         <div key={`${group.identifier}-${idx}`} className="bg-background rounded-lg border overflow-hidden">
                            {/* Card header */}
                            <div className="p-3 space-y-2">
                            <div className="flex items-center justify-between gap-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                  <Badge variant="outline" className="shrink-0">{group.column}</Badge>
+                                  {uniqueColumns.map(col => (
+                                    <Badge key={col} variant="outline" className="shrink-0">{col}</Badge>
+                                  ))}
                                   {group.matchReason && (
                                     <Badge
                                       variant="secondary"
