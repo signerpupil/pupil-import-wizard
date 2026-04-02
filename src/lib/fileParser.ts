@@ -270,6 +270,18 @@ const BISTA_NORMALIZED = new Map<string, string>(
 
 // Auto-Korrekturen für bekannte nicht-BISTA Sprachen
 export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
+  // Schweizerdeutsche Dialekte → Deutsch
+  'Schweizerdeutsch': 'Deutsch',
+  'Schwyzerdütsch': 'Deutsch',
+  'Züridütsch': 'Deutsch',
+  'Berndeutsch': 'Deutsch',
+  'Baseldeutsch': 'Deutsch',
+  'Bündnerdeutsch': 'Deutsch',
+  'Walliserdeutsch': 'Deutsch',
+  'Mundart': 'Deutsch',
+  'Dialekt': 'Deutsch',
+  'Schweizer Deutsch': 'Deutsch',
+  'Swiss German': 'Deutsch',
   'Tigrinya': 'Afrikanische Sprachen',
   'Dari': 'Westasiatische Sprachen',
   'Bangala': 'Indoarische und drawidische Sprachen',
