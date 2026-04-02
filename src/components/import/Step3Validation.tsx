@@ -1641,9 +1641,11 @@ export function Step3Validation({
                                 {group.hasNameMismatch && (() => {
                                   const prefix = group.column.replace(/_ID$/, '');
                                   const ahvColumn = `${prefix}_AHV`;
+                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : prefix;
+                                  const refAhvColumn = `${refPrefix}_AHV`;
                                   const allEditRows = [
-                                    ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})` }] : []),
-                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})` })),
+                                    ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})`, ahvCol: refAhvColumn }] : []),
+                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: ahvColumn })),
                                   ];
                                   return (
                                     <>
