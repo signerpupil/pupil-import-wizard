@@ -143,7 +143,7 @@ export function SiblingInconsistencyCard({ errors, rows, onBulkCorrect }: Siblin
         fieldInfo.values.forEach((info, val) => {
           if (val !== fieldInfo.majorityValue) {
             for (const rowIdx of info.rowNumbers) {
-              corrections.push({ row: rowIdx + 1, column: fieldInfo.field, value: fieldInfo.majorityValue });
+              corrections.push({ row: rowIdx + 2, column: fieldInfo.field, value: fieldInfo.majorityValue });
             }
           }
         });
@@ -297,7 +297,7 @@ function FamilyGroupCard({
       fieldInfo.values.forEach((info, val) => {
         if (val !== selectedValue) {
           for (const rowIdx of info.rowNumbers) {
-            corrections.push({ row: rowIdx + 1, column: fieldInfo.field, value: selectedValue });
+            corrections.push({ row: rowIdx + 2, column: fieldInfo.field, value: selectedValue });
           }
         }
       });
@@ -318,7 +318,7 @@ function FamilyGroupCard({
       fieldInfo.values.forEach((info, val) => {
         if (val !== fieldInfo.majorityValue) {
           for (const rowIdx of info.rowNumbers) {
-            corrections.push({ row: rowIdx + 1, column: fieldInfo.field, value: fieldInfo.majorityValue });
+            corrections.push({ row: rowIdx + 2, column: fieldInfo.field, value: fieldInfo.majorityValue });
           }
         }
       });

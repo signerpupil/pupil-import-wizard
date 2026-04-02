@@ -681,7 +681,7 @@ function detectNameMismatch(rows: ParsedRow[], errors: ValidationError[], column
 
     let allMatch = true;
     for (const e of inconsistentIds) {
-      const arRow = rows[e.row - 1];
+      const arRow = rows[e.row - 2];
       if (!arRow) continue;
       const arVorname = String(arRow[`${prefix}Vorname`] ?? '').trim().toLowerCase();
       const arName = String(arRow[`${prefix}Name`] ?? '').trim().toLowerCase();

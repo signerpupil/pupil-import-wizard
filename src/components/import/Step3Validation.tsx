@@ -299,7 +299,7 @@ export function Step3Validation({
       const prefix = column.replace(/_ID$/, '_');
       // For display: prefer reference row data if available (with correct prefix)
       const effectiveDisplayPrefix = referencePrefix || prefix;
-      const displayRow = referenceRow != null ? (rows[referenceRow - 2] ?? {}) : (rows[groupErrors[0].row - 1] ?? {});
+      const displayRow = referenceRow != null ? (rows[referenceRow - 2] ?? {}) : (rows[groupErrors[0].row - 2] ?? {});
       const vorname = displayRow[`${effectiveDisplayPrefix}Vorname`] ?? '';
       const name = displayRow[`${effectiveDisplayPrefix}Name`] ?? '';
       const strasse = displayRow[`${effectiveDisplayPrefix}Strasse`] ?? '';
