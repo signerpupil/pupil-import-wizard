@@ -1525,6 +1525,8 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         firstRow: rowIndex + 1,
         erz1Name: `${erz1Vorname} ${erz1Name}`,
         erz2Name: `${erz2Vorname} ${erz2Name}`,
+        erz1SlotLabel: erz1.label,
+        erz2SlotLabel: erz2.label,
       });
     }
   }
