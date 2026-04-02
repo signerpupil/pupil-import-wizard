@@ -1,30 +1,46 @@
 
 
-# Namenswechsel: Beide Schüler*innen anzeigen + manuelle Namenswahl
+# Analyse: "Unterschiedliche Namen erkannt" bei vertauschten Eltern-Slots
 
-## Problem
-Die Namenswechsel-Erkennung zeigt nur den/die Schüler*in der **späteren Zeile** an. Im Screenshot gehört "Kristina Stefanova-Dhital" (Zeile 45) zu Robin Dhital, während "Kristina Stefanova" (Zeile 417) zu einem anderen Kind gehört. Es fehlt:
-1. Die Anzeige **beider** Schüler*innen im Header
-2. Eine Möglichkeit, den **richtigen Namen manuell festzulegen** (statt nur "Ignorieren")
+## Ursache gefunden
+
+Das Problem liegt im **Elternpaar-Matching (Pass 2)** in `fileParser.ts`. Es gibt drei Matching-Strategien:
+
+1. **Pass 1 (AHV / Name+Strasse)**: Fehlermeldung enthält den Slot → `(Erziehungsberechtigte/r 2)` → Cross-Slot-Fix funktioniert ✓
+2. **Pass 2 (Elternpaar, name_only)**: Fehlermeldung enthält **KEINEN Slot** nach der Zeilennummer → `referencePrefix` bleibt `undefined` → Fallback auf `prefix` → **falscher Slot wird verglichen** ✗
+3. **Pass 3 (Einzelperson name_only)**: Enthält Slot → funktioniert ✓
+
+Pass 1 blockiert Pass 2 normalerweise via `resolvedByHigherStrategy`. **Aber**: Wenn die Eltern an **unterschiedlichen Adressen** wohnen (oder keine Strasse angegeben ist), greift Pass 1 (Name+Strasse) NICHT, und Pass 2 (Elternpaar) wird zur primären Erkennung. Dessen Fehlermeldung hat kein Slot-Label → `referencePrefix` ist `undefined` → die `hasNameMismatch`-Prüfung vergleicht die **falschen Felder** (z.B. ERZ1 der Referenzzeile statt ERZ2).
+
+Auch bei den vorliegenden Daten: obwohl die Adresse gleich ist, kann es sein, dass die Reihenfolge der Passes oder ein anderer Grund dazu führt, dass das Pair-Matching feuert.
 
 ## Lösung
 
-### 1. NameChangeEntry erweitern (`Step3Validation.tsx`)
-- Neues Feld `fromStudentName: string` hinzufügen — den Schüler*innennamen aus der **früheren** Zeile (Zeile `fromRow`)
-- Beim Parsen: `fromStudentName` aus `rows[fromRow - 1]` lesen (`S_Vorname` + `S_Name`)
+### 1. Pass-2-Fehlermeldung um Slot-Label ergänzen (`fileParser.ts`, ~Zeile 1515)
 
-### 2. Header: beide Schüler*innen anzeigen
-- Statt `Schüler/in: Robin Dhital` → zwei Labels anzeigen:
-  - `Zeile 45: Robin Dhital` | `Zeile 417: [anderer Schüler]`
-- Falls beide Schüler*innen identisch sind, nur einen Namen anzeigen (wie bisher)
+Die Fehlermeldung des Elternpaar-Matchings bekommt ebenfalls den Slot-Hinweis:
 
-### 3. Manuelle Namenswahl als Aktion hinzufügen
-- Zwei neue Buttons unter den Vergleichskarten:
-  - **«Stefanova-Dhital» übernehmen** — setzt `onErrorCorrect` auf den bisherigen Namen (korrigiert die spätere Zeile)
-  - **«Stefanova» beibehalten** — dismisst die Warnung (behält den aktuellen Wert der späteren Zeile)
-- Beim Übernehmen des bisherigen Namens: `onErrorCorrect(entry.error.row, entry.column, entry.fromName, 'manual')` aufrufen
-- Beim Beibehalten: `dismissNameChange(entry)` wie bisher
+```
+// Vorher:
+`...hat in Zeile ${existing.firstRow} die ID '${existingId}'...`
 
-### 4. Betroffene Datei
-- `src/components/import/Step3Validation.tsx` — Interface, Parsing, Header-Bereich, und neue Buttons im Detail-Bereich
+// Nachher:
+`...hat in Zeile ${existing.firstRow} (${existingSlotLabel}) die ID '${existingId}'...`
+```
+
+Dazu muss der `parentPairMap`-Eintrag die Slot-Labels der ersten Zeile speichern (`erz1SlotLabel`, `erz2SlotLabel`), damit beim Fehler der korrekte Slot referenziert werden kann.
+
+### 2. Robustere `hasNameMismatch`-Prüfung als Fallback (`Step3Validation.tsx`, ~Zeile 305-326)
+
+Falls `referencePrefix` nicht extrahiert werden kann, **beide** Slot-Varianten durchprobieren:
+
+```
+// Wenn referencePrefix undefined:
+// Versuche P_ERZ1_ und P_ERZ2_ als referencePrefix
+// Wenn Name mit EINEM davon matcht → kein Mismatch
+```
+
+### Betroffene Dateien
+- `src/lib/fileParser.ts` — Slot-Label in Pass-2-Fehlermeldung einfügen + NameOnlyEntry erweitern
+- `src/components/import/Step3Validation.tsx` — Fallback-Logik bei fehlendem referencePrefix
 
