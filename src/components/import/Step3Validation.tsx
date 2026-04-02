@@ -108,6 +108,9 @@ export function Step3Validation({
   // Filter toggle: show only open (uncorrected) errors in table
   const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
 
+  // Inline AHV edit state for name-mismatch groups
+  const [editingAhv, setEditingAhv] = useState<Map<string, string>>(new Map());
+
   // Language dropdown state: tracks which cell has the dropdown open
   const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const LANGUAGE_COLUMNS = new Set(['S_Muttersprache', 'S_Umgangssprache']);
