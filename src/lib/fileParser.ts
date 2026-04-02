@@ -1083,7 +1083,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Cuba': 'Kuba',
   'Bolivia': 'Bolivien',
   'Dominican Republic': 'Dominikanische Republik',
-  'Haiti': 'Haiti',
+  
   'Jamaica': 'Jamaika',
   'Trinidad and Tobago': 'Trinidad und Tobago',
   'New Zealand': 'Neuseeland',
