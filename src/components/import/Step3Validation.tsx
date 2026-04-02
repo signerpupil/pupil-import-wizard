@@ -316,62 +316,77 @@ export function Step3Validation({
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
         if (refRow) {
-          const prefixesToTry = referencePrefix 
-            ? [referencePrefix] 
-            : ['P_ERZ1_', 'P_ERZ2_'];
+          // Compare each affected row against its OWN corresponding slot in the reference row
+          // (not a fixed prefix), so ERZ2 rows compare against ref ERZ2, not ref ERZ1
+          let allMatchExact = true;
+          let allMatchNormalized = true;
+          let hasDiacriticDiffDetected = false;
+          for (const ar of affectedRows) {
+            const arRow = rows[ar.row - 1];
+            if (!arRow) continue;
+            const arPrefix = ar.column.replace(/_ID$/, '_');
+            const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
+            const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+            
+            // Use the affected row's own prefix to find the corresponding reference name
+            const refVornameForSlot = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
+            const refNameForSlot = String(refRow[`${arPrefix}Name`] ?? '').trim();
+            
+            // If ref slot is empty, try the referencePrefix as fallback
+            const effectiveRefVorname = refVornameForSlot || (referencePrefix ? String(refRow[`${referencePrefix}Vorname`] ?? '').trim() : '');
+            const effectiveRefName = refNameForSlot || (referencePrefix ? String(refRow[`${referencePrefix}Name`] ?? '').trim() : '');
+            
+            if (!effectiveRefVorname && !effectiveRefName) continue;
+            
+            // Exact comparison (case-insensitive)
+            if ((effectiveRefVorname && arVorname && effectiveRefVorname.toLowerCase() !== arVorname.toLowerCase()) ||
+                (effectiveRefName && arName && effectiveRefName.toLowerCase() !== arName.toLowerCase())) {
+              allMatchExact = false;
+            }
+            // Diacritic-insensitive comparison
+            if ((effectiveRefVorname && arVorname && stripDiacritics(effectiveRefVorname.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
+                (effectiveRefName && arName && stripDiacritics(effectiveRefName.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
+              allMatchNormalized = false;
+            }
+          }
           
           let matchFoundWithAnyPrefix = false;
           let diacriticMatchPrefix: string | null = null;
-          for (const tryPfx of prefixesToTry) {
-            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
-            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
-            if (!refVorname && !refName) continue;
-            
-            let allMatchExact = true;
-            let allMatchNormalized = true;
-            for (const ar of affectedRows) {
-              const arRow = rows[ar.row - 1];
-              if (!arRow) continue;
-              const arPrefix = ar.column.replace(/_ID$/, '_');
-              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
-              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
-              // Exact comparison (case-insensitive)
-              if ((refVorname && arVorname && refVorname.toLowerCase() !== arVorname.toLowerCase()) ||
-                  (refName && arName && refName.toLowerCase() !== arName.toLowerCase())) {
-                allMatchExact = false;
-              }
-              // Diacritic-insensitive comparison
-              if ((refVorname && arVorname && stripDiacritics(refVorname.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
-                  (refName && arName && stripDiacritics(refName.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
-                allMatchNormalized = false;
-              }
-            }
-            if (allMatchExact) {
-              matchFoundWithAnyPrefix = true;
-              break;
-            }
-            if (allMatchNormalized && !allMatchExact) {
-              // Names match after stripping diacritics but differ in raw form
-              matchFoundWithAnyPrefix = true; // Don't block consolidation
-              diacriticMatchPrefix = tryPfx;
-              break;
-            }
+          if (allMatchExact) {
+            matchFoundWithAnyPrefix = true;
+          } else if (allMatchNormalized) {
+            matchFoundWithAnyPrefix = true;
+            // Use first affected row's prefix for diacritic variant collection
+            diacriticMatchPrefix = affectedRows[0]?.column.replace(/_ID$/, '_') || referencePrefix;
           }
           hasNameMismatch = !matchFoundWithAnyPrefix;
           
           // Collect diacritic name variants for unification UI
           if (diacriticMatchPrefix) {
             hasDiacriticNameDiff = true;
-            const tryPfx = diacriticMatchPrefix;
-            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
-            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
-            diacriticNameVariants = [{ prefix: tryPfx, row: referenceRow, name: refName, vorname: refVorname }];
+            // Collect variants per affected row using their own prefix
+            diacriticNameVariants = [];
+            // Add reference entries for each unique prefix
+            const seenRefPrefixes = new Set<string>();
+            for (const ar of affectedRows) {
+              const arPrefix = ar.column.replace(/_ID$/, '_');
+              if (!seenRefPrefixes.has(arPrefix)) {
+                seenRefPrefixes.add(arPrefix);
+                const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
+                const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
+                if (refVorname || refName) {
+                  diacriticNameVariants.push({ prefix: arPrefix, row: referenceRow, name: refName, vorname: refVorname });
+                }
+              }
+            }
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
               const arPrefix = ar.column.replace(/_ID$/, '_');
               const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
               const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+              const refVorname = String(refRow[`${arPrefix}Vorname`] ?? '').trim();
+              const refName = String(refRow[`${arPrefix}Name`] ?? '').trim();
               if (arName !== refName || arVorname !== refVorname) {
                 diacriticNameVariants.push({ prefix: arPrefix, row: ar.row, name: arName, vorname: arVorname });
               }
