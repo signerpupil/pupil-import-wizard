@@ -58,7 +58,9 @@ interface ParentIdInconsistencyGroup {
     studentName: string | null;
     column: string; // e.g., "P_ERZ1_ID" or "P_ERZ2_ID" — per-row, may differ across rows
   }[];
-  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows
+  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows (after diacritic normalization)
+  hasDiacriticNameDiff?: boolean; // true if names match after stripping diacritics but differ in raw form
+  diacriticNameVariants?: { prefix: string; row: number; name: string; vorname: string }[]; // all name variants for unification UI
 }
 
 interface Step3ValidationProps {
@@ -307,41 +309,74 @@ export function Step3Validation({
 
       // Safety check: detect name mismatch between reference row and affected rows
       // Use referencePrefix for the reference row, prefix for affected rows
+      // Diacritical differences (e.g. Harambasic vs Harambašic) are NOT treated as name mismatches
       let hasNameMismatch = false;
+      let hasDiacriticNameDiff = false;
+      let diacriticNameVariants: { prefix: string; row: number; name: string; vorname: string }[] = [];
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
         if (refRow) {
-          // If referencePrefix is known, use it directly.
-          // If not (e.g. Pass 2 pair matching without slot label), try both ERZ1 and ERZ2 prefixes.
           const prefixesToTry = referencePrefix 
             ? [referencePrefix] 
             : ['P_ERZ1_', 'P_ERZ2_'];
           
           let matchFoundWithAnyPrefix = false;
+          let diacriticMatchPrefix: string | null = null;
           for (const tryPfx of prefixesToTry) {
-            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim().toLowerCase();
-            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim().toLowerCase();
+            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
+            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
             if (!refVorname && !refName) continue;
             
-            let allMatch = true;
+            let allMatchExact = true;
+            let allMatchNormalized = true;
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
-              const arPrefix = ar.column.replace(/_ID$/, '_'); // per-row prefix
-              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim().toLowerCase();
-              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim().toLowerCase();
-              if ((refVorname && arVorname && refVorname !== arVorname) ||
-                  (refName && arName && refName !== arName)) {
-                allMatch = false;
-                break;
+              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
+              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+              // Exact comparison (case-insensitive)
+              if ((refVorname && arVorname && refVorname.toLowerCase() !== arVorname.toLowerCase()) ||
+                  (refName && arName && refName.toLowerCase() !== arName.toLowerCase())) {
+                allMatchExact = false;
+              }
+              // Diacritic-insensitive comparison
+              if ((refVorname && arVorname && stripDiacritics(refVorname.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
+                  (refName && arName && stripDiacritics(refName.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
+                allMatchNormalized = false;
               }
             }
-            if (allMatch) {
+            if (allMatchExact) {
               matchFoundWithAnyPrefix = true;
+              break;
+            }
+            if (allMatchNormalized && !allMatchExact) {
+              // Names match after stripping diacritics but differ in raw form
+              matchFoundWithAnyPrefix = true; // Don't block consolidation
+              diacriticMatchPrefix = tryPfx;
               break;
             }
           }
           hasNameMismatch = !matchFoundWithAnyPrefix;
+          
+          // Collect diacritic name variants for unification UI
+          if (diacriticMatchPrefix) {
+            hasDiacriticNameDiff = true;
+            const tryPfx = diacriticMatchPrefix;
+            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
+            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
+            diacriticNameVariants = [{ prefix: tryPfx, row: referenceRow, name: refName, vorname: refVorname }];
+            for (const ar of affectedRows) {
+              const arRow = rows[ar.row - 1];
+              if (!arRow) continue;
+              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
+              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+              if (arName !== refName || arVorname !== refVorname) {
+                diacriticNameVariants.push({ prefix: arPrefix, row: ar.row, name: arName, vorname: arVorname });
+              }
+            }
+          }
         }
       }
       
@@ -361,11 +396,17 @@ export function Step3Validation({
         referenceStudentName,
         affectedRows,
         hasNameMismatch,
+        hasDiacriticNameDiff,
+        diacriticNameVariants,
       });
     });
     
     return groups;
   }, [uncorrectedErrors, getStudentNameForRow, rows]);
+// Helper: strip diacritical marks for comparison
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
 
   // applyBulkParentIdCorrection is defined after filteredParentGroups (see below)
@@ -1773,6 +1814,69 @@ export function Step3Validation({
                                         })}
                                       </div>
                                     </>
+                                  );
+                                })()}
+                                {/* Diacritic name difference — allow unification */}
+                                {!group.hasNameMismatch && group.hasDiacriticNameDiff && group.diacriticNameVariants && group.diacriticNameVariants.length > 1 && (() => {
+                                  // Deduplicate variants by name+vorname
+                                  const uniqueVariants = new Map<string, typeof group.diacriticNameVariants[0]>();
+                                  for (const v of group.diacriticNameVariants!) {
+                                    const key = `${v.name}|${v.vorname}`;
+                                    if (!uniqueVariants.has(key)) uniqueVariants.set(key, v);
+                                  }
+                                  const variants = Array.from(uniqueVariants.values());
+                                  if (variants.length < 2) return null;
+                                  
+                                  // Collect all rows that need updating for each variant choice
+                                  const allRows = group.diacriticNameVariants!;
+                                  
+                                  return (
+                                    <div className="mt-1.5 bg-amber-50 dark:bg-amber-950/20 rounded border border-amber-200 dark:border-amber-800 p-2 space-y-1.5">
+                                      <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                                        <Languages className="h-3 w-3" /> Namensschreibweise vereinheitlichen
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Unterschiedliche Schreibweisen (Akzente/Diakritika) erkannt. Wählen Sie die korrekte Schreibweise:
+                                      </p>
+                                      <div className="flex flex-wrap gap-1.5 mt-1">
+                                        {variants.map((v) => {
+                                          const displayName = `${v.vorname} ${v.name}`;
+                                          return (
+                                            <Button
+                                              key={`${v.name}|${v.vorname}`}
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-7 gap-1.5 text-xs border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const corrections: { row: number; column: string; value: string }[] = [];
+                                                for (const target of allRows) {
+                                                  if (target.name !== v.name) {
+                                                    corrections.push({ row: target.row, column: `${target.prefix}Name`, value: v.name });
+                                                  }
+                                                  if (target.vorname !== v.vorname) {
+                                                    corrections.push({ row: target.row, column: `${target.prefix}Vorname`, value: v.vorname });
+                                                  }
+                                                }
+                                                if (corrections.length > 0) {
+                                                  for (const c of corrections) {
+                                                    onErrorCorrect(c.row, c.column, c.value, 'manual');
+                                                  }
+                                                  toast({ 
+                                                    title: 'Name vereinheitlicht', 
+                                                    description: `${corrections.length} Felder auf "${displayName}" gesetzt.` 
+                                                  });
+                                                }
+                                              }}
+                                            >
+                                              <Check className="h-3 w-3" />
+                                              {displayName}
+                                              <span className="text-muted-foreground">(Z. {v.row})</span>
+                                            </Button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
                                   );
                                 })()}
                                 {/* Warning badge if there are field differences */}

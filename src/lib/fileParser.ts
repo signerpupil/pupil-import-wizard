@@ -1909,7 +1909,7 @@ function checkSameIdDifferentPerson(rows: ParsedRow[], field: string, rowNumbers
     if (!refName && !name) continue;
 
     // Check for differences: name+vorname differ, OR AHV differs (when both present), OR DOB differs (when both present)
-    const namesDiffer = (refName && name && (refName !== name || refVorname !== vorname));
+    const namesDiffer = (refName && name && (normalizeForComparison(refName) !== normalizeForComparison(name) || normalizeForComparison(refVorname) !== normalizeForComparison(vorname)));
     const ahvDiffers = (refAhv && ahv && refAhv !== ahv);
     const gebDiffers = (refGeb && geb && refGeb !== geb);
 
