@@ -309,41 +309,74 @@ export function Step3Validation({
 
       // Safety check: detect name mismatch between reference row and affected rows
       // Use referencePrefix for the reference row, prefix for affected rows
+      // Diacritical differences (e.g. Harambasic vs Harambašic) are NOT treated as name mismatches
       let hasNameMismatch = false;
+      let hasDiacriticNameDiff = false;
+      let diacriticNameVariants: { prefix: string; row: number; name: string; vorname: string }[] = [];
       if (referenceRow != null) {
         const refRow = rows[referenceRow - 1];
         if (refRow) {
-          // If referencePrefix is known, use it directly.
-          // If not (e.g. Pass 2 pair matching without slot label), try both ERZ1 and ERZ2 prefixes.
           const prefixesToTry = referencePrefix 
             ? [referencePrefix] 
             : ['P_ERZ1_', 'P_ERZ2_'];
           
           let matchFoundWithAnyPrefix = false;
+          let diacriticMatchPrefix: string | null = null;
           for (const tryPfx of prefixesToTry) {
-            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim().toLowerCase();
-            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim().toLowerCase();
+            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
+            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
             if (!refVorname && !refName) continue;
             
-            let allMatch = true;
+            let allMatchExact = true;
+            let allMatchNormalized = true;
             for (const ar of affectedRows) {
               const arRow = rows[ar.row - 1];
               if (!arRow) continue;
-              const arPrefix = ar.column.replace(/_ID$/, '_'); // per-row prefix
-              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim().toLowerCase();
-              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim().toLowerCase();
-              if ((refVorname && arVorname && refVorname !== arVorname) ||
-                  (refName && arName && refName !== arName)) {
-                allMatch = false;
-                break;
+              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
+              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+              // Exact comparison (case-insensitive)
+              if ((refVorname && arVorname && refVorname.toLowerCase() !== arVorname.toLowerCase()) ||
+                  (refName && arName && refName.toLowerCase() !== arName.toLowerCase())) {
+                allMatchExact = false;
+              }
+              // Diacritic-insensitive comparison
+              if ((refVorname && arVorname && stripDiacritics(refVorname.toLowerCase()) !== stripDiacritics(arVorname.toLowerCase())) ||
+                  (refName && arName && stripDiacritics(refName.toLowerCase()) !== stripDiacritics(arName.toLowerCase()))) {
+                allMatchNormalized = false;
               }
             }
-            if (allMatch) {
+            if (allMatchExact) {
               matchFoundWithAnyPrefix = true;
+              break;
+            }
+            if (allMatchNormalized && !allMatchExact) {
+              // Names match after stripping diacritics but differ in raw form
+              matchFoundWithAnyPrefix = true; // Don't block consolidation
+              diacriticMatchPrefix = tryPfx;
               break;
             }
           }
           hasNameMismatch = !matchFoundWithAnyPrefix;
+          
+          // Collect diacritic name variants for unification UI
+          if (diacriticMatchPrefix) {
+            hasDiacriticNameDiff = true;
+            const tryPfx = diacriticMatchPrefix;
+            const refVorname = String(refRow[`${tryPfx}Vorname`] ?? '').trim();
+            const refName = String(refRow[`${tryPfx}Name`] ?? '').trim();
+            diacriticNameVariants = [{ prefix: tryPfx, row: referenceRow, name: refName, vorname: refVorname }];
+            for (const ar of affectedRows) {
+              const arRow = rows[ar.row - 1];
+              if (!arRow) continue;
+              const arPrefix = ar.column.replace(/_ID$/, '_');
+              const arVorname = String(arRow[`${arPrefix}Vorname`] ?? '').trim();
+              const arName = String(arRow[`${arPrefix}Name`] ?? '').trim();
+              if (arName !== refName || arVorname !== refVorname) {
+                diacriticNameVariants.push({ prefix: arPrefix, row: ar.row, name: arName, vorname: arVorname });
+              }
+            }
+          }
         }
       }
       
@@ -363,6 +396,8 @@ export function Step3Validation({
         referenceStudentName,
         affectedRows,
         hasNameMismatch,
+        hasDiacriticNameDiff,
+        diacriticNameVariants,
       });
     });
     
