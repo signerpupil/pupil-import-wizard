@@ -659,20 +659,22 @@ function maxDistance(len: number): number {
   return 3;
 }
 
-function findSimilarLanguage(value: string): string | null {
+type MatchResult = { value: string; matchType: 'explicit' | 'exact' | 'fuzzy' } | null;
+
+function findSimilarLanguage(value: string): MatchResult {
   const normalized = value.toLowerCase().trim();
   // 1. Check explicit auto-corrections first (highest priority)
   if (LANGUAGE_CORRECTIONS_NORMALIZED.has(normalized)) {
-    return LANGUAGE_CORRECTIONS_NORMALIZED.get(normalized)!;
+    return { value: LANGUAGE_CORRECTIONS_NORMALIZED.get(normalized)!, matchType: 'explicit' };
   }
   // 2. Exact match via normalized (case-insensitive)
-  if (BISTA_NORMALIZED.has(normalized)) return BISTA_NORMALIZED.get(normalized)!;
+  if (BISTA_NORMALIZED.has(normalized)) return { value: BISTA_NORMALIZED.get(normalized)!, matchType: 'exact' };
   // 3. Prefix match (first 5 chars) — only if lengths are similar (max 3 difference)
   if (normalized.length >= 5) {
     for (const [key, lang] of BISTA_NORMALIZED) {
       if (Math.abs(key.length - normalized.length) > 3) continue;
       if (key.startsWith(normalized.slice(0, 5)) || normalized.startsWith(key.slice(0, 5))) {
-        return lang;
+        return { value: lang, matchType: 'fuzzy' };
       }
     }
   }
@@ -688,7 +690,7 @@ function findSimilarLanguage(value: string): string | null {
       bestMatch = lang;
     }
   }
-  if (bestMatch) return bestMatch;
+  if (bestMatch) return { value: bestMatch, matchType: 'fuzzy' };
   // 5. Levenshtein fuzzy match against auto-correction keys
   for (const [key, target] of LANGUAGE_CORRECTIONS_NORMALIZED) {
     if (Math.abs(key.length - normalized.length) > maxDist) continue;
@@ -698,7 +700,7 @@ function findSimilarLanguage(value: string): string | null {
       bestMatch = target;
     }
   }
-  return bestMatch;
+  return bestMatch ? { value: bestMatch, matchType: 'fuzzy' } : null;
 }
 
 // ==============================
@@ -1214,15 +1216,15 @@ function isValidNationality(value: string): boolean {
   return NATIONALITY_NORMALIZED.has(value.trim().toLowerCase());
 }
 
-function findNationalityCorrection(value: string): string | null {
+function findNationalityCorrection(value: string): MatchResult {
   const normalized = value.trim().toLowerCase();
   // 1. Check auto-corrections first
   if (NATIONALITY_CORRECTIONS_NORMALIZED.has(normalized)) {
-    return NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!;
+    return { value: NATIONALITY_CORRECTIONS_NORMALIZED.get(normalized)!, matchType: 'explicit' };
   }
   // 2. Case-insensitive match against valid list
   if (NATIONALITY_NORMALIZED.has(normalized)) {
-    return NATIONALITY_NORMALIZED.get(normalized)!;
+    return { value: NATIONALITY_NORMALIZED.get(normalized)!, matchType: 'exact' };
   }
   // 3. Levenshtein fuzzy match against valid nationalities
   let bestMatch: string | null = null;
@@ -1236,7 +1238,7 @@ function findNationalityCorrection(value: string): string | null {
       bestMatch = nat;
     }
   }
-  if (bestMatch) return bestMatch;
+  if (bestMatch) return { value: bestMatch, matchType: 'fuzzy' };
   // 4. Levenshtein fuzzy match against auto-correction keys
   for (const [key, target] of NATIONALITY_CORRECTIONS_NORMALIZED) {
     if (Math.abs(key.length - normalized.length) > maxDist) continue;
@@ -1246,7 +1248,7 @@ function findNationalityCorrection(value: string): string | null {
       bestMatch = target;
     }
   }
-  return bestMatch;
+  return bestMatch ? { value: bestMatch, matchType: 'fuzzy' } : null;
 }
 
 // Fields that should be checked for duplicates
@@ -2328,34 +2330,36 @@ function validateFieldType(
         };
       }
       if (!isValidLanguage(value)) {
-        const similar = findSimilarLanguage(value);
+        const match = findSimilarLanguage(value);
+        const isSafeMatch = match && (match.matchType === 'explicit' || match.matchType === 'exact');
         return {
           row: rowNum,
           column: columnName,
           value,
-          message: similar
-            ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${similar}"?`
+          message: match
+            ? `"${value}" ist keine gültige BISTA-Sprache. Meinten Sie "${match.value}"?`
             : `"${value}" ist keine gültige BISTA-Sprache (kein BISTA-Code vorhanden)`,
           type: 'format',
-          severity: similar ? 'warning' : 'error',
-          correctedValue: similar ?? undefined,
+          severity: match ? 'warning' : 'error',
+          correctedValue: isSafeMatch ? match.value : undefined,
         };
       }
       break;
     }
     case 'nationality':
       if (!isValidNationality(value)) {
-        const correction = findNationalityCorrection(value);
+        const natMatch = findNationalityCorrection(value);
+        const isSafeNatMatch = natMatch && (natMatch.matchType === 'explicit' || natMatch.matchType === 'exact');
         return {
           row: rowNum,
           column: columnName,
           value,
-          message: correction
-            ? `"${value}" → "${correction}" (veraltete Bezeichnung)`
+          message: natMatch
+            ? `"${value}" → "${natMatch.value}"${isSafeNatMatch ? ' (veraltete Bezeichnung)' : ' (Vorschlag – bitte prüfen)'}`
             : `"${value}" ist keine gültige Nationalität`,
           type: 'format',
-          severity: correction ? 'warning' : 'error',
-          correctedValue: correction ?? undefined,
+          severity: natMatch ? 'warning' : 'error',
+          correctedValue: isSafeNatMatch ? natMatch.value : undefined,
         };
       }
       break;
