@@ -1669,13 +1669,14 @@ export function Step3Validation({
                                 </div>
                                 {/* Name mismatch critical warning + inline AHV edit */}
                                 {group.hasNameMismatch && (() => {
-                                  const prefix = group.column.replace(/_ID$/, '');
-                                  const ahvColumn = `${prefix}_AHV`;
-                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : prefix;
+                                  const refPrefix = group.referencePrefix ? group.referencePrefix.replace(/_$/, '') : group.column.replace(/_ID$/, '');
                                   const refAhvColumn = `${refPrefix}_AHV`;
                                   const allEditRows = [
                                     ...(group.referenceRow ? [{ row: group.referenceRow, label: `Referenz (Z. ${group.referenceRow})`, ahvCol: refAhvColumn }] : []),
-                                    ...group.affectedRows.map(ar => ({ row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: ahvColumn })),
+                                    ...group.affectedRows.map(ar => {
+                                      const arPrefix = ar.column.replace(/_ID$/, '');
+                                      return { row: ar.row, label: `${ar.studentName || 'Zeile'} (Z. ${ar.row})`, ahvCol: `${arPrefix}_AHV` };
+                                    }),
                                   ];
                                   return (
                                     <>
