@@ -1438,7 +1438,7 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
         if (variant.original === best.original) continue;
         for (const rowIndex of variant.rows) {
           errors.push({
-            row: rowIndex + 1,
+            row: rowIndex + 2,
             column: field,
             value: variant.original,
             message: `Diakritische Korrektur: "${variant.original}" → "${best.original}"`,
@@ -1509,8 +1509,8 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     
     if (existing) {
       if (existing.id !== id) {
-        const errorKey = `${rowIndex + 1}:${idField}:${displayIdentifier}`;
-        const rowFieldKey = `${rowIndex + 1}:${idField}`;
+        const errorKey = `${rowIndex + 2}:${idField}:${displayIdentifier}`;
+        const rowFieldKey = `${rowIndex + 2}:${idField}`;
         
         // Skip if already reported by a more reliable strategy
         if (resolvedByHigherStrategy.has(rowFieldKey)) return;
@@ -1527,7 +1527,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
           const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
           
           errors.push({
-            row: rowIndex + 1,
+            row: rowIndex + 2,
             column: idField,
             value: id,
             message: `Inkonsistente ID: Elternteil (${displayIdentifier}) hat in Zeile ${existing.firstRow} (${existing.slotLabel}) die ID '${existing.id}', aber hier (${label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
@@ -1536,7 +1536,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         }
       }
     } else {
-      map.set(key, { id, firstRow: rowIndex + 1, identifier: displayIdentifier, slotLabel: label, vorname: parentVorname, name: parentName });
+      map.set(key, { id, firstRow: rowIndex + 2, identifier: displayIdentifier, slotLabel: label, vorname: parentVorname, name: parentName });
     }
   };
 
@@ -1612,16 +1612,16 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         const matchesErz1 = currentId === existing.erz1Id;
         const matchesErz2 = currentId === existing.erz2Id;
         if (!matchesErz1 && !matchesErz2 && currentId !== existingId) {
-          const rowFieldKey = `${rowIndex + 1}:${field}`;
+          const rowFieldKey = `${rowIndex + 2}:${field}`;
           if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
 
-          const errorKey = `${rowIndex + 1}:${field}:${displayName}`;
+          const errorKey = `${rowIndex + 2}:${field}:${displayName}`;
           if (!errorSet.has(errorKey)) {
             errorSet.add(errorKey);
             const strategyInfo = STRATEGY_LABELS['name_pair'];
             const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
             errors.push({
-              row: rowIndex + 1,
+              row: rowIndex + 2,
               column: field,
               value: currentId,
               message: `Inkonsistente ID: Elternpaar (${displayName}) hat in Zeile ${existing.firstRow} (${existingSlotLabel}) die ID '${existingId}', aber hier (${label}) die ID '${currentId}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
@@ -1634,7 +1634,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
     } else {
       parentPairMap.set(compositeKey, {
         erz1Id, erz2Id,
-        firstRow: rowIndex + 1,
+        firstRow: rowIndex + 2,
         erz1Name: `${erz1Vorname} ${erz1Name}`,
         erz2Name: `${erz2Vorname} ${erz2Name}`,
         erz1SlotLabel: erz1.label,
@@ -1671,7 +1671,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
       if (!id || !name || !vorname) continue;
 
       // Skip if already resolved by higher strategy
-      const rowFieldKey = `${rowIndex + 1}:${check.idField}`;
+      const rowFieldKey = `${rowIndex + 2}:${check.idField}`;
       if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
 
       // Collect phone numbers for this parent
@@ -1690,7 +1690,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
 
       const nameKey = `${normalizeForComparison(name)}|${normalizeForComparison(vorname)}`;
       const entry: SingleParentEntry = {
-        id, firstRow: rowIndex + 1, strasse,
+        id, firstRow: rowIndex + 2, strasse,
         phoneNumbers: phones, otherErzNameKey,
         slotLabel: check.label, slotIndex,
       };
@@ -1701,7 +1701,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         for (const prev of existing) {
           if (prev.id === id) continue; // same ID, no inconsistency
 
-          const rowFieldKeyCheck = `${rowIndex + 1}:${check.idField}`;
+          const rowFieldKeyCheck = `${rowIndex + 2}:${check.idField}`;
           if (resolvedByHigherStrategy.has(rowFieldKeyCheck)) continue;
 
           // Same address → already handled by Pass 1 (name+strasse strategy)
@@ -1735,13 +1735,13 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
             }
 
             const displayName = `${vorname} ${name}`;
-            const errorKey = `${rowIndex + 1}:${check.idField}:${displayName}`;
+            const errorKey = `${rowIndex + 2}:${check.idField}:${displayName}`;
             if (!errorSet.has(errorKey)) {
               errorSet.add(errorKey);
               const strategyInfo = STRATEGY_LABELS[disambigStrategy];
               const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
               errors.push({
-                row: rowIndex + 1,
+                row: rowIndex + 2,
                 column: check.idField,
                 value: id,
                 message: `Inkonsistente ID: Elternteil (${displayName}) hat in Zeile ${prev.firstRow} (${prev.slotLabel}) die ID '${prev.id}', aber hier (${check.label}) die ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
@@ -1948,10 +1948,10 @@ function checkParentNameChanges(rows: ParsedRow[]): ValidationError[] {
         }
 
         errors.push({
-          row: laterEntry.rowIndex + 1,
+          row: laterEntry.rowIndex + 2,
           column: nameColumn,
           value: laterEntry.nachname,
-          message: `Möglicher Namenswechsel (${changeLabel}): "${displayVorname} ${earlierEntry.nachname}" (Zeile ${earlierEntry.rowIndex + 1}) → "${displayVorname} ${laterEntry.nachname}" (${laterEntry.label}${sName ? `, Schüler/in: ${sVorname} ${sName}` : ''})\n⚠ Bitte manuell prüfen – automatische Korrektur nicht möglich (mögliche Heirat, Scheidung oder Doppelname).`,
+          message: `Möglicher Namenswechsel (${changeLabel}): "${displayVorname} ${earlierEntry.nachname}" (Zeile ${earlierEntry.rowIndex + 2}) → "${displayVorname} ${laterEntry.nachname}" (${laterEntry.label}${sName ? `, Schüler/in: ${sVorname} ${sName}` : ''})\n⚠ Bitte manuell prüfen – automatische Korrektur nicht möglich (mögliche Heirat, Scheidung oder Doppelname).`,
           severity: 'warning',
         });
       }
@@ -2039,7 +2039,7 @@ function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
     // Check AHV match (most reliable)
     if (erz1Ahv && erz2Ahv && erz1Ahv === erz2Ahv) {
       errors.push({
-        row: i + 1,
+        row: i + 2,
         column: 'P_ERZ2_AHV',
         value: erz2Ahv,
         message: `ERZ1 und ERZ2 haben die gleiche AHV-Nummer "${erz1Ahv}" – vermutlich dieselbe Person doppelt erfasst`,
@@ -2053,7 +2053,7 @@ function checkErz1EqualsErz2(rows: ParsedRow[]): ValidationError[] {
     if (erz1Name && erz1Vorname && erz2Name && erz2Vorname &&
         erz1Name === erz2Name && erz1Vorname === erz2Vorname) {
       errors.push({
-        row: i + 1,
+        row: i + 2,
         column: 'P_ERZ2_Name',
         value: `${row['P_ERZ2_Vorname']} ${row['P_ERZ2_Name']}`,
         message: `ERZ1 und ERZ2 haben den gleichen Namen "${erz1Vorname} ${erz1Name}" – vermutlich dieselbe Person doppelt erfasst`,
@@ -2075,7 +2075,7 @@ function checkPlaceholderIds(rows: ParsedRow[]): ValidationError[] {
     const sId = String(rows[i]['S_ID'] ?? '').trim();
     if (sId && placeholderValues.has(sId)) {
       errors.push({
-        row: i + 1,
+        row: i + 2,
         column: 'S_ID',
         value: sId,
         message: `S_ID "${sId}" ist ein Platzhalter-Wert – muss vor dem Import ersetzt werden`,
@@ -2104,7 +2104,7 @@ function checkStudentIsParent(rows: ParsedRow[]): ValidationError[] {
       const erzAhv = String(row[erzAhvField] ?? '').trim();
       if (erzAhv && sAhv === erzAhv) {
         errors.push({
-          row: i + 1,
+          row: i + 2,
           column: erzAhvField,
           value: erzAhv,
           message: `Schüler-AHV und ${label}-AHV sind identisch ("${sAhv}") – Schüler/in kann nicht eigene/r Erziehungsberechtigte/r sein`,
@@ -2141,7 +2141,7 @@ export function validateData(
   // Single pass for both duplicate collection and field validation
   for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
     const row = rows[rowIndex];
-    const rowNum = rowIndex + 1;
+    const rowNum = rowIndex + 2;
 
     // Collect duplicates for specified fields
     for (const field of DUPLICATE_CHECK_FIELDS) {
@@ -2335,7 +2335,7 @@ function checkPlzOrtConsistency(rows: ParsedRow[]): ValidationError[] {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const rowNum = i + 1;
+    const rowNum = i + 2;
 
     for (const [plzCol, ortCol] of plzOrtPairs) {
       const plz = String(row[plzCol] ?? '').trim();
