@@ -1156,7 +1156,7 @@ export const NATIONALITY_AUTO_CORRECTIONS: Record<string, string> = {
   'Irack': 'Irak',
   'Irahn': 'Iran',
   'Sirien': 'Syrien',
-  'Syrien ': 'Syrien',
+  
   'Türkei ': 'Türkiye',
   'Türkay': 'Türkiye',
   'Tuerkei': 'Türkiye',
