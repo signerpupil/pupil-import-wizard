@@ -3206,6 +3206,20 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '2952': ['Cornol'],
   '2953': ['Fregiécourt', 'Pleujouse'],
   '2954': ['Asuel'],
+  // Fürstentum Liechtenstein (FL)
+  '9485': ['Nendeln'],
+  '9486': ['Schaanwald'],
+  '9487': ['Gamprin-Bendern'],
+  '9488': ['Schellenberg'],
+  '9490': ['Vaduz'],
+  '9491': ['Ruggell'],
+  '9492': ['Eschen'],
+  '9493': ['Mauren FL'],
+  '9494': ['Schaan'],
+  '9495': ['Triesen'],
+  '9496': ['Balzers'],
+  '9497': ['Triesenberg'],
+  '9498': ['Planken'],
 };
 
 /**
