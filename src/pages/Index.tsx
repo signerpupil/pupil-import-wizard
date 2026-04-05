@@ -419,6 +419,10 @@ export default function Index() {
             <LPImportWizard onReset={handleReset} />
           )}
 
+          {showLehrpersonenWizard && (
+            <LehrpersonenImportWizard onReset={handleReset} />
+          )}
+
           {!showSpecialWizard && currentStep === 1 && (
             <Step1FileUpload
               parseResult={parseResult}
