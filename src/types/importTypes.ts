@@ -1,7 +1,7 @@
 // Import Types & Field Definitions for PUPIL Import Wizard
 // Spalten werden NICHT umbenannt - nur validiert
 
-export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen' | 'lp-zuweisung';
+export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen' | 'lp-zuweisung' | 'lehrpersonen';
 export type FoerderplanerSubType = 'diagnostik' | 'foerderplanung' | 'lernberichte';
 
 export interface ColumnDefinition {
