@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,6 +39,7 @@ const iconMap = {
   FileText,
   FolderOpen,
   ClipboardList,
+  UserCog,
 };
 
 export function Step0TypeSelect({
@@ -64,7 +65,7 @@ export function Step0TypeSelect({
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
 
-  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung';
+  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'lehrpersonen';
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
     (isSpecialType ||
@@ -92,9 +93,9 @@ export function Step0TypeSelect({
       </div>
 
       {/* Import Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {importConfigs
-          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung')
+          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung' || config.type === 'lehrpersonen')
           .map((config) => {
             const Icon = iconMap[config.icon as keyof typeof iconMap];
             const isSelected = selectedType === config.type;
