@@ -11,6 +11,7 @@ import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
 import { GroupImportWizard } from '@/components/import/GroupImportWizard';
 import { LPImportWizard } from '@/components/import/LPImportWizard';
+import { LehrpersonenImportWizard } from '@/components/import/LehrpersonenImportWizard';
 import { Footer } from '@/components/layout/Footer';
 import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
