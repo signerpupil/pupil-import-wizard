@@ -1,58 +1,30 @@
 
+## Systematische Erweiterung der PLZ-Datenbank
 
-## Lehrpersonen-Import Wizard
+### Ausgangslage
+- **Aktuell im Code**: 2100 PLZ-Einträge
+- **Offizielles Verzeichnis (swisstopo)**: 3190 PLZ mit 4073 PLZ-Ort-Zuordnungen
+- **Fehlende PLZ** (gar nicht vorhanden): ~1200
+- **Unvollständige PLZ** (fehlende Ortsvarianten): 307
 
-### Übersicht
-Neuer Import-Typ "Lehrpersonen" als eigenständiger Wizard (analog zu Gruppen und LP-Zuweisung). Der Wizard liest eine LehrerOffice CSV/XLSX-Datei ein, erlaubt das Festlegen eines Standard-"Beruf"-Werts, benennt die Spalten um und exportiert als XLSX.
+### Vorgehen
 
-### Workflow (3 Schritte)
+**Datenquelle**: Amtliches Ortschaftenverzeichnis von swisstopo (CSV, öffentlich zugänglich unter data.geo.admin.ch). Dies ist die offizielle Referenzdatenbank der Schweizerischen Post.
 
-```text
-┌──────────────┐    ┌──────────────────┐    ┌──────────────┐
-│ 1. Upload    │───>│ 2. Beruf wählen  │───>│ 3. Export    │
-│ CSV/XLSX     │    │ + Vorschau       │    │ XLSX         │
-└──────────────┘    └──────────────────┘    └──────────────┘
-```
+**Datei: `src/lib/swissPlzData.ts`**
 
-**Schritt 1 — Datei hochladen**: CSV oder XLSX Upload (analog Step1FileUpload)
-**Schritt 2 — Beruf festlegen**: Dropdown/Combobox mit Optionen "MA", "Lehrperson", "Deaktiviert-Spezial" + manueller Freitext. Vorschau der Daten mit umbenannten Spalten. Einzelne Zeilen können einen abweichenden Beruf-Wert erhalten.
-**Schritt 3 — Export**: XLSX-Download mit umbenannten Spalten und eingesetztem Beruf-Wert.
+1. **Merge-Skript**: Die bestehenden manuell gepflegten Einträge (inkl. Varianten wie "Egg b. Zürich", "Langnau a. Albis") werden beibehalten und mit den offiziellen Daten zusammengeführt.
 
-### Spalten-Mapping (Position-basiert)
+2. **Alle 3190 PLZ** der Schweiz und Liechtensteins werden abgedeckt, inklusive aller offiziell zugeordneten Ortschaften pro PLZ.
 
-| LehrerOffice (Original) | PUPIL (Export) |
-|---|---|
-| Q_System | IDVRSG |
-| L_AHV | AHV-V-Nr |
-| L_ID | LID |
-| L_Name | Name |
-| L_Vorname | Vorname |
-| L_Geschlecht | Ges |
-| L_Geburtsdatum | Geb |
-| L_Funktion | Beruf (überschrieben mit gewähltem Wert) |
-| L_Mobil | Natel |
-| L_Privat_Strasse | Strasse |
-| L_Privat_PLZ | Plz |
-| L_Privat_Ort | Ort |
-| L_Privat_Land | Land |
-| L_Privat_EMail | EMail_P |
-| L_Privat_Telefon | Tel_P |
-| L_Schule_EMail | EMail_G |
-| L_Schule_Telefon | Tel_G |
-| Alle anderen Spalten | Header leer, Daten beibehalten |
+3. **Bestehende Varianten bleiben erhalten**: Manuell hinzugefügte Schreibweisen (z.B. "Egg b. Zürich" neben "Egg", "Uitikon Waldegg" neben "Uitikon") werden nicht entfernt — nur ergänzt.
+
+4. **Sortierung**: Einträge nach PLZ numerisch sortiert, gruppiert nach Kanton (wie bisher), mit Kommentaren für die Kantonsabschnitte.
+
+### Ergebnis
+- ~3200 PLZ-Einträge statt 2100 (alle Schweizer PLZ abgedeckt)
+- Alle offiziellen Ortsvarianten pro PLZ enthalten
+- Keine false-positive Validierungsfehler mehr bei korrekten PLZ-Ort-Kombinationen
 
 ### Dateien
-
-1. **`src/types/importTypes.ts`** — Neuen Typ `'lehrpersonen'` zu `ImportType` hinzufügen, neue `importConfig` und Spalten-Mapping-Konstante definieren.
-
-2. **`src/components/import/LehrpersonenImportWizard.tsx`** — Neuer Wizard (analog GroupImportWizard) mit 3 Schritten:
-   - `LPStep1Upload.tsx` — Datei-Upload und Parsing
-   - `LPStep2BerufConfig.tsx` — Beruf-Auswahl (Combobox mit Preset-Werten + Freitext), Tabellen-Vorschau mit umbenannten Spalten, pro Zeile überschreibbarer Beruf-Wert
-   - `LPStep3Export.tsx` — XLSX-Export mit Spalten-Umbenennung
-
-3. **`src/components/import/Step0TypeSelect.tsx`** — Neuen Import-Typ "Lehrpersonen" in der Auswahl anzeigen (4. Kachel), als `isSpecialType` behandeln.
-
-4. **`src/pages/Index.tsx`** — `showLehrpersonenWizard`-Logik analog zu `showGroupWizard` / `showLPWizard`, Rendering des neuen Wizards.
-
-5. **`src/lib/lehrpersonenExport.ts`** — Spalten-Mapping-Logik und XLSX-Export-Funktion (Header-Umbenennung, Beruf-Wert-Einsetzung).
-
+- Nur `src/lib/swissPlzData.ts` wird aktualisiert (Datenteil, Funktionen bleiben unverändert)
