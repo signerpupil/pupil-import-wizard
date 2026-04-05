@@ -39,6 +39,7 @@ const iconMap = {
   FileText,
   FolderOpen,
   ClipboardList,
+  UserCog,
 };
 
 export function Step0TypeSelect({
