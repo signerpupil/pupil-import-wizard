@@ -93,9 +93,9 @@ export function Step0TypeSelect({
       </div>
 
       {/* Import Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {importConfigs
-          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung')
+          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung' || config.type === 'lehrpersonen')
           .map((config) => {
             const Icon = iconMap[config.icon as keyof typeof iconMap];
             const isSelected = selectedType === config.type;
