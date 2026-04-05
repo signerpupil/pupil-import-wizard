@@ -350,12 +350,13 @@ export default function Index() {
   };
 
   // Show summary from step 1 onwards (not for special types)
-  const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung';
+  const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung' && importType !== 'lehrpersonen';
 
-  // If gruppen type is selected and step 0 is done, show the group wizard
+  // If special type is selected and step 0 is done, show its wizard
   const showGroupWizard = importType === 'gruppen' && currentStep >= 1;
   const showLPWizard = importType === 'lp-zuweisung' && currentStep >= 1;
-  const showSpecialWizard = showGroupWizard || showLPWizard;
+  const showLehrpersonenWizard = importType === 'lehrpersonen' && currentStep >= 1;
+  const showSpecialWizard = showGroupWizard || showLPWizard || showLehrpersonenWizard;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
