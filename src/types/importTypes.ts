@@ -325,6 +325,13 @@ export const importConfigs: ImportConfig[] = [
     icon: 'ClipboardList',
     columns: [],
   },
+  {
+    type: 'lehrpersonen',
+    name: 'Lehrpersonen',
+    description: 'Lehrpersonen aus LehrerOffice importieren und für PUPIL aufbereiten',
+    icon: 'UserCog',
+    columns: [],
+  },
 ];
 
 export const foerderplanerSubTypes = [
