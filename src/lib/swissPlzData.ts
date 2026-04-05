@@ -2779,7 +2779,7 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '1613': ['Maracon'],
   '1658': ['La Tine', 'Rossinière'],
   '1659': ['Flendruz', 'Rougemont'],
-  '1660': ['Château-d\', ', ', 'Oex', 'L', ', ', ', ', "Château-d'Oex", "L'Etivaz", 'La Lécherette', 'Les Moulins'],
+  '1660': ["Château-d\', ", ', ', ', ', ', ', ', ', ', "Château-d', ', ', 'Etivaz", ', ', ', '', "Château-d'Oex", "L'Etivaz", 'La Lécherette', 'Les Moulins'],
   '1682': ['Cerniaz VD', 'Dompierre VD', 'Lovatens', 'Prévonloup', 'Villars-Bramard'],
   '1683': ['Brenles', 'Chesalles-sur-Moudon', 'Sarzens'],
   '1800': ['Vevey'],
@@ -2904,7 +2904,7 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '1987': ['Hérémence'],
   '1988': ['Thyon', 'Les Collons'],
   '1991': ['Salins', 'Arvillard (Salins)', 'Misériez (Salins)', 'Pravidondaz (Salins)', 'Turin (Salins)'],
-  '1992': ['Les Agettes', 'Crête-à-l\', ', ', 'Oeil (Les Agettes)', 'La Vernaz (Les Agettes)', 'Les Mayens-de-Sion', "Crête-à-l'Oeil (Les Agettes)"],
+  '1992': ['Les Agettes', "Crête-à-l\', ", ', ', ', ', ', ', ', "Crête-à-l', '', "Crête-à-l'Oeil (Les Agettes)", 'La Vernaz (Les Agettes)', 'Les Mayens-de-Sion'],
   '1993': ['Veysonnaz', 'Clèbes (Nendaz)'],
   '1994': ['Aproz (Nendaz)'],
   '1996': ['Basse-Nendaz', 'Baar (Nendaz)', 'Beuson (Nendaz)', 'Bieudron (Nendaz)', 'Brignon (Nendaz)', 'Condémines (Nendaz)', 'Fey (Nendaz)', 'Saclentse'],
@@ -3206,20 +3206,6 @@ const SWISS_PLZ_ORT: Record<string, string[]> = {
   '2952': ['Cornol'],
   '2953': ['Fregiécourt', 'Pleujouse'],
   '2954': ['Asuel'],
-  // Fürstentum Liechtenstein (FL)
-  '9485': ['Nendeln'],
-  '9486': ['Schaanwald'],
-  '9487': ['Gamprin-Bendern'],
-  '9488': ['Schellenberg'],
-  '9490': ['Vaduz'],
-  '9491': ['Ruggell'],
-  '9492': ['Eschen'],
-  '9493': ['Mauren FL'],
-  '9494': ['Schaan'],
-  '9495': ['Triesen'],
-  '9496': ['Balzers'],
-  '9497': ['Triesenberg'],
-  '9498': ['Planken'],
 };
 
 /**
