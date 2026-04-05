@@ -385,8 +385,8 @@ import { validatePlzOrt } from '../lib/swissPlzData';
 describe('PLZ↔Ort Validation', () => {
   it('returns true for valid PLZ-Ort pair', () => {
     expect(validatePlzOrt('8001', 'Zürich')).toBe(true);
-    expect(validatePlzOrt('3000', 'Bern')).toBe(true);
-    expect(validatePlzOrt('6000', 'Luzern')).toBe(true);
+    expect(validatePlzOrt('3004', 'Bern')).toBe(true);
+    expect(validatePlzOrt('6003', 'Luzern')).toBe(true);
     expect(validatePlzOrt('9000', 'St. Gallen')).toBe(true);
     expect(validatePlzOrt('9000', 'St.Gallen')).toBe(true);
   });
