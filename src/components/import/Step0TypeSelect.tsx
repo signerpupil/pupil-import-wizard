@@ -65,7 +65,7 @@ export function Step0TypeSelect({
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
 
-  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung';
+  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'lehrpersonen';
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
     (isSpecialType ||
