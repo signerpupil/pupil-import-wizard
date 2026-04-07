@@ -293,7 +293,7 @@ export const importConfigs: ImportConfig[] = [
   {
     type: 'schueler',
     name: 'Stammdaten',
-    description: 'Schüler, Klassen, Lehrpersonen und Erziehungsberechtigte importieren',
+    description: 'Schüler, Erziehungsberechtigte und Klassen importieren',
     icon: 'Users',
     columns: schuelerColumns,
   },
