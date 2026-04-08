@@ -2262,6 +2262,10 @@ export function validateData(
   const studentDedupErrors = checkStudentIdDuplicates(rows);
   errors.push(...studentDedupErrors);
 
+  // Check student-parent ID overlap (S_ID == P_ERZ_ID across rows)
+  const studentParentOverlapErrors = checkStudentParentIdOverlap(rows);
+  errors.push(...studentParentOverlapErrors);
+
   return errors;
 }
 
