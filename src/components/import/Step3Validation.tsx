@@ -1319,6 +1319,10 @@ function stripDiacritics(s: string): string {
       if (e.type === 'id_conflict') {
         keys.add(`${e.row}:${e.column}`);
       }
+      // Student deduplication errors
+      if (e.type === 'student_duplicate_id') {
+        keys.add(`${e.row}:${e.column}`);
+      }
     }
     return keys;
   }, [errors]);
