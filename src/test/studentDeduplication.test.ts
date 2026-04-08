@@ -32,7 +32,7 @@ describe('Student Deduplication - AHV Strategy', () => {
       makeRow({ S_ID: '10099', S_AHV: '756.1234.5678.01', S_Name: 'Meier', S_Vorname: 'Luca', K_Name: 'Sek1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const dedupErrors = errors.filter(e => e.type === 'student_duplicate_id');
     
     expect(dedupErrors.length).toBeGreaterThan(0);
@@ -49,7 +49,7 @@ describe('Student Deduplication - AHV Strategy', () => {
       makeRow({ S_ID: '10001', S_AHV: '756.1234.5678.01', S_Name: 'Meier', S_Vorname: 'Luca', K_Name: '1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const dedupErrors = errors.filter(e => e.type === 'student_duplicate_id');
     
     expect(dedupErrors.length).toBe(0);
@@ -65,7 +65,7 @@ describe('Student Deduplication - Name+Birthday Strategy', () => {
       makeRow({ S_ID: '10099', S_AHV: '', S_Name: 'Müller', S_Vorname: 'Anna', S_Geburtsdatum: '15.03.2010', K_Name: 'Sek1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const dedupErrors = errors.filter(e => e.type === 'student_duplicate_id');
     
     expect(dedupErrors.length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe('Student-Parent ID Overlap', () => {
       makeRow({ S_ID: '10050', S_Name: 'Meier', S_Vorname: 'Luca', S_Geburtsdatum: '15.03.2015', P_ERZ1_ID: '10001', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas', K_Name: '1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
     
     expect(overlapErrors.length).toBeGreaterThan(0);
@@ -98,7 +98,7 @@ describe('Student-Parent ID Overlap', () => {
       makeRow({ S_ID: '10050', S_Name: 'Meier', S_Vorname: 'Luca', S_Geburtsdatum: '15.03.2015', P_ERZ1_ID: '10001', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas', K_Name: '1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
     
     expect(overlapErrors.length).toBeGreaterThan(0);
@@ -112,7 +112,7 @@ describe('Student-Parent ID Overlap', () => {
       makeRow({ S_ID: '10001', S_Name: 'Meier', S_Vorname: 'Thomas', P_ERZ1_ID: '10001', K_Name: '1A' }),
     ];
 
-    const errors = validateData(rows, 'schueler');
+    const errors = validateData(rows, schuelerColumns);
     const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
     
     // Same-row is handled by checkStudentIsParent, not this check
