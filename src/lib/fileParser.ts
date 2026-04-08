@@ -2258,6 +2258,10 @@ export function validateData(
   const selfParentErrors = checkStudentIsParent(rows);
   errors.push(...selfParentErrors);
 
+  // Check student ID duplicates (same person with different S_IDs)
+  const studentDedupErrors = checkStudentIdDuplicates(rows);
+  errors.push(...studentDedupErrors);
+
   return errors;
 }
 
@@ -2701,4 +2705,106 @@ export async function exportToExcel(
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   saveAs(blob, fileName);
+}
+
+// Student deduplication: detect same person with different S_IDs
+function checkStudentIdDuplicates(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // Strategy 1: Same S_AHV but different S_ID
+  const ahvGroups = new Map<string, { ids: Set<string>; rowIndices: number[] }>();
+  for (let i = 0; i < rows.length; i++) {
+    const ahv = String(rows[i]['S_AHV'] ?? '').trim();
+    const id = String(rows[i]['S_ID'] ?? '').trim();
+    if (!ahv || !id) continue;
+    const existing = ahvGroups.get(ahv);
+    if (existing) {
+      existing.ids.add(id);
+      existing.rowIndices.push(i);
+    } else {
+      ahvGroups.set(ahv, { ids: new Set([id]), rowIndices: [i] });
+    }
+  }
+  for (const [ahv, group] of ahvGroups) {
+    if (group.ids.size <= 1) continue;
+    const idsArr = Array.from(group.ids);
+    // Find most frequent ID
+    const idCounts = new Map<string, number>();
+    for (const idx of group.rowIndices) {
+      const id = String(rows[idx]['S_ID'] ?? '').trim();
+      idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+    }
+    let suggestedId = idsArr[0];
+    let maxCount = 0;
+    for (const [id, count] of idCounts) {
+      if (count > maxCount) { maxCount = count; suggestedId = id; }
+    }
+    for (const idx of group.rowIndices) {
+      const name = `${String(rows[idx]['S_Vorname'] ?? '').trim()} ${String(rows[idx]['S_Name'] ?? '').trim()}`.trim();
+      errors.push({
+        row: idx + 2,
+        column: 'S_ID',
+        value: String(rows[idx]['S_ID'] ?? ''),
+        message: `Gleiche Person (AHV), unterschiedliche S_ID: ${idsArr.join(', ')}. Identifikator: AHV ${ahv} → Vorschlag: ${suggestedId}`,
+        type: 'student_duplicate_id',
+        severity: 'warning',
+        correctedValue: undefined,
+      });
+    }
+  }
+
+  // Strategy 2: Same Name+Vorname+Geburtsdatum but different S_ID (only if not already caught by AHV)
+  const caughtByAhv = new Set<number>();
+  for (const group of ahvGroups.values()) {
+    if (group.ids.size > 1) {
+      for (const idx of group.rowIndices) caughtByAhv.add(idx);
+    }
+  }
+
+  const nameGroups = new Map<string, { ids: Set<string>; rowIndices: number[] }>();
+  for (let i = 0; i < rows.length; i++) {
+    if (caughtByAhv.has(i)) continue;
+    const name = String(rows[i]['S_Name'] ?? '').trim().toLowerCase();
+    const vorname = String(rows[i]['S_Vorname'] ?? '').trim().toLowerCase();
+    const gebdat = String(rows[i]['S_Geburtsdatum'] ?? '').trim();
+    const id = String(rows[i]['S_ID'] ?? '').trim();
+    if (!name || !vorname || !gebdat || !id) continue;
+    const key = `${name}|${vorname}|${gebdat}`;
+    const existing = nameGroups.get(key);
+    if (existing) {
+      existing.ids.add(id);
+      existing.rowIndices.push(i);
+    } else {
+      nameGroups.set(key, { ids: new Set([id]), rowIndices: [i] });
+    }
+  }
+  for (const [key, group] of nameGroups) {
+    if (group.ids.size <= 1) continue;
+    const idsArr = Array.from(group.ids);
+    const idCounts = new Map<string, number>();
+    for (const idx of group.rowIndices) {
+      const id = String(rows[idx]['S_ID'] ?? '').trim();
+      idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+    }
+    let suggestedId = idsArr[0];
+    let maxCount = 0;
+    for (const [id, count] of idCounts) {
+      if (count > maxCount) { maxCount = count; suggestedId = id; }
+    }
+    const [sName, sVorname, sGebdat] = key.split('|');
+    const displayName = `${sVorname} ${sName}, ${sGebdat}`;
+    for (const idx of group.rowIndices) {
+      errors.push({
+        row: idx + 2,
+        column: 'S_ID',
+        value: String(rows[idx]['S_ID'] ?? ''),
+        message: `Gleiche Person (Name+Geburtsdatum), unterschiedliche S_ID: ${idsArr.join(', ')}. Identifikator: ${displayName} → Vorschlag: ${suggestedId}`,
+        type: 'student_duplicate_id',
+        severity: 'warning',
+        correctedValue: undefined,
+      });
+    }
+  }
+
+  return errors;
 }

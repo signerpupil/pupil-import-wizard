@@ -32,6 +32,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
+import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -1187,6 +1188,7 @@ function stripDiacritics(s: string): string {
     // Filter out errors handled by dedicated sections (ID conflicts, parent consolidation, etc.)
     const errorsForAnalysis = uncorrectedErrors.filter(e => 
       e.type !== 'id_conflict' && 
+      e.type !== 'student_duplicate_id' &&
       !e.message.includes('Inkonsistente ID:') &&
       !e.message.includes('Geschwister-Inkonsistenz')
     );
@@ -1315,6 +1317,10 @@ function stripDiacritics(s: string): string {
       }
       // ID conflict errors
       if (e.type === 'id_conflict') {
+        keys.add(`${e.row}:${e.column}`);
+      }
+      // Student deduplication errors
+      if (e.type === 'student_duplicate_id') {
         keys.add(`${e.row}:${e.column}`);
       }
     }
@@ -1457,6 +1463,13 @@ function stripDiacritics(s: string): string {
 
       {/* Sibling Inconsistency Resolution Card */}
       <SiblingInconsistencyCard
+        errors={errors}
+        rows={rows}
+        onBulkCorrect={onBulkCorrect}
+      />
+
+      {/* Student Deduplication Card */}
+      <StudentDeduplicationCard
         errors={errors}
         rows={rows}
         onBulkCorrect={onBulkCorrect}
