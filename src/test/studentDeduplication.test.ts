@@ -118,4 +118,64 @@ describe('Student-Parent ID Overlap', () => {
     // Same-row is handled by checkStudentIsParent, not this check
     expect(overlapErrors.length).toBe(0);
   });
+
+  it('should detect multi-year scenario: former student becomes parent', async () => {
+    const { validateData } = await import('@/lib/fileParser');
+    
+    // Simulate multi-year import: Meier Thomas was a student (born 1990),
+    // now appears as P_ERZ1 of his child Meier Luca (born 2015)
+    const rows: ParsedRow[] = [
+      // Former student row (from older year)
+      makeRow({ S_ID: '10001', S_AHV: '756.1111.2222.01', S_Name: 'Meier', S_Vorname: 'Thomas', S_Geburtsdatum: '15.06.1990', K_Name: '6A' }),
+      // Current student whose parent is the former student
+      makeRow({ S_ID: '10050', S_AHV: '756.3333.4444.01', S_Name: 'Meier', S_Vorname: 'Luca', S_Geburtsdatum: '10.03.2015', P_ERZ1_ID: '10001', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas', K_Name: '1A' }),
+      // Another child of the same former student
+      makeRow({ S_ID: '10051', S_AHV: '756.3333.4444.02', S_Name: 'Meier', S_Vorname: 'Sophie', S_Geburtsdatum: '22.08.2017', P_ERZ1_ID: '10001', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas', K_Name: 'KiGa1' }),
+    ];
+
+    const errors = validateData(rows, schuelerColumns);
+    const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
+    
+    // Should detect the overlap
+    expect(overlapErrors.length).toBeGreaterThan(0);
+    // Should contain "ehem. Schüler" hint since age diff is 25 years (>14)
+    expect(overlapErrors[0].message).toContain('ehem. Schüler');
+    // Should be a warning, not an error
+    expect(overlapErrors[0].severity).toBe('warning');
+    // Should reference the overlapping ID
+    expect(overlapErrors[0].message).toContain('10001');
+  });
+
+  it('should flag overlap WITHOUT age hint when age difference is small (<14 years)', async () => {
+    const { validateData } = await import('@/lib/fileParser');
+    
+    // Sibling scenario: S_ID accidentally used as P_ERZ_ID — likely an error
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '10001', S_Name: 'Meier', S_Vorname: 'Thomas', S_Geburtsdatum: '01.01.2010', K_Name: '5A' }),
+      makeRow({ S_ID: '10050', S_Name: 'Meier', S_Vorname: 'Luca', S_Geburtsdatum: '15.03.2012', P_ERZ1_ID: '10001', P_ERZ1_Name: 'Meier', P_ERZ1_Vorname: 'Thomas', K_Name: '3A' }),
+    ];
+
+    const errors = validateData(rows, schuelerColumns);
+    const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
+    
+    expect(overlapErrors.length).toBeGreaterThan(0);
+    // Should NOT contain "ehem. Schüler" since age diff is only 2 years
+    expect(overlapErrors[0].message).not.toContain('ehem. Schüler');
+  });
+
+  it('should detect P_ERZ2_ID overlap as well', async () => {
+    const { validateData } = await import('@/lib/fileParser');
+    
+    const rows: ParsedRow[] = [
+      makeRow({ S_ID: '10001', S_Name: 'Meier', S_Vorname: 'Sandra', S_Geburtsdatum: '20.09.1988', K_Name: '6A' }),
+      makeRow({ S_ID: '10060', S_Name: 'Meier', S_Vorname: 'Luca', S_Geburtsdatum: '15.03.2015', P_ERZ2_ID: '10001', P_ERZ2_Name: 'Meier', P_ERZ2_Vorname: 'Sandra', K_Name: '1A' }),
+    ];
+
+    const errors = validateData(rows, schuelerColumns);
+    const overlapErrors = errors.filter(e => e.type === 'student_parent_id_overlap');
+    
+    expect(overlapErrors.length).toBeGreaterThan(0);
+    expect(overlapErrors[0].message).toContain('10001');
+    expect(overlapErrors[0].message).toContain('Sandra');
+  });
 });
