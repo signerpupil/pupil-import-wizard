@@ -1464,6 +1464,13 @@ function stripDiacritics(s: string): string {
         onBulkCorrect={onBulkCorrect}
       />
 
+      {/* Student Deduplication Card */}
+      <StudentDeduplicationCard
+        errors={errors}
+        rows={rows}
+        onBulkCorrect={onBulkCorrect}
+      />
+
       {/* Bulk Parent ID Consolidation Card - Optimized for 800+ entries */}
       {parentIdInconsistencyGroups.length > 0 && (
         <Card className="border-blue-500/30 bg-blue-500/5">
