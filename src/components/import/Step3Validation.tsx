@@ -33,6 +33,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { StudentDeduplicationCard } from './StudentDeduplicationCard';
+import { StudentParentOverlapCard } from './StudentParentOverlapCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
