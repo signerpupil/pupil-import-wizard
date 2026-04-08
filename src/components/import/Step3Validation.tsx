@@ -1188,6 +1188,7 @@ function stripDiacritics(s: string): string {
     // Filter out errors handled by dedicated sections (ID conflicts, parent consolidation, etc.)
     const errorsForAnalysis = uncorrectedErrors.filter(e => 
       e.type !== 'id_conflict' && 
+      e.type !== 'student_duplicate_id' &&
       !e.message.includes('Inkonsistente ID:') &&
       !e.message.includes('Geschwister-Inkonsistenz')
     );
