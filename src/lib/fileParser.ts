@@ -2262,6 +2262,10 @@ export function validateData(
   const studentDedupErrors = checkStudentIdDuplicates(rows);
   errors.push(...studentDedupErrors);
 
+  // Check student-parent ID overlap (S_ID == P_ERZ_ID across rows)
+  const studentParentOverlapErrors = checkStudentParentIdOverlap(rows);
+  errors.push(...studentParentOverlapErrors);
+
   return errors;
 }
 
@@ -2803,6 +2807,84 @@ function checkStudentIdDuplicates(rows: ParsedRow[]): ValidationError[] {
         severity: 'warning',
         correctedValue: undefined,
       });
+    }
+  }
+
+  return errors;
+}
+
+// Cross-row check: S_ID matching P_ERZ1_ID or P_ERZ2_ID in a different row
+function checkStudentParentIdOverlap(rows: ParsedRow[]): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // Build S_ID → row indices map
+  const studentIdMap = new Map<string, number[]>();
+  for (let i = 0; i < rows.length; i++) {
+    const sId = String(rows[i]['S_ID'] ?? '').trim();
+    if (sId === '') continue;
+    const existing = studentIdMap.get(sId);
+    if (existing) existing.push(i);
+    else studentIdMap.set(sId, [i]);
+  }
+
+  // Track already-reported overlaps to avoid duplicates
+  const reported = new Set<string>();
+
+  const parentFields = ['P_ERZ1_ID', 'P_ERZ2_ID'] as const;
+
+  for (let i = 0; i < rows.length; i++) {
+    for (const pField of parentFields) {
+      const parentId = String(rows[i][pField] ?? '').trim();
+      if (parentId === '') continue;
+
+      const studentRows = studentIdMap.get(parentId);
+      if (!studentRows) continue;
+
+      for (const sRowIdx of studentRows) {
+        // Skip same-row overlap (handled by checkStudentIsParent)
+        if (sRowIdx === i) continue;
+
+        const key = `${parentId}_${sRowIdx}_${i}_${pField}`;
+        if (reported.has(key)) continue;
+        reported.add(key);
+
+        const studentName = `${String(rows[sRowIdx]['S_Vorname'] ?? '')} ${String(rows[sRowIdx]['S_Name'] ?? '')}`.trim();
+        const parentName = `${String(rows[i][pField.replace('_ID', '_Vorname')] ?? '')} ${String(rows[i][pField.replace('_ID', '_Name')] ?? '')}`.trim();
+        const childName = `${String(rows[i]['S_Vorname'] ?? '')} ${String(rows[i]['S_Name'] ?? '')}`.trim();
+
+        // Age heuristic
+        let ageHint = '';
+        const studentBday = String(rows[sRowIdx]['S_Geburtsdatum'] ?? '').trim();
+        const childBday = String(rows[i]['S_Geburtsdatum'] ?? '').trim();
+        if (studentBday && childBday) {
+          try {
+            const parseDateSimple = (d: string): Date | null => {
+              const parts = d.split('.');
+              if (parts.length === 3) return new Date(+parts[2], +parts[1] - 1, +parts[0]);
+              const iso = new Date(d);
+              return isNaN(iso.getTime()) ? null : iso;
+            };
+            const sDate = parseDateSimple(studentBday);
+            const cDate = parseDateSimple(childBday);
+            if (sDate && cDate) {
+              const ageDiffYears = Math.abs(cDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+              if (ageDiffYears > 14) {
+                ageHint = ` (Altersunterschied ~${Math.round(ageDiffYears)} Jahre → möglicherweise ehem. Schüler)`;
+              }
+            }
+          } catch { /* ignore date parsing errors */ }
+        }
+
+        errors.push({
+          row: i + 2, // 1-based + header
+          column: pField,
+          value: parentId,
+          message: `${pField} "${parentId}" ist identisch mit S_ID von "${studentName}" (Zeile ${sRowIdx + 2}). Kind: "${childName}"${parentName ? `, Elternteil: "${parentName}"` : ''}${ageHint}`,
+          type: 'student_parent_id_overlap',
+          severity: 'warning',
+          correctedValue: undefined,
+        });
+      }
     }
   }
 

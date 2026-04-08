@@ -33,6 +33,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { StudentDeduplicationCard } from './StudentDeduplicationCard';
+import { StudentParentOverlapCard } from './StudentParentOverlapCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -1189,6 +1190,7 @@ function stripDiacritics(s: string): string {
     const errorsForAnalysis = uncorrectedErrors.filter(e => 
       e.type !== 'id_conflict' && 
       e.type !== 'student_duplicate_id' &&
+      e.type !== 'student_parent_id_overlap' &&
       !e.message.includes('Inkonsistente ID:') &&
       !e.message.includes('Geschwister-Inkonsistenz')
     );
@@ -1470,6 +1472,13 @@ function stripDiacritics(s: string): string {
 
       {/* Student Deduplication Card */}
       <StudentDeduplicationCard
+        errors={errors}
+        rows={rows}
+        onBulkCorrect={onBulkCorrect}
+      />
+
+      {/* Student-Parent ID Overlap Card */}
+      <StudentParentOverlapCard
         errors={errors}
         rows={rows}
         onBulkCorrect={onBulkCorrect}
