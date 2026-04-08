@@ -2258,6 +2258,10 @@ export function validateData(
   const selfParentErrors = checkStudentIsParent(rows);
   errors.push(...selfParentErrors);
 
+  // Check student ID duplicates (same person with different S_IDs)
+  const studentDedupErrors = checkStudentIdDuplicates(rows);
+  errors.push(...studentDedupErrors);
+
   return errors;
 }
 
