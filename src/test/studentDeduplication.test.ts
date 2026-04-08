@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ParsedRow, ValidationError } from '@/types/importTypes';
-
-// We need to test checkStudentIdDuplicates and checkStudentParentIdOverlap
-// Since they're not exported, we'll test via validateData or replicate logic
-// For now, import the full validation path
+import { schuelerColumns } from '@/types/importTypes';
 
 // Helper to create a minimal student row
 function makeRow(overrides: Record<string, string | number>): ParsedRow {
