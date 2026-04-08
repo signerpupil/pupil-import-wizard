@@ -1,37 +1,43 @@
 
 
-## Schüler-Deduplizierung: Gleiche Person, verschiedene S_IDs erkennen
+## Schüler-Eltern ID-Überschneidung erkennen
 
 ### Problem
-Wenn ein Schüler in der Primarschule und Oberstufe unterschiedliche `S_ID`-Werte hat, erkennt das System dies aktuell nicht. Die Person erscheint doppelt im Export.
+Eine `S_ID` kann identisch mit einer `P_ERZ1_ID` oder `P_ERZ2_ID` sein. Das ist normalerweise ein Fehler (falsche ID vergeben), kann aber bei mehrjährigen Imports korrekt sein (ehemaliger Schüler ist jetzt Elternteil).
+
+### Bestehende Checks
+- `checkStudentIsParent`: Prüft nur **innerhalb derselben Zeile**, ob `S_AHV == P_ERZ_AHV` (Schüler ist eigener Erziehungsberechtigter).
+- Es gibt **keinen zeilenübergreifenden Check** für `S_ID == P_ERZ_ID`.
 
 ### Lösung
-Eine neue Erkennungsfunktion `checkStudentIdDuplicates` in `fileParser.ts`, die Schüler anhand von **S_AHV** oder **Name+Vorname+Geburtsdatum** als identisch erkennt und eine Warnung mit Zusammenführungsvorschlag erzeugt. Dazu eine neue UI-Karte `StudentDeduplicationCard` in Step 3, die diese Fälle gruppiert anzeigt und eine Bulk-Korrektur (ID vereinheitlichen) ermöglicht.
+Eine neue Prüfung `checkStudentParentIdOverlap`, die alle `S_ID`-Werte mit allen `P_ERZ1_ID`/`P_ERZ2_ID`-Werten abgleicht. Treffer werden als **Warnung** (nicht Fehler) gemeldet, da es im Mehrjahres-Szenario korrekt sein kann. Die UI zeigt die betroffenen Zeilen mit Kontext (Schüler-Name, Eltern-Name, Alter wenn verfügbar), damit der Benutzer entscheiden kann.
 
 ### Änderungen
 
-**1. `src/types/importTypes.ts`** — Neuen Error-Typ hinzufügen
-- `type` um `'student_duplicate_id'` erweitern in der `ValidationError`-Definition (Zeile 36)
+**1. `src/types/importTypes.ts`** — Neuen Error-Typ
+- `type` um `'student_parent_id_overlap'` erweitern
 
 **2. `src/lib/fileParser.ts`** — Erkennungslogik
-- Neue Funktion `checkStudentIdDuplicates(rows)`:
-  - **Strategie 1 (AHV):** Gruppiert Zeilen mit gleicher `S_AHV` aber unterschiedlicher `S_ID` → Fehler mit `type: 'student_duplicate_id'`
-  - **Strategie 2 (Name+Vorname+Geburtsdatum):** Normalisiert `S_Name` + `S_Vorname` + `S_Geburtsdatum`, gruppiert und prüft auf verschiedene `S_ID`
-  - Beide Strategien erzeugen Warnungen mit Info, welche IDs betroffen sind und welche ID als "korrekt" vorgeschlagen wird (z.B. die häufigste oder erste)
-- Aufruf in `validateData()` nach den bestehenden Checks (nach Zeile ~2259)
+- Neue Funktion `checkStudentParentIdOverlap(rows)`:
+  - Sammelt alle `S_ID → Zeilen-Indizes` in eine Map
+  - Iteriert über alle Zeilen, prüft ob `P_ERZ1_ID` oder `P_ERZ2_ID` in der S_ID-Map vorkommt
+  - **Ausschluss**: Gleiche Zeile (bereits durch `checkStudentIsParent` abgedeckt)
+  - Erzeugt Warnungen mit: betroffene IDs, Schüler-Name und Eltern-Name, Zeilennummern
+  - Heuristik: Wenn Geburtsdaten vorhanden und Altersunterschied plausibel (>14 Jahre), wird ein Hinweis "Möglicherweise ehemaliger Schüler → Elternteil" angezeigt
+- Aufruf in `validateData()` nach `checkStudentIsParent`
 
-**3. `src/components/import/StudentDeduplicationCard.tsx`** — Neue UI-Komponente
-- Filtert Errors mit `type === 'student_duplicate_id'`
-- Gruppiert nach Identifikator (AHV oder Name+Gebdat)
-- Zeigt pro Gruppe: Schülername, die verschiedenen S_IDs, Zeilen, Erkennungsmethode
-- Button "Alle vereinheitlichen" → setzt alle S_IDs in der Gruppe auf die vorgeschlagene ID via `onBulkCorrect`
-- Design analog zu `SiblingInconsistencyCard` / `IdConflictBatchCard`
+**3. `src/components/import/StudentParentOverlapCard.tsx`** — Neue UI-Komponente
+- Zeigt Gruppen von überlappenden IDs mit Schüler- und Eltern-Kontext
+- Pro Gruppe: beteiligte Zeilen, Namen, Geburtsdaten (falls vorhanden)
+- Zwei Aktionen pro Gruppe:
+  - **"Korrekt (ehem. Schüler)"** → Warnung als resolved markieren (ignorieren)
+  - **"ID korrigieren"** → Inline-Edit oder Suffix-Vorschlag für die Eltern-ID
+- "Alle als korrekt markieren"-Button für den Mehrjahres-Fall
 
 **4. `src/components/import/Step3Validation.tsx`** — Integration
-- Import der neuen `StudentDeduplicationCard`
-- Einbau zwischen `SiblingInconsistencyCard` und `Eltern-ID Konsolidierung` (nach Zeile ~1463)
-- `student_duplicate_id`-Errors aus der allgemeinen Fehlertabelle ausfiltern (Zeile ~1188, analog zu `id_conflict`)
+- Import und Einbau der neuen `StudentParentOverlapCard`
+- `student_parent_id_overlap`-Errors aus der Haupttabelle filtern
 
 ### Keine weiteren Änderungen
-Es werden ausschliesslich die oben genannten 4 Dateien bearbeitet. Bestehende Logik (Parent-ID-Konsolidierung, ID-Konflikte, Geschwister-Checks etc.) bleibt unverändert.
+Bestehende Logik (Eltern-ID Konsolidierung, Schüler-Deduplizierung, ID-Konflikte etc.) bleibt unverändert.
 
