@@ -1190,6 +1190,7 @@ function stripDiacritics(s: string): string {
     const errorsForAnalysis = uncorrectedErrors.filter(e => 
       e.type !== 'id_conflict' && 
       e.type !== 'student_duplicate_id' &&
+      e.type !== 'student_parent_id_overlap' &&
       !e.message.includes('Inkonsistente ID:') &&
       !e.message.includes('Geschwister-Inkonsistenz')
     );
