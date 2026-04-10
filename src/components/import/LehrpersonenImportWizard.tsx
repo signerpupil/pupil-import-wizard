@@ -355,6 +355,15 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                   <p className="font-medium">{Object.keys(rowBerufOverrides).length}</p>
                 </div>
               </div>
+              {emailDuplicates.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Achtung: {emailDuplicates.length} E-Mail-Duplikate</AlertTitle>
+                  <AlertDescription>
+                    PUPIL wird diesen Import möglicherweise ablehnen. Bitte prüfen Sie die doppelten E-Mail-Adressen im vorherigen Schritt.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <Button onClick={handleExport} disabled={isExporting} className="w-full" size="lg">
                 <Download className="h-5 w-5 mr-2" />
