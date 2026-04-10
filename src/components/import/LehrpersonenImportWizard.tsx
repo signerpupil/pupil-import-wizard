@@ -110,6 +110,32 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
         .filter(c => c.mapped !== '')
     : [];
 
+  // Email duplicate detection
+  const emailDuplicates = useMemo(
+    () => (parseResult ? findDuplicateEmails(parseResult.rows) : []),
+    [parseResult]
+  );
+  const duplicateEmailRows = useMemo(
+    () => {
+      const set = new Set<number>();
+      for (const d of emailDuplicates) {
+        for (const r of d.rows) set.add(r);
+      }
+      return set;
+    },
+    [emailDuplicates]
+  );
+
+  // Find email column indices for highlighting
+  const emailColIndices = useMemo(() => {
+    if (!parseResult) return new Set<number>();
+    return new Set(
+      parseResult.headers
+        .map((h, i) => (['L_Privat_EMail', 'L_Schule_EMail'].includes(h) ? i : -1))
+        .filter(i => i >= 0)
+    );
+  }, [parseResult]);
+
   return (
     <div className="space-y-8">
       {/* Header */}
