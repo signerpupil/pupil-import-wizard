@@ -218,12 +218,34 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
             </CardContent>
           </Card>
 
+          {/* Email Duplicate Warning */}
+          {emailDuplicates.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>E-Mail-Duplikate gefunden ({emailDuplicates.length})</AlertTitle>
+              <AlertDescription className="mt-2 space-y-1">
+                <p className="text-sm">PUPIL lehnt Imports ab, wenn dieselbe E-Mail-Adresse bei mehreren Personen verwendet wird.</p>
+                <ul className="list-disc pl-5 text-sm space-y-1 mt-2">
+                  {emailDuplicates.map((d, i) => (
+                    <li key={i}>
+                      <span className="font-mono font-medium">{d.email}</span>
+                      {' '}({d.column}) — verwendet von: {d.names.join(', ')}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Preview Table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 Vorschau
                 <Badge variant="secondary">{parseResult.rows.length} Lehrpersonen</Badge>
+                {emailDuplicates.length > 0 && (
+                  <Badge variant="destructive">{emailDuplicates.length} E-Mail-Duplikate</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
