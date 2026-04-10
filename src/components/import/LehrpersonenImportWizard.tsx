@@ -66,22 +66,38 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
     }
   };
 
-  const handleRowBerufEdit = (rowIdx: number) => {
-    setEditingRow(rowIdx);
-    setEditValue(rowBerufOverrides[rowIdx] ?? effectiveBeruf);
+  const handleCellEdit = (rowIdx: number, col: string) => {
+    if (col === 'L_Funktion') {
+      setEditingCell({ row: rowIdx, col });
+      setEditValue(rowBerufOverrides[rowIdx] ?? effectiveBeruf);
+    } else {
+      setEditingCell({ row: rowIdx, col });
+      setEditValue(rowEmailOverrides[rowIdx]?.[col] ?? String(parseResult?.rows[rowIdx]?.[col] ?? ''));
+    }
   };
 
-  const handleRowBerufSave = (rowIdx: number) => {
-    if (editValue && editValue !== effectiveBeruf) {
-      setRowBerufOverrides(prev => ({ ...prev, [rowIdx]: editValue }));
+  const handleCellSave = () => {
+    if (!editingCell) return;
+    const { row, col } = editingCell;
+    if (col === 'L_Funktion') {
+      if (editValue && editValue !== effectiveBeruf) {
+        setRowBerufOverrides(prev => ({ ...prev, [row]: editValue }));
+      } else {
+        setRowBerufOverrides(prev => { const next = { ...prev }; delete next[row]; return next; });
+      }
     } else {
-      setRowBerufOverrides(prev => {
-        const next = { ...prev };
-        delete next[rowIdx];
-        return next;
-      });
+      const original = String(parseResult?.rows[row]?.[col] ?? '');
+      if (editValue !== original) {
+        setRowEmailOverrides(prev => ({ ...prev, [row]: { ...prev[row], [col]: editValue } }));
+      } else {
+        setRowEmailOverrides(prev => {
+          const next = { ...prev };
+          if (next[row]) { delete next[row][col]; if (Object.keys(next[row]).length === 0) delete next[row]; }
+          return next;
+        });
+      }
     }
-    setEditingRow(null);
+    setEditingCell(null);
   };
 
   const handleExport = async () => {
