@@ -388,7 +388,9 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                 </div>
                 <div>
                   <span className="text-muted-foreground">Individuelle Anpassungen:</span>
-                  <p className="font-medium">{Object.keys(rowBerufOverrides).length}</p>
+                  <p className="font-medium">
+                    {Object.keys(rowBerufOverrides).length + Object.keys(rowEmailOverrides).length} (Beruf: {Object.keys(rowBerufOverrides).length}, E-Mail: {Object.keys(rowEmailOverrides).length})
+                  </p>
                 </div>
               </div>
               {emailDuplicates.length > 0 && (
