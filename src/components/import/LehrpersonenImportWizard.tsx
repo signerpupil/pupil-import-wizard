@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, UserCog, Download, Check, Pencil } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ArrowLeft, ArrowRight, UserCog, Download, Check, Pencil, AlertTriangle } from 'lucide-react';
 import { NavigationButtons } from './NavigationButtons';
 import type { ParsedRow } from '@/types/importTypes';
 import type { ParseResult } from '@/lib/fileParser';
 import { mapHeaders, BERUF_PRESETS, exportLehrpersonenToXlsx } from '@/lib/lehrpersonenExport';
 import { useToast } from '@/hooks/use-toast';
+import { findDuplicateEmails, type EmailDuplicate } from '@/lib/lehrpersonenEmailCheck';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
@@ -108,6 +110,32 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
         .filter(c => c.mapped !== '')
     : [];
 
+  // Email duplicate detection
+  const emailDuplicates = useMemo(
+    () => (parseResult ? findDuplicateEmails(parseResult.rows) : []),
+    [parseResult]
+  );
+  const duplicateEmailRows = useMemo(
+    () => {
+      const set = new Set<number>();
+      for (const d of emailDuplicates) {
+        for (const r of d.rows) set.add(r);
+      }
+      return set;
+    },
+    [emailDuplicates]
+  );
+
+  // Find email column indices for highlighting
+  const emailColIndices = useMemo(() => {
+    if (!parseResult) return new Set<number>();
+    return new Set(
+      parseResult.headers
+        .map((h, i) => (['L_Privat_EMail', 'L_Schule_EMail'].includes(h) ? i : -1))
+        .filter(i => i >= 0)
+    );
+  }, [parseResult]);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -190,12 +218,34 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
             </CardContent>
           </Card>
 
+          {/* Email Duplicate Warning */}
+          {emailDuplicates.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>E-Mail-Duplikate gefunden ({emailDuplicates.length})</AlertTitle>
+              <AlertDescription className="mt-2 space-y-1">
+                <p className="text-sm">PUPIL lehnt Imports ab, wenn dieselbe E-Mail-Adresse bei mehreren Personen verwendet wird.</p>
+                <ul className="list-disc pl-5 text-sm space-y-1 mt-2">
+                  {emailDuplicates.map((d, i) => (
+                    <li key={i}>
+                      <span className="font-mono font-medium">{d.email}</span>
+                      {' '}({d.column}) — verwendet von: {d.names.join(', ')}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Preview Table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 Vorschau
                 <Badge variant="secondary">{parseResult.rows.length} Lehrpersonen</Badge>
+                {emailDuplicates.length > 0 && (
+                  <Badge variant="destructive">{emailDuplicates.length} E-Mail-Duplikate</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -213,16 +263,17 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                   </TableHeader>
                   <TableBody>
                     {parseResult.rows.map((row, rowIdx) => (
-                      <TableRow key={rowIdx}>
+                      <TableRow key={rowIdx} className={duplicateEmailRows.has(rowIdx) ? 'bg-destructive/10' : ''}>
                         <TableCell className="text-muted-foreground text-xs">{rowIdx + 1}</TableCell>
                         {previewColumns.map(c => {
                           const isBeruf = c.original === 'L_Funktion';
+                          const isEmailDup = duplicateEmailRows.has(rowIdx) && emailColIndices.has(c.index);
                           const displayValue = isBeruf
                             ? (rowBerufOverrides[rowIdx] ?? effectiveBeruf)
                             : String(row[c.original] ?? '');
 
                           return (
-                            <TableCell key={c.index} className="whitespace-nowrap">
+                            <TableCell key={c.index} className={`whitespace-nowrap ${isEmailDup ? 'text-destructive font-medium' : ''}`}>
                               {isBeruf ? (
                                 editingRow === rowIdx ? (
                                   <div className="flex items-center gap-1">
@@ -304,6 +355,15 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                   <p className="font-medium">{Object.keys(rowBerufOverrides).length}</p>
                 </div>
               </div>
+              {emailDuplicates.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Achtung: {emailDuplicates.length} E-Mail-Duplikate</AlertTitle>
+                  <AlertDescription>
+                    PUPIL wird diesen Import möglicherweise ablehnen. Bitte prüfen Sie die doppelten E-Mail-Adressen im vorherigen Schritt.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <Button onClick={handleExport} disabled={isExporting} className="w-full" size="lg">
                 <Download className="h-5 w-5 mr-2" />
