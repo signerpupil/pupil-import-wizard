@@ -263,16 +263,17 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                   </TableHeader>
                   <TableBody>
                     {parseResult.rows.map((row, rowIdx) => (
-                      <TableRow key={rowIdx}>
+                      <TableRow key={rowIdx} className={duplicateEmailRows.has(rowIdx) ? 'bg-destructive/10' : ''}>
                         <TableCell className="text-muted-foreground text-xs">{rowIdx + 1}</TableCell>
                         {previewColumns.map(c => {
                           const isBeruf = c.original === 'L_Funktion';
+                          const isEmailDup = duplicateEmailRows.has(rowIdx) && emailColIndices.has(c.index);
                           const displayValue = isBeruf
                             ? (rowBerufOverrides[rowIdx] ?? effectiveBeruf)
                             : String(row[c.original] ?? '');
 
                           return (
-                            <TableCell key={c.index} className="whitespace-nowrap">
+                            <TableCell key={c.index} className={`whitespace-nowrap ${isEmailDup ? 'text-destructive font-medium' : ''}`}>
                               {isBeruf ? (
                                 editingRow === rowIdx ? (
                                   <div className="flex items-center gap-1">
