@@ -69,9 +69,10 @@ export function mapHeaders(originalHeaders: string[]): string[] {
 export async function exportLehrpersonenToXlsx(
   originalHeaders: string[],
   rows: ParsedRow[],
-  berufValues: Record<number, string>, // row index → beruf value
+  berufValues: Record<number, string>,
   defaultBeruf: string,
   fileName?: string,
+  emailOverrides?: Record<number, Record<string, string>>,
 ) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'PUPIL Import Wizard';
@@ -98,12 +99,16 @@ export async function exportLehrpersonenToXlsx(
 
   // Find the Beruf column index (L_Funktion position)
   const berufColIndex = originalHeaders.indexOf('L_Funktion');
+  const emailColumns = new Set(['L_Privat_EMail', 'L_Schule_EMail']);
 
   // Add data rows
   rows.forEach((row, rowIdx) => {
     const values = originalHeaders.map((h, colIdx) => {
       if (colIdx === berufColIndex) {
         return berufValues[rowIdx] ?? defaultBeruf;
+      }
+      if (emailOverrides && emailColumns.has(h) && emailOverrides[rowIdx]?.[h] !== undefined) {
+        return emailOverrides[rowIdx][h];
       }
       return row[h] ?? '';
     });
