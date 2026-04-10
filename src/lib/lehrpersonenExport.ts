@@ -99,12 +99,16 @@ export async function exportLehrpersonenToXlsx(
 
   // Find the Beruf column index (L_Funktion position)
   const berufColIndex = originalHeaders.indexOf('L_Funktion');
+  const emailColumns = new Set(['L_Privat_EMail', 'L_Schule_EMail']);
 
   // Add data rows
   rows.forEach((row, rowIdx) => {
     const values = originalHeaders.map((h, colIdx) => {
       if (colIdx === berufColIndex) {
         return berufValues[rowIdx] ?? defaultBeruf;
+      }
+      if (emailOverrides && emailColumns.has(h) && emailOverrides[rowIdx]?.[h] !== undefined) {
+        return emailOverrides[rowIdx][h];
       }
       return row[h] ?? '';
     });
