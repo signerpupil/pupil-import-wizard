@@ -110,6 +110,7 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
         rowBerufOverrides,
         effectiveBeruf,
         parseResult.fileName,
+        rowEmailOverrides,
       );
       toast({ title: 'Export erfolgreich', description: 'Die XLSX-Datei wurde heruntergeladen.' });
     } catch (err) {
@@ -127,10 +128,19 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
         .filter(c => c.mapped !== '')
     : [];
 
-  // Email duplicate detection
+  // Build effective rows with email overrides applied for duplicate detection
+  const effectiveRows = useMemo(() => {
+    if (!parseResult) return [];
+    return parseResult.rows.map((row, i) => {
+      if (!rowEmailOverrides[i]) return row;
+      return { ...row, ...rowEmailOverrides[i] };
+    });
+  }, [parseResult, rowEmailOverrides]);
+
+  // Email duplicate detection using effective rows
   const emailDuplicates = useMemo(
-    () => (parseResult ? findDuplicateEmails(parseResult.rows) : []),
-    [parseResult]
+    () => (effectiveRows.length > 0 ? findDuplicateEmails(effectiveRows) : []),
+    [effectiveRows]
   );
   const duplicateEmailRows = useMemo(
     () => {
@@ -284,40 +294,49 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                         <TableCell className="text-muted-foreground text-xs">{rowIdx + 1}</TableCell>
                         {previewColumns.map(c => {
                           const isBeruf = c.original === 'L_Funktion';
+                          const isEmail = c.original === 'L_Privat_EMail' || c.original === 'L_Schule_EMail';
+                          const isEditable = isBeruf || isEmail;
                           const isEmailDup = duplicateEmailRows.has(rowIdx) && emailColIndices.has(c.index);
+                          const isEditingThis = editingCell?.row === rowIdx && editingCell?.col === c.original;
+                          const hasEmailOverride = isEmail && rowEmailOverrides[rowIdx]?.[c.original] !== undefined;
+                          
                           const displayValue = isBeruf
                             ? (rowBerufOverrides[rowIdx] ?? effectiveBeruf)
-                            : String(row[c.original] ?? '');
+                            : isEmail && hasEmailOverride
+                              ? rowEmailOverrides[rowIdx][c.original]
+                              : String(row[c.original] ?? '');
+
+                          const isOverridden = isBeruf ? !!rowBerufOverrides[rowIdx] : hasEmailOverride;
 
                           return (
                             <TableCell key={c.index} className={`whitespace-nowrap ${isEmailDup ? 'text-destructive font-medium' : ''}`}>
-                              {isBeruf ? (
-                                editingRow === rowIdx ? (
+                              {isEditable ? (
+                                isEditingThis ? (
                                   <div className="flex items-center gap-1">
                                     <Input
                                       value={editValue}
                                       onChange={e => setEditValue(e.target.value)}
-                                      className="h-7 w-32 text-xs"
+                                      className="h-7 w-40 text-xs"
                                       onKeyDown={e => {
-                                        if (e.key === 'Enter') handleRowBerufSave(rowIdx);
-                                        if (e.key === 'Escape') setEditingRow(null);
+                                        if (e.key === 'Enter') handleCellSave();
+                                        if (e.key === 'Escape') setEditingCell(null);
                                       }}
                                       autoFocus
                                     />
-                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleRowBerufSave(rowIdx)}>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCellSave}>
                                       <Check className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1 group">
-                                    <span className={rowBerufOverrides[rowIdx] ? 'text-primary font-medium' : ''}>
+                                    <span className={isOverridden ? 'text-primary font-medium' : ''}>
                                       {displayValue}
                                     </span>
                                     <Button
                                       size="icon"
                                       variant="ghost"
                                       className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => handleRowBerufEdit(rowIdx)}
+                                      onClick={() => handleCellEdit(rowIdx, c.original)}
                                     >
                                       <Pencil className="h-3 w-3" />
                                     </Button>

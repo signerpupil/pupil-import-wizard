@@ -69,9 +69,10 @@ export function mapHeaders(originalHeaders: string[]): string[] {
 export async function exportLehrpersonenToXlsx(
   originalHeaders: string[],
   rows: ParsedRow[],
-  berufValues: Record<number, string>, // row index → beruf value
+  berufValues: Record<number, string>,
   defaultBeruf: string,
   fileName?: string,
+  emailOverrides?: Record<number, Record<string, string>>,
 ) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'PUPIL Import Wizard';
