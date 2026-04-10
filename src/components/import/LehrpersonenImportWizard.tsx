@@ -34,7 +34,8 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
   const [defaultBeruf, setDefaultBeruf] = useState('Lehrperson');
   const [customBeruf, setCustomBeruf] = useState('');
   const [rowBerufOverrides, setRowBerufOverrides] = useState<Record<number, string>>({});
-  const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [rowEmailOverrides, setRowEmailOverrides] = useState<Record<number, Record<string, string>>>({});
+  const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
