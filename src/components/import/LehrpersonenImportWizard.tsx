@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, UserCog, Download, Check, Pencil } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ArrowLeft, ArrowRight, UserCog, Download, Check, Pencil, AlertTriangle } from 'lucide-react';
 import { NavigationButtons } from './NavigationButtons';
 import type { ParsedRow } from '@/types/importTypes';
 import type { ParseResult } from '@/lib/fileParser';
 import { mapHeaders, BERUF_PRESETS, exportLehrpersonenToXlsx } from '@/lib/lehrpersonenExport';
 import { useToast } from '@/hooks/use-toast';
+import { findDuplicateEmails, type EmailDuplicate } from '@/lib/lehrpersonenEmailCheck';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
