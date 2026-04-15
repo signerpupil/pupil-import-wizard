@@ -35,6 +35,7 @@ import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { StudentParentOverlapCard } from './StudentParentOverlapCard';
 import { NameChangeCard, type NameChangeEntry } from './NameChangeCard';
+import { ParentConsolidationCard, type ParentIdInconsistencyGroup } from './ParentConsolidationCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -43,28 +44,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
 
-// Interface for parent ID inconsistency groups
-interface ParentIdInconsistencyGroup {
-  identifier: string; // e.g., "AHV: 756.1234.5678.90" or "Max Müller, Hauptstrasse 1"
-  column: string; // e.g., "P_ERZ1_ID" — prefix for the AFFECTED rows
-  correctId: string; // The ID from the first occurrence
-  matchReason: string; // e.g., "AHV-Nummer – Hohe Zuverlässigkeit"
-  severity?: 'error' | 'warning'; // warning = name_only strategy
-  parentName?: string;   // Vorname + Name of the parent
-  parentAddress?: string; // Strasse + PLZ + Ort
-  referenceRow?: number; // The row number of the first occurrence (reference)
-  referencePrefix?: string; // e.g., "P_ERZ2_" — prefix for the REFERENCE row (may differ from column prefix due to slot swaps)
-  referenceStudentName?: string; // Name of the child in the reference row (has the correct ID)
-  affectedRows: {
-    row: number;
-    currentId: string;
-    studentName: string | null;
-    column: string; // e.g., "P_ERZ1_ID" or "P_ERZ2_ID" — per-row, may differ across rows
-  }[];
-  hasNameMismatch?: boolean; // true if Vorname or Name differ between reference and affected rows (after diacritic normalization)
-  hasDiacriticNameDiff?: boolean; // true if names match after stripping diacritics but differ in raw form
-  diacriticNameVariants?: { prefix: string; row: number; name: string; vorname: string }[]; // all name variants for unification UI
-}
+// ParentIdInconsistencyGroup type is now imported from ParentConsolidationCard
 
 interface Step3ValidationProps {
   errors: ValidationError[];
