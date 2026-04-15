@@ -229,18 +229,30 @@ export default function Index() {
 
   const handleNext = () => {
     if (currentStep === 1 && parseResult) {
-      // Check column status when moving to step 2
       const statuses = checkColumnStatus(parseResult.headers, columnDefinitions);
       setColumnStatuses(statuses);
     }
     if (currentStep === 2 && parseResult) {
-      // Validate data when moving to step 3
+      // For large files, show loading indicator
+      if (parseResult.rows.length > 200) {
+        setIsValidating(true);
+        const nextStep = Math.min(currentStep + 1, 4);
+        setCurrentStep(nextStep);
+        setMaxVisitedStep(prev => Math.max(prev, nextStep));
+        setTimeout(() => {
+          const validationErrors = validateData(parseResult.rows, columnDefinitions);
+          setErrors(validationErrors);
+          setCorrectedRows([...parseResult.rows]);
+          setAutoCorrectionsApplied(false);
+          initialValidationDone.current = true;
+          setIsValidating(false);
+        }, 50);
+        return;
+      }
       const validationErrors = validateData(parseResult.rows, columnDefinitions);
       setErrors(validationErrors);
       setCorrectedRows([...parseResult.rows]);
-      // Reset auto-corrections flag to allow reapplication
       setAutoCorrectionsApplied(false);
-      // Mark initial validation as done so re-validation can kick in
       initialValidationDone.current = true;
     }
     const nextStep = Math.min(currentStep + 1, 4);
