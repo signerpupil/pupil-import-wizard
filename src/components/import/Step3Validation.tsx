@@ -34,6 +34,7 @@ import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { StudentParentOverlapCard } from './StudentParentOverlapCard';
+import { NameChangeCard, type NameChangeEntry } from './NameChangeCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
