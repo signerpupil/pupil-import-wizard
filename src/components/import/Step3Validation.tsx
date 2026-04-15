@@ -66,7 +66,6 @@ export function Step3Validation({
   onNext,
 }: Step3ValidationProps) {
   const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
   const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const stepByStepRef = useRef<HTMLDivElement>(null);
@@ -80,18 +79,10 @@ export function Step3Validation({
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
   const isAutoFixingRef = useRef(false);
   
-  const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
-  
-  // Filter toggle: show only open (uncorrected) errors in table
-  const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
 
-  // Language dropdown state: tracks which cell has the dropdown open
-  const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
+  // Language dropdown state for step-by-step modal
   const LANGUAGE_COLUMNS = new Set(['S_Muttersprache', 'S_Umgangssprache']);
   const BISTA_LANGUAGES_SORTED = useMemo(() => [...VALID_BISTA_LANGUAGES].sort((a, b) => a.localeCompare(b, 'de')), []);
-
-  // Nationality dropdown state
-  const [nationalityDropdownCell, setNationalityDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const NATIONALITY_COLUMNS = new Set(['S_Nationalitaet']);
   const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
   const [nationalitySearch, setNationalitySearch] = useState<string | null>(null);
