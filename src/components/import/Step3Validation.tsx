@@ -128,8 +128,6 @@ export function Step3Validation({
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
-  const toggleNameChangeExpanded = (key: string) =>
-    setExpandedNameChanges(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
   const { toast } = useToast();
 
@@ -618,8 +616,7 @@ function stripDiacritics(s: string): string {
     setParentConsolidationPage(0);
   }, [parentConsolidationSearch, parentReliabilityFilter]);
 
-  // Detect name change warnings from uncorrected errors
-  interface NameChangeEntry {
+  // Detect name change warnings from uncorrected errors (NameChangeEntry type imported from NameChangeCard)
     error: ValidationError;
     changeType: string;
     fromName: string;
