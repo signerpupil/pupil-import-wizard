@@ -78,22 +78,10 @@ export function Step3Validation({
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
   const isAutoFixingRef = useRef(false);
   
-  // Parent ID consolidation UI state
-  const [parentConsolidationSearch, setParentConsolidationSearch] = useState('');
-  const [parentConsolidationPage, setParentConsolidationPage] = useState(0);
-  const [parentConsolidationExpanded, setParentConsolidationExpanded] = useState(false);
-  const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
-  const PARENTS_PER_PAGE = 4;
-
-  // Parent consolidation UI state
-  const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
   const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
   
   // Filter toggle: show only open (uncorrected) errors in table
   const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
-
-  // Inline AHV edit state for name-mismatch groups
-  const [editingAhv, setEditingAhv] = useState<Map<string, string>>(new Map());
 
   // Language dropdown state: tracks which cell has the dropdown open
   const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
@@ -106,8 +94,7 @@ export function Step3Validation({
   const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
   const [nationalitySearch, setNationalitySearch] = useState<string | null>(null);
 
-  const toggleParentGroupExpanded = (key: string) =>
-    setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
+  const { toast } = useToast();
 
   const { toast } = useToast();
 
