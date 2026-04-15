@@ -644,30 +644,6 @@ function stripDiacritics(s: string): string {
     return entries;
   }, [uncorrectedErrors, getStudentNameForRow]);
 
-  const paginatedNameChanges = useMemo(() => {
-    const start = nameChangePage * NAME_CHANGES_PER_PAGE;
-    return nameChangeEntries.slice(start, start + NAME_CHANGES_PER_PAGE);
-  }, [nameChangeEntries, nameChangePage, NAME_CHANGES_PER_PAGE]);
-
-  const totalNameChangePages = Math.ceil(nameChangeEntries.length / NAME_CHANGES_PER_PAGE);
-
-  const dismissNameChange = useCallback((entry: NameChangeEntry) => {
-    onErrorCorrect(entry.error.row, entry.error.column, entry.error.value, 'manual');
-  }, [onErrorCorrect]);
-
-  const dismissAllNameChanges = useCallback(() => {
-    const corrections = nameChangeEntries.map(e => ({
-      row: e.error.row,
-      column: e.error.column,
-      value: e.error.value,
-    }));
-    onBulkCorrect(corrections, 'bulk');
-    toast({
-      title: 'Namenswechsel bestätigt',
-      description: `${corrections.length} Fälle als geprüft markiert.`,
-    });
-  }, [nameChangeEntries, onBulkCorrect, toast]);
-
 
 
   // Filtered errors for step-by-step mode (only specific rows and column if set)
