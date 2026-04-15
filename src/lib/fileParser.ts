@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import type { ParsedRow, ValidationError, ColumnDefinition, ColumnStatus } from '@/types/importTypes';
 import { isValidGender as checkGenderValid, ALL_VALID_GENDER_VALUES, isValidAHVChecksum } from '@/lib/formatters';
 import { validatePlzOrt } from '@/lib/swissPlzData';
+import { sanitizeCellValue } from '@/lib/utils';
 
 export interface SourceFileInfo {
   name: string;
