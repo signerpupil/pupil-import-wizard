@@ -2612,10 +2612,11 @@ export function exportToCSV(
 
   // Build CSV content with semicolon delimiter for Excel compatibility
   const escapeCSVValue = (val: string): string => {
-    if (val.includes('"') || val.includes(';') || val.includes('\n')) {
-      return `"${val.replace(/"/g, '""')}"`;
+    const sanitized = sanitizeCellValue(val);
+    if (sanitized.includes('"') || sanitized.includes(';') || sanitized.includes('\n')) {
+      return `"${sanitized.replace(/"/g, '""')}"`;
     }
-    return val;
+    return sanitized;
   };
 
   const csvLines: string[] = [];
@@ -2687,9 +2688,9 @@ export async function exportToExcel(
   exportRowsWithIndex.forEach(({ row, rowNum }) => {
     const values = exportHeaders.map(header => {
       const corrected = correctionMap.get(`${rowNum}:${header}`);
-      if (corrected !== undefined) return corrected;
+      if (corrected !== undefined) return sanitizeCellValue(corrected);
       const value = row[header];
-      return value !== null && value !== undefined ? String(value) : '';
+      return value !== null && value !== undefined ? sanitizeCellValue(String(value)) : '';
     });
     const addedRow = worksheet.addRow(values);
     // Ensure each cell is explicitly typed as string to prevent date auto-detection
