@@ -969,27 +969,7 @@ function stripDiacritics(s: string): string {
     }
   }, [workerError, toast]);
 
-  // Pre-compute which suggestions actually have applicable corrections
-  // Only include suggestions that still have uncorrected errors for their column
-  const suggestionsWithApplicability = useMemo(() => {
-    const uncorrectedRowsByColumn = new Map<string, Set<number>>();
-    for (const err of uncorrectedErrors) {
-      if (!uncorrectedRowsByColumn.has(err.column)) uncorrectedRowsByColumn.set(err.column, new Set());
-      uncorrectedRowsByColumn.get(err.column)!.add(err.row);
-    }
-    return localSuggestions
-      .map(suggestion => ({
-        suggestion,
-        hasApplicableCorrections: suggestion.autoFix
-          ? applyLocalCorrection(suggestion, errors).length > 0
-          : false,
-      }))
-      .filter(({ suggestion }) => {
-        // Hide if all affected rows for this column are already corrected
-        const uncorrected = uncorrectedRowsByColumn.get(suggestion.affectedColumn);
-        return suggestion.affectedRows.some(row => uncorrected?.has(row));
-      });
-  }, [localSuggestions, errors, uncorrectedErrors]);
+
 
   // Auto-apply all fixable patterns whenever new suggestions appear
   useEffect(() => {
@@ -1048,20 +1028,7 @@ function stripDiacritics(s: string): string {
     return keys;
   }, [errors]);
 
-  // Group errors by column for grouped display — excluding errors shown in dedicated sections
-  const errorsByColumn = useMemo(() => {
-    const map = new Map<string, ValidationError[]>();
-    for (const e of errors) {
-      if (dedicatedSectionErrorKeys.has(`${e.row}:${e.column}`)) continue;
-      if (!map.has(e.column)) map.set(e.column, []);
-      map.get(e.column)!.push(e);
-    }
-    return Array.from(map.entries()).sort((a, b) => {
-      const aUncorrected = a[1].filter(e => !e.correctedValue).length;
-      const bUncorrected = b[1].filter(e => !e.correctedValue).length;
-      return bUncorrected - aUncorrected;
-    });
-  }, [errors, dedicatedSectionErrorKeys]);
+
 
   // Apply local bulk correction
   const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
@@ -1085,45 +1052,7 @@ function stripDiacritics(s: string): string {
     }
   }, [errors, onBulkCorrect, toast]);
 
-  // Helper: map pattern type to display metadata (icon, label, before/after example)
-  function getPatternMeta(type: string): { icon: React.ReactNode; label: string; example?: { from: string; to: string } } {
-    switch (type) {
-      case 'phone_format':
-        return { icon: <Phone className="h-3.5 w-3.5 text-pupil-success" />, label: 'Telefonnummer', example: { from: '0791234567', to: '+41 79 123 45 67' } };
-      case 'ahv_format':
-        return { icon: <Hash className="h-3.5 w-3.5 text-pupil-success" />, label: 'AHV-Nummer', example: { from: '7561234567890', to: '756.1234.5678.90' } };
-      case 'email_format':
-        return { icon: <Mail className="h-3.5 w-3.5 text-pupil-success" />, label: 'E-Mail', example: { from: 'name @gmial.com', to: 'name@gmail.com' } };
-      case 'plz_format':
-        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Postleitzahl', example: { from: '8001 Zürich', to: '8001' } };
-      case 'gender_format':
-        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Geschlecht', example: { from: 'männlich', to: 'M' } };
-      case 'name_format':
-        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Namen', example: { from: 'MÜLLER', to: 'Müller' } };
-      case 'street_format':
-        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Strasse', example: { from: 'HAUPTSTRASSE 1', to: 'Hauptstrasse 1' } };
-      case 'date_format':
-        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datum (Excel)', example: { from: '45291', to: '01.01.2024' } };
-      case 'date_de_format':
-        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datumsformat', example: { from: '2014-03-15', to: '15.03.2014' } };
-      case 'whitespace_trim':
-        return { icon: <Scissors className="h-3.5 w-3.5 text-pupil-success" />, label: 'Leerzeichen trimmen', example: { from: ' Meier ', to: 'Meier' } };
-      case 'iban_format':
-        return { icon: <CreditCard className="h-3.5 w-3.5 text-pupil-success" />, label: 'IBAN', example: { from: 'CH930076201162385295 7', to: 'CH93 0076 2011 6238 5295 7' } };
-      case 'duplicate':
-        return { icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Duplikate' };
-      case 'parent_id_inconsistent':
-        return { icon: <UserCog className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Eltern-ID Inkonsistenz' };
-      case 'nationality_correction':
-        return { icon: <Globe className="h-3.5 w-3.5 text-pupil-success" />, label: 'Nationalität', example: { from: 'Türkei', to: 'Türkiye' } };
-      case 'manual_review':
-        return { icon: <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Manuelle Prüfung' };
-      case 'language_bista':
-        return { icon: <Languages className="h-3.5 w-3.5 text-pupil-success" />, label: 'BISTA-Sprache', example: { from: 'Englsh', to: 'Englisch' } };
-      default:
-        return { icon: <Zap className="h-3.5 w-3.5 text-pupil-success" />, label: type };
-    }
-  }
+
 
   return (
     <div className="space-y-6 pb-20">
