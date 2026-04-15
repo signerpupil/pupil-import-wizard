@@ -38,6 +38,7 @@ export default function Index() {
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [correctedRows, setCorrectedRows] = useState<ParsedRow[]>([]);
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Correction Memory state
   const [processingMode, setProcessingMode] = useState<ProcessingMode>('initial');
@@ -228,18 +229,30 @@ export default function Index() {
 
   const handleNext = () => {
     if (currentStep === 1 && parseResult) {
-      // Check column status when moving to step 2
       const statuses = checkColumnStatus(parseResult.headers, columnDefinitions);
       setColumnStatuses(statuses);
     }
     if (currentStep === 2 && parseResult) {
-      // Validate data when moving to step 3
+      // For large files, show loading indicator
+      if (parseResult.rows.length > 200) {
+        setIsValidating(true);
+        const nextStep = Math.min(currentStep + 1, 4);
+        setCurrentStep(nextStep);
+        setMaxVisitedStep(prev => Math.max(prev, nextStep));
+        setTimeout(() => {
+          const validationErrors = validateData(parseResult.rows, columnDefinitions);
+          setErrors(validationErrors);
+          setCorrectedRows([...parseResult.rows]);
+          setAutoCorrectionsApplied(false);
+          initialValidationDone.current = true;
+          setIsValidating(false);
+        }, 50);
+        return;
+      }
       const validationErrors = validateData(parseResult.rows, columnDefinitions);
       setErrors(validationErrors);
       setCorrectedRows([...parseResult.rows]);
-      // Reset auto-corrections flag to allow reapplication
       setAutoCorrectionsApplied(false);
-      // Mark initial validation as done so re-validation can kick in
       initialValidationDone.current = true;
     }
     const nextStep = Math.min(currentStep + 1, 4);
@@ -253,7 +266,7 @@ export default function Index() {
 
   // Helper to get student name for a row
   const getStudentName = useCallback((rowIndex: number) => {
-    const row = correctedRows[rowIndex - 1];
+    const row = correctedRows[rowIndex - 2];
     if (!row) return undefined;
     const name = row['S_Name'] || row['S_name'] || '';
     const vorname = row['S_Vorname'] || row['S_vorname'] || '';
@@ -289,8 +302,8 @@ export default function Index() {
     ));
     setCorrectedRows(prev => {
       const updated = [...prev];
-      if (updated[rowIndex - 1]) {
-        updated[rowIndex - 1] = { ...updated[rowIndex - 1], [column]: value };
+      if (updated[rowIndex - 2]) {
+        updated[rowIndex - 2] = { ...updated[rowIndex - 2], [column]: value };
       }
       return updated;
     });
@@ -442,7 +455,17 @@ export default function Index() {
             />
           )}
 
-          {!showSpecialWizard && currentStep === 3 && (
+          {!showSpecialWizard && currentStep === 3 && isValidating && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+              <p className="text-lg font-medium text-foreground">Daten werden validiert…</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {parseResult?.rows.length} Datensätze werden geprüft
+              </p>
+            </div>
+          )}
+
+          {!showSpecialWizard && currentStep === 3 && !isValidating && (
             <Step3Validation
               errors={errors}
               rows={correctedRows}

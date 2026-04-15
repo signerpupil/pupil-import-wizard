@@ -34,6 +34,7 @@ import { IdConflictBatchCard } from './IdConflictBatchCard';
 import { SiblingInconsistencyCard } from './SiblingInconsistencyCard';
 import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { StudentParentOverlapCard } from './StudentParentOverlapCard';
+import { NameChangeCard, type NameChangeEntry } from './NameChangeCard';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -104,12 +105,8 @@ export function Step3Validation({
   const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
   const PARENTS_PER_PAGE = 4;
 
-  // Name change UI state
-  const [nameChangeExpanded, setNameChangeExpanded] = useState(true);
-  const [nameChangePage, setNameChangePage] = useState(0);
-  const NAME_CHANGES_PER_PAGE = 5;
+  // Parent consolidation UI state
   const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
-  const [expandedNameChanges, setExpandedNameChanges] = useState<Set<string>>(new Set());
   const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
   
   // Filter toggle: show only open (uncorrected) errors in table
@@ -131,8 +128,6 @@ export function Step3Validation({
 
   const toggleParentGroupExpanded = (key: string) =>
     setExpandedParentGroups(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
-  const toggleNameChangeExpanded = (key: string) =>
-    setExpandedNameChanges(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
 
   const { toast } = useToast();
 
@@ -621,17 +616,7 @@ function stripDiacritics(s: string): string {
     setParentConsolidationPage(0);
   }, [parentConsolidationSearch, parentReliabilityFilter]);
 
-  // Detect name change warnings from uncorrected errors
-  interface NameChangeEntry {
-    error: ValidationError;
-    changeType: string;
-    fromName: string;
-    fromRow: number;
-    toName: string;
-    studentName: string;
-    fromStudentName: string;
-    column: string;
-  }
+  // Detect name change warnings from uncorrected errors (NameChangeEntry type imported from NameChangeCard)
 
   const nameChangeEntries = useMemo((): NameChangeEntry[] => {
     const entries: NameChangeEntry[] = [];
@@ -658,30 +643,6 @@ function stripDiacritics(s: string): string {
     }
     return entries;
   }, [uncorrectedErrors, getStudentNameForRow]);
-
-  const paginatedNameChanges = useMemo(() => {
-    const start = nameChangePage * NAME_CHANGES_PER_PAGE;
-    return nameChangeEntries.slice(start, start + NAME_CHANGES_PER_PAGE);
-  }, [nameChangeEntries, nameChangePage, NAME_CHANGES_PER_PAGE]);
-
-  const totalNameChangePages = Math.ceil(nameChangeEntries.length / NAME_CHANGES_PER_PAGE);
-
-  const dismissNameChange = useCallback((entry: NameChangeEntry) => {
-    onErrorCorrect(entry.error.row, entry.error.column, entry.error.value, 'manual');
-  }, [onErrorCorrect]);
-
-  const dismissAllNameChanges = useCallback(() => {
-    const corrections = nameChangeEntries.map(e => ({
-      row: e.error.row,
-      column: e.error.column,
-      value: e.error.value,
-    }));
-    onBulkCorrect(corrections, 'bulk');
-    toast({
-      title: 'Namenswechsel bestätigt',
-      description: `${corrections.length} Fälle als geprüft markiert.`,
-    });
-  }, [nameChangeEntries, onBulkCorrect, toast]);
 
 
 
@@ -1407,7 +1368,7 @@ function stripDiacritics(s: string): string {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Daten validieren</h2>
         <p className="text-muted-foreground mt-1">
@@ -1455,6 +1416,32 @@ function stripDiacritics(s: string): string {
           </div>
         );
       })()}
+
+      {/* Success State - No errors */}
+      {errors.length === 0 && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">Keine Fehler gefunden</h3>
+            <p className="text-muted-foreground max-w-md">
+              Ihre Daten sind fehlerfrei und bereit für den Export. Klicken Sie auf «Weiter zur Vorschau», um fortzufahren.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Success State - All errors corrected */}
+      {errors.length > 0 && uncorrectedErrors.length === 0 && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
+            <h3 className="text-lg font-semibold text-foreground mb-1">Alle Fehler behoben</h3>
+            <p className="text-sm text-muted-foreground">
+              {correctedErrors.length} Korrekturen wurden erfolgreich angewendet. Sie können nun zur Vorschau wechseln.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ID Conflict Batch Resolution Card */}
       <IdConflictBatchCard
@@ -2139,248 +2126,12 @@ function stripDiacritics(s: string): string {
       )}
 
       {/* Name Change Detection Card */}
-      {nameChangeEntries.length > 0 && (
-        <Card className="border-pupil-warning/30 bg-pupil-warning/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <UserCog className="h-5 w-5 text-pupil-warning" />
-                <CardTitle className="text-lg">Namenswechsel prüfen</CardTitle>
-                <Badge variant="outline" className="text-pupil-warning border-pupil-warning/30">
-                  {nameChangeEntries.length} {nameChangeEntries.length === 1 ? 'Fall' : 'Fälle'}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={dismissAllNameChanges}
-                  className="gap-1.5"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Alle als geprüft markieren
-                </Button>
-              </div>
-            </div>
-            <CardDescription>
-              Eltern mit gleichem Vornamen, aber unterschiedlichem Nachnamen wurden gefunden. Bitte manuell prüfen – keine automatischen Korrekturen.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-3">
-            <Collapsible open={nameChangeExpanded} onOpenChange={setNameChangeExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full gap-2">
-                  {nameChangeExpanded ? (
-                    <><ChevronUp className="h-4 w-4" />Details ausblenden</>
-                  ) : (
-                    <><ChevronDown className="h-4 w-4" />Details anzeigen ({nameChangeEntries.length} Fälle)</>
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent className="mt-3 space-y-2">
-                {paginatedNameChanges.map((entry, idx) => {
-                  const entryKey = `${entry.error.row}:${entry.error.column}`;
-                  const isExpanded = expandedNameChanges.has(entryKey);
-                  // Get row data for both rows to show identical fields
-                  const fromRow = rows[entry.fromRow - 2] ?? {};
-                  const toRow = rows[entry.error.row - 2] ?? {};
-                  // Determine which column prefix to check for other name fields
-                  const colPrefix = entry.column.replace(/Name$/, '');
-                  const vornameCol = `${colPrefix}Vorname`;
-                  const sharedVorname = fromRow[vornameCol] ?? toRow[vornameCol];
-                  // Other stable identifiers from the student row
-                  const studentCols = ['S_ID', 'S_AHV', 'K_Name'];
-                  return (
-                  <div
-                    key={`namechange-${entry.error.row}-${entry.error.column}-${idx}`}
-                    className="bg-background rounded-lg border border-pupil-warning/20 overflow-hidden"
-                  >
-                    {/* Card header */}
-                    <div className="p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="font-mono text-xs shrink-0">{entry.column}</Badge>
-                          <Badge variant="secondary" className="text-xs">{entry.changeType}</Badge>
-                          {entry.fromStudentName && entry.fromStudentName !== entry.studentName ? (
-                            <>
-                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.fromRow}:</span>
-                              <span className="text-xs font-medium truncate">{entry.fromStudentName}</span>
-                              <span className="text-xs text-muted-foreground">|</span>
-                              <span className="text-xs text-muted-foreground shrink-0">Zeile {entry.error.row}:</span>
-                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-xs text-muted-foreground shrink-0">Schüler/in:</span>
-                              <span className="text-xs font-medium truncate">{entry.studentName}</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm flex-wrap">
-                          <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{entry.fromName}</code>
-                          <span className="text-muted-foreground">→</span>
-                          <code className="px-1.5 py-0.5 bg-pupil-warning/10 rounded text-xs font-mono text-pupil-warning">{entry.toName}</code>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          variant={isExpanded ? 'default' : 'outline'}
-                          onClick={(e) => { e.stopPropagation(); toggleNameChangeExpanded(entryKey); }}
-                          className="gap-1.5"
-                        >
-                          {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                          Details
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
-                          className="gap-1.5 text-muted-foreground hover:text-foreground"
-                          title="Kein Namenswechsel – diesen Fall ignorieren und ausblenden"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          Ignorieren
-                        </Button>
-                      </div>
-                    </div>
-                    </div>
-
-                    {/* Inline comparison – Person Card Layout */}
-                     {isExpanded && (
-                       <div className="border-t bg-muted/20 p-3 space-y-3">
-                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Einträge im Vergleich</p>
-                         <div className="grid grid-cols-2 gap-2">
-                           {/* Left card: bisheriger Eintrag */}
-                           <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
-                             <div className="flex items-center justify-between">
-                               <span className="font-semibold text-foreground">Bisheriger Eintrag</span>
-                               <span className="text-muted-foreground text-[10px]">Zeile {entry.fromRow}</span>
-                             </div>
-                             <div className="space-y-1 border-t pt-1.5">
-                               <div className="flex items-baseline gap-1">
-                                 <span className="text-muted-foreground w-14 shrink-0">Name:</span>
-                                 <span className="font-medium">{entry.fromName}</span>
-                               </div>
-                               {sharedVorname && (
-                                 <div className="flex items-baseline gap-1">
-                                   <span className="text-muted-foreground w-14 shrink-0">Vorname:</span>
-                                   <span className="font-medium">{String(sharedVorname)}</span>
-                                 </div>
-                               )}
-                               {studentCols.map(col => {
-                                 const val = fromRow[col];
-                                 if (!val) return null;
-                                 const label = col === 'S_ID' ? 'S_ID' : col === 'S_AHV' ? 'AHV' : col === 'K_Name' ? 'Klasse' : col;
-                                 return (
-                                   <div key={col} className="flex items-baseline gap-1">
-                                     <span className="text-muted-foreground w-14 shrink-0">{label}:</span>
-                                     <span className="font-medium">{String(val)}</span>
-                                   </div>
-                                 );
-                               })}
-                             </div>
-                           </div>
-                           {/* Right card: neuer Eintrag */}
-                           <div className="rounded-md border border-pupil-warning/30 bg-pupil-warning/5 p-2.5 space-y-2 text-xs">
-                             <div className="flex items-center justify-between">
-                               <span className="font-semibold text-foreground">Neuer Eintrag</span>
-                               <span className="text-muted-foreground text-[10px]">Zeile {entry.error.row}</span>
-                             </div>
-                             <div className="space-y-1 border-t pt-1.5">
-                               <div className="flex items-baseline gap-1">
-                                 <span className="text-muted-foreground w-14 shrink-0">Name:</span>
-                                 <span className="font-bold text-pupil-warning">{entry.toName}</span>
-                               </div>
-                               {sharedVorname && (
-                                 <div className="flex items-baseline gap-1">
-                                   <span className="text-muted-foreground w-14 shrink-0">Vorname:</span>
-                                   <span className="font-medium">{String(sharedVorname)}</span>
-                                 </div>
-                               )}
-                               {studentCols.map(col => {
-                                 const val = toRow[col] ?? fromRow[col];
-                                 if (!val) return null;
-                                 const label = col === 'S_ID' ? 'S_ID' : col === 'S_AHV' ? 'AHV' : col === 'K_Name' ? 'Klasse' : col;
-                                 return (
-                                   <div key={col} className="flex items-baseline gap-1">
-                                     <span className="text-muted-foreground w-14 shrink-0">{label}:</span>
-                                     <span className="font-medium">{String(val)}</span>
-                                   </div>
-                                 );
-                               })}
-                             </div>
-                           </div>
-                         </div>
-                         <div className="flex items-center gap-2 flex-wrap">
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               onErrorCorrect(entry.error.row, entry.error.column, entry.fromName, 'manual');
-                               toast({ title: 'Name übernommen', description: `«${entry.fromName}» wurde in Zeile ${entry.error.row} gesetzt.` });
-                             }}
-                             className="gap-1.5 text-xs"
-                             title={`Den Namen aus Zeile ${entry.fromRow} in Zeile ${entry.error.row} übernehmen`}
-                           >
-                             <Check className="h-3.5 w-3.5" />
-                             «{entry.fromName}» übernehmen
-                           </Button>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={(e) => { e.stopPropagation(); dismissNameChange(entry); }}
-                             className="gap-1.5 text-xs"
-                             title={`Den Namen «${entry.toName}» in Zeile ${entry.error.row} beibehalten`}
-                           >
-                             <Check className="h-3.5 w-3.5" />
-                             «{entry.toName}» beibehalten
-                           </Button>
-                           <span className="text-xs text-muted-foreground ml-1">
-                             ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
-                           </span>
-                         </div>
-                       </div>
-                     )}
-                  </div>
-                  );
-                })}
-
-                {/* Pagination */}
-                {totalNameChangePages > 1 && (
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNameChangePage(p => Math.max(0, p - 1))}
-                      disabled={nameChangePage === 0}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Zurück
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Seite {nameChangePage + 1} von {totalNameChangePages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNameChangePage(p => Math.min(totalNameChangePages - 1, p + 1))}
-                      disabled={nameChangePage >= totalNameChangePages - 1}
-                    >
-                      Weiter
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
-      )}
+      <NameChangeCard
+        entries={nameChangeEntries}
+        rows={rows}
+        onErrorCorrect={onErrorCorrect}
+        onBulkCorrect={onBulkCorrect}
+      />
 
       {/* Local Bulk Correction - Web Worker Background Processing */}
       {uncorrectedErrors.length > 0 && (
@@ -3293,12 +3044,42 @@ function stripDiacritics(s: string): string {
           })}
         </div>
       )}
-      <NavigationButtons
-        onBack={onBack}
-        onNext={onNext}
-        nextLabel="Weiter zur Vorschau"
-        size="lg"
-      />
+      {/* Sticky Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
+        <div className="container mx-auto px-4 max-w-5xl py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {uncorrectedErrors.length > 0 && (
+              <Badge variant="destructive" className="text-sm px-3 py-1">
+                {uncorrectedErrors.length} offen
+              </Badge>
+            )}
+            {correctedErrors.length > 0 && (
+              <Badge className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1">
+                {correctedErrors.length} korrigiert
+              </Badge>
+            )}
+            {errors.length === 0 && (
+              <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                Keine Fehler
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onBack}>
+              Zurück
+            </Button>
+            <Button onClick={onNext} size="lg">
+              Weiter zur Vorschau
+              {uncorrectedErrors.length > 0 && (
+                <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800 text-xs">
+                  {uncorrectedErrors.length} ⚠
+                </Badge>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import type { ParsedRow } from '@/types/importTypes';
+import { sanitizeCellValue } from '@/lib/utils';
 
 // Positional column mapping: original LO header → PUPIL header
 // Empty string means the header is cleared but data is kept
@@ -104,13 +105,15 @@ export async function exportLehrpersonenToXlsx(
   // Add data rows
   rows.forEach((row, rowIdx) => {
     const values = originalHeaders.map((h, colIdx) => {
+      let val: string;
       if (colIdx === berufColIndex) {
-        return berufValues[rowIdx] ?? defaultBeruf;
+        val = berufValues[rowIdx] ?? defaultBeruf;
+      } else if (emailOverrides && emailColumns.has(h) && emailOverrides[rowIdx]?.[h] !== undefined) {
+        val = emailOverrides[rowIdx][h];
+      } else {
+        val = String(row[h] ?? '');
       }
-      if (emailOverrides && emailColumns.has(h) && emailOverrides[rowIdx]?.[h] !== undefined) {
-        return emailOverrides[rowIdx][h];
-      }
-      return row[h] ?? '';
+      return sanitizeCellValue(val);
     });
     sheet.addRow(values);
   });
