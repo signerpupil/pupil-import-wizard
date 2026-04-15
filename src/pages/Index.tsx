@@ -253,7 +253,7 @@ export default function Index() {
 
   // Helper to get student name for a row
   const getStudentName = useCallback((rowIndex: number) => {
-    const row = correctedRows[rowIndex - 1];
+    const row = correctedRows[rowIndex - 2];
     if (!row) return undefined;
     const name = row['S_Name'] || row['S_name'] || '';
     const vorname = row['S_Vorname'] || row['S_vorname'] || '';
@@ -289,8 +289,8 @@ export default function Index() {
     ));
     setCorrectedRows(prev => {
       const updated = [...prev];
-      if (updated[rowIndex - 1]) {
-        updated[rowIndex - 1] = { ...updated[rowIndex - 1], [column]: value };
+      if (updated[rowIndex - 2]) {
+        updated[rowIndex - 2] = { ...updated[rowIndex - 2], [column]: value };
       }
       return updated;
     });
