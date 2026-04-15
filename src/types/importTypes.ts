@@ -328,7 +328,7 @@ export const importConfigs: ImportConfig[] = [
   {
     type: 'lehrpersonen',
     name: 'Lehrpersonen',
-    description: 'Lehrpersonen aus LehrerOffice importieren und für PUPIL aufbereiten',
+    description: 'Lehrpersonen aus LehrerOffice exportieren und für PUPIL aufbereiten',
     icon: 'UserCog',
     columns: [],
   },
