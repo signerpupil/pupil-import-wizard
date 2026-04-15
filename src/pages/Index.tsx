@@ -455,7 +455,17 @@ export default function Index() {
             />
           )}
 
-          {!showSpecialWizard && currentStep === 3 && (
+          {!showSpecialWizard && currentStep === 3 && isValidating && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+              <p className="text-lg font-medium text-foreground">Daten werden validiert…</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {parseResult?.rows.length} Datensätze werden geprüft
+              </p>
+            </div>
+          )}
+
+          {!showSpecialWizard && currentStep === 3 && !isValidating && (
             <Step3Validation
               errors={errors}
               rows={correctedRows}
