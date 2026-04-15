@@ -617,15 +617,6 @@ function stripDiacritics(s: string): string {
   }, [parentConsolidationSearch, parentReliabilityFilter]);
 
   // Detect name change warnings from uncorrected errors (NameChangeEntry type imported from NameChangeCard)
-    error: ValidationError;
-    changeType: string;
-    fromName: string;
-    fromRow: number;
-    toName: string;
-    studentName: string;
-    fromStudentName: string;
-    column: string;
-  }
 
   const nameChangeEntries = useMemo((): NameChangeEntry[] => {
     const entries: NameChangeEntry[] = [];
