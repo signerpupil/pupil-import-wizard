@@ -65,7 +65,6 @@ export function Step3Validation({
   onBack,
   onNext,
 }: Step3ValidationProps) {
-  const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
   const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const stepByStepRef = useRef<HTMLDivElement>(null);
