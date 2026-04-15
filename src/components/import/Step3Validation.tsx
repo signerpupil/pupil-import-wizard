@@ -36,6 +36,8 @@ import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { StudentParentOverlapCard } from './StudentParentOverlapCard';
 import { NameChangeCard, type NameChangeEntry } from './NameChangeCard';
 import { ParentConsolidationCard, type ParentIdInconsistencyGroup } from './ParentConsolidationCard';
+import { BulkCorrectionCard } from './BulkCorrectionCard';
+import { ErrorTable } from './ErrorTable';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -63,8 +65,6 @@ export function Step3Validation({
   onBack,
   onNext,
 }: Step3ValidationProps) {
-  const [editingCell, setEditingCell] = useState<{ row: number; column: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
   const [localSuggestions, setLocalSuggestions] = useState<LocalSuggestion[]>([]);
   const [stepByStepMode, setStepByStepMode] = useState(false);
   const stepByStepRef = useRef<HTMLDivElement>(null);
@@ -78,18 +78,10 @@ export function Step3Validation({
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
   const isAutoFixingRef = useRef(false);
   
-  const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
-  
-  // Filter toggle: show only open (uncorrected) errors in table
-  const [showOnlyOpenErrors, setShowOnlyOpenErrors] = useState(true);
 
-  // Language dropdown state: tracks which cell has the dropdown open
-  const [languageDropdownCell, setLanguageDropdownCell] = useState<{ row: number; column: string } | null>(null);
+  // Language dropdown state for step-by-step modal
   const LANGUAGE_COLUMNS = new Set(['S_Muttersprache', 'S_Umgangssprache']);
   const BISTA_LANGUAGES_SORTED = useMemo(() => [...VALID_BISTA_LANGUAGES].sort((a, b) => a.localeCompare(b, 'de')), []);
-
-  // Nationality dropdown state
-  const [nationalityDropdownCell, setNationalityDropdownCell] = useState<{ row: number; column: string } | null>(null);
   const NATIONALITY_COLUMNS = new Set(['S_Nationalitaet']);
   const NATIONALITIES_SORTED = useMemo(() => [...VALID_NATIONALITIES].sort((a, b) => a.localeCompare(b, 'de')), []);
   const [nationalitySearch, setNationalitySearch] = useState<string | null>(null);
@@ -437,18 +429,8 @@ function stripDiacritics(s: string): string {
   // Current error for step-by-step mode
   const currentError = stepByStepErrors[currentErrorIndex];
 
-  const handleStartEdit = (row: number, column: string, currentValue: string) => {
-    setEditingCell({ row, column });
-    setEditValue(currentValue);
-  };
 
-  const handleSaveEdit = () => {
-    if (editingCell) {
-      onErrorCorrect(editingCell.row, editingCell.column, editValue);
-      setEditingCell(null);
-      setEditValue('');
-    }
-  };
+
 
   // Step-by-step mode functions
   const startStepByStep = (filterRows?: number[], filterColumn?: string) => {
@@ -987,27 +969,7 @@ function stripDiacritics(s: string): string {
     }
   }, [workerError, toast]);
 
-  // Pre-compute which suggestions actually have applicable corrections
-  // Only include suggestions that still have uncorrected errors for their column
-  const suggestionsWithApplicability = useMemo(() => {
-    const uncorrectedRowsByColumn = new Map<string, Set<number>>();
-    for (const err of uncorrectedErrors) {
-      if (!uncorrectedRowsByColumn.has(err.column)) uncorrectedRowsByColumn.set(err.column, new Set());
-      uncorrectedRowsByColumn.get(err.column)!.add(err.row);
-    }
-    return localSuggestions
-      .map(suggestion => ({
-        suggestion,
-        hasApplicableCorrections: suggestion.autoFix
-          ? applyLocalCorrection(suggestion, errors).length > 0
-          : false,
-      }))
-      .filter(({ suggestion }) => {
-        // Hide if all affected rows for this column are already corrected
-        const uncorrected = uncorrectedRowsByColumn.get(suggestion.affectedColumn);
-        return suggestion.affectedRows.some(row => uncorrected?.has(row));
-      });
-  }, [localSuggestions, errors, uncorrectedErrors]);
+
 
   // Auto-apply all fixable patterns whenever new suggestions appear
   useEffect(() => {
@@ -1066,20 +1028,7 @@ function stripDiacritics(s: string): string {
     return keys;
   }, [errors]);
 
-  // Group errors by column for grouped display — excluding errors shown in dedicated sections
-  const errorsByColumn = useMemo(() => {
-    const map = new Map<string, ValidationError[]>();
-    for (const e of errors) {
-      if (dedicatedSectionErrorKeys.has(`${e.row}:${e.column}`)) continue;
-      if (!map.has(e.column)) map.set(e.column, []);
-      map.get(e.column)!.push(e);
-    }
-    return Array.from(map.entries()).sort((a, b) => {
-      const aUncorrected = a[1].filter(e => !e.correctedValue).length;
-      const bUncorrected = b[1].filter(e => !e.correctedValue).length;
-      return bUncorrected - aUncorrected;
-    });
-  }, [errors, dedicatedSectionErrorKeys]);
+
 
   // Apply local bulk correction
   const applyLocalBulkCorrection = useCallback((suggestion: LocalSuggestion) => {
@@ -1103,45 +1052,7 @@ function stripDiacritics(s: string): string {
     }
   }, [errors, onBulkCorrect, toast]);
 
-  // Helper: map pattern type to display metadata (icon, label, before/after example)
-  function getPatternMeta(type: string): { icon: React.ReactNode; label: string; example?: { from: string; to: string } } {
-    switch (type) {
-      case 'phone_format':
-        return { icon: <Phone className="h-3.5 w-3.5 text-pupil-success" />, label: 'Telefonnummer', example: { from: '0791234567', to: '+41 79 123 45 67' } };
-      case 'ahv_format':
-        return { icon: <Hash className="h-3.5 w-3.5 text-pupil-success" />, label: 'AHV-Nummer', example: { from: '7561234567890', to: '756.1234.5678.90' } };
-      case 'email_format':
-        return { icon: <Mail className="h-3.5 w-3.5 text-pupil-success" />, label: 'E-Mail', example: { from: 'name @gmial.com', to: 'name@gmail.com' } };
-      case 'plz_format':
-        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Postleitzahl', example: { from: '8001 Zürich', to: '8001' } };
-      case 'gender_format':
-        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Geschlecht', example: { from: 'männlich', to: 'M' } };
-      case 'name_format':
-        return { icon: <User className="h-3.5 w-3.5 text-pupil-success" />, label: 'Namen', example: { from: 'MÜLLER', to: 'Müller' } };
-      case 'street_format':
-        return { icon: <MapPin className="h-3.5 w-3.5 text-pupil-success" />, label: 'Strasse', example: { from: 'HAUPTSTRASSE 1', to: 'Hauptstrasse 1' } };
-      case 'date_format':
-        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datum (Excel)', example: { from: '45291', to: '01.01.2024' } };
-      case 'date_de_format':
-        return { icon: <CalendarDays className="h-3.5 w-3.5 text-pupil-success" />, label: 'Datumsformat', example: { from: '2014-03-15', to: '15.03.2014' } };
-      case 'whitespace_trim':
-        return { icon: <Scissors className="h-3.5 w-3.5 text-pupil-success" />, label: 'Leerzeichen trimmen', example: { from: ' Meier ', to: 'Meier' } };
-      case 'iban_format':
-        return { icon: <CreditCard className="h-3.5 w-3.5 text-pupil-success" />, label: 'IBAN', example: { from: 'CH930076201162385295 7', to: 'CH93 0076 2011 6238 5295 7' } };
-      case 'duplicate':
-        return { icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Duplikate' };
-      case 'parent_id_inconsistent':
-        return { icon: <UserCog className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Eltern-ID Inkonsistenz' };
-      case 'nationality_correction':
-        return { icon: <Globe className="h-3.5 w-3.5 text-pupil-success" />, label: 'Nationalität', example: { from: 'Türkei', to: 'Türkiye' } };
-      case 'manual_review':
-        return { icon: <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />, label: 'Manuelle Prüfung' };
-      case 'language_bista':
-        return { icon: <Languages className="h-3.5 w-3.5 text-pupil-success" />, label: 'BISTA-Sprache', example: { from: 'Englsh', to: 'Englisch' } };
-      default:
-        return { icon: <Zap className="h-3.5 w-3.5 text-pupil-success" />, label: type };
-    }
-  }
+
 
   return (
     <div className="space-y-6 pb-20">
@@ -1263,181 +1174,18 @@ function stripDiacritics(s: string): string {
         onBulkCorrect={onBulkCorrect}
       />
 
-      {/* Local Bulk Correction - Web Worker Background Processing */}
-      {uncorrectedErrors.length > 0 && (
-        <Card className="border-pupil-success/30 bg-pupil-success/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Cpu className="h-5 w-5 text-pupil-success" />
-                <CardTitle className="text-lg">Muster-Analyse</CardTitle>
-                <Badge variant="outline" className="text-pupil-success border-pupil-success/30 text-xs">
-                  Web Worker · 100% Lokal
-                </Badge>
-                {analysisTime !== null && (
-                  <Badge variant="secondary" className="text-xs">
-                    {Math.round(analysisTime)}ms
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Apply all auto-fixable at once */}
-                {suggestionsWithApplicability.filter(s => s.hasApplicableCorrections).length > 1 && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      suggestionsWithApplicability
-                        .filter(s => s.hasApplicableCorrections)
-                        .forEach(({ suggestion }) => applyLocalBulkCorrection(suggestion));
-                    }}
-                    className="gap-2 bg-pupil-success hover:bg-pupil-success/90"
-                  >
-                    <Zap className="h-4 w-4" />
-                    Alle {suggestionsWithApplicability.filter(s => s.hasApplicableCorrections).length} Auto-Fixes anwenden
-                  </Button>
-                )}
-                <Button 
-                  onClick={() => analyzeLocally(false)} 
-                  disabled={isAnalyzing}
-                  className="gap-2"
-                  variant="outline"
-                  size="sm"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Analysiere...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4" />
-                      Neu analysieren
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-            <CardDescription>
-              Erkennt Formatierungsmuster und schlägt automatische Korrekturen vor – ohne Datenweitergabe
-            </CardDescription>
-          </CardHeader>
+      <BulkCorrectionCard
+        uncorrectedErrors={uncorrectedErrors}
+        errors={errors}
+        isAnalyzing={isAnalyzing}
+        hasRunAnalysis={hasRunAnalysis}
+        analysisTime={analysisTime}
+        localSuggestions={localSuggestions}
+        onAnalyze={() => analyzeLocally(false)}
+        onApplyBulkCorrection={applyLocalBulkCorrection}
+        onStartStepByStep={startStepByStep}
+      />
 
-          <CardContent className="space-y-4">
-            {isAnalyzing && (
-              <div className="flex items-center gap-3 p-4 bg-background rounded-lg border">
-                <Loader2 className="h-5 w-5 animate-spin text-pupil-success" />
-                <div>
-                  <p className="text-sm font-medium">Analysiere Daten im Hintergrund…</p>
-                  <p className="text-xs text-muted-foreground">UI bleibt reaktiv – Web Worker verarbeitet {uncorrectedErrors.length} Fehler</p>
-                </div>
-              </div>
-            )}
-
-            {!isAnalyzing && hasRunAnalysis && suggestionsWithApplicability.length === 0 && (
-              <div className="flex items-center gap-3 p-4 bg-background rounded-lg border border-dashed">
-                <CheckCircle className="h-5 w-5 text-pupil-success shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">Keine automatischen Korrekturen gefunden</p>
-                  <p className="text-xs text-muted-foreground">Nutzen Sie die manuelle Schritt-für-Schritt Korrektur für die verbleibenden Fehler</p>
-                </div>
-              </div>
-            )}
-
-            {suggestionsWithApplicability.length > 0 && (
-              <div className="space-y-2">
-                {suggestionsWithApplicability.map(({ suggestion, hasApplicableCorrections }, idx) => {
-                  // Derive icon and example from pattern type
-                  const patternMeta = getPatternMeta(suggestion.type);
-                  return (
-                    <div key={idx} className={`rounded-lg border overflow-hidden ${hasApplicableCorrections ? 'border-pupil-success/30' : 'border-muted'}`}>
-                      <div className={`px-3 py-2 flex items-center gap-2 text-xs font-medium ${hasApplicableCorrections ? 'bg-pupil-success/10 text-pupil-success' : 'bg-muted/50 text-muted-foreground'}`}>
-                        {hasApplicableCorrections ? (
-                          <><Zap className="h-3 w-3" /> Auto-Fix verfügbar</>
-                        ) : (
-                          <><Edit2 className="h-3 w-3" /> Manuelle Prüfung</>
-                        )}
-                      </div>
-                      <div className="p-3 bg-background space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className={`mt-0.5 p-1.5 rounded-md shrink-0 ${hasApplicableCorrections ? 'bg-pupil-success/10' : 'bg-muted'}`}>
-                              {patternMeta.icon}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="text-sm font-semibold">{patternMeta.label}</span>
-                                <Badge variant="outline" className="text-xs font-mono">{suggestion.affectedColumn}</Badge>
-                                <Badge variant="secondary" className="text-xs">{suggestion.affectedRows.length} Einträge</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{suggestion.pattern}</p>
-                              {/* Generic format example */}
-                              {patternMeta.example && (
-                                <div className="flex items-center gap-1.5 mt-1.5 text-xs">
-                                  <span className="text-muted-foreground shrink-0">Beispiel:</span>
-                                  <code className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded font-mono">{patternMeta.example.from}</code>
-                                  <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                                  <code className="px-1.5 py-0.5 bg-pupil-success/10 text-pupil-success rounded font-mono">{patternMeta.example.to}</code>
-                                </div>
-                              )}
-                              {/* Concrete before/after from actual data */}
-                              {hasApplicableCorrections && (() => {
-                                const corrections = applyLocalCorrection(suggestion, errors);
-                                const previews = corrections.slice(0, 3);
-                                if (previews.length === 0) return null;
-                                return (
-                                  <div className="mt-2 space-y-1">
-                                    <span className="text-xs text-muted-foreground font-medium">Aus Ihren Daten:</span>
-                                    {previews.map((c, i) => {
-                                      const originalError = errors.find(e => e.row === c.row && e.column === c.column);
-                                      return (
-                                        <div key={i} className="flex items-center gap-1.5 text-xs">
-                                          <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono text-[10px] max-w-[120px] truncate">{originalError?.value ?? '?'}</code>
-                                          <ArrowRight className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
-                                          <code className="px-1 py-0.5 bg-pupil-success/10 text-pupil-success rounded font-mono text-[10px] max-w-[120px] truncate">{c.value}</code>
-                                        </div>
-                                      );
-                                    })}
-                                    {corrections.length > 3 && (
-                                      <span className="text-xs text-muted-foreground">+{corrections.length - 3} weitere</span>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            {hasApplicableCorrections && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => applyLocalBulkCorrection(suggestion)}
-                                className="gap-1.5 bg-pupil-success hover:bg-pupil-success/90"
-                              >
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                Anwenden
-                              </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => startStepByStep(suggestion.affectedRows, suggestion.affectedColumn)}
-                              className="gap-1.5"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                              Manuell
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step-by-Step Mode Modal */}
       {stepByStepMode && currentError && (
         <Card ref={stepByStepRef} className="border-2 border-primary">
           <CardHeader className="pb-3">
@@ -1917,262 +1665,12 @@ function stripDiacritics(s: string): string {
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="space-y-2">
-          {/* Filter toggle for corrected errors */}
-          <div className="flex items-center justify-between px-1 pb-1">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded-sm bg-destructive/20 border border-destructive/40" />
-                <span className="text-xs text-muted-foreground">Offen</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded-sm bg-pupil-success/15 border border-pupil-success/30" />
-                <span className="text-xs text-muted-foreground">Korrigiert</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {showOnlyOpenErrors ? 'Nur offene Fehler' : 'Alle anzeigen'}
-              </span>
-              <Switch
-                checked={!showOnlyOpenErrors}
-                onCheckedChange={(checked) => setShowOnlyOpenErrors(!checked)}
-                id="show-corrected"
-              />
-              <label htmlFor="show-corrected" className="text-xs text-muted-foreground cursor-pointer">
-                Korrigierte einblenden
-              </label>
-            </div>
-          </div>
-          {errorsByColumn
-            .filter(([, colErrors]) => {
-              if (showOnlyOpenErrors) {
-                return colErrors.some(e => e.correctedValue === undefined);
-              }
-              return true;
-            })
-            .map(([column, colErrors], colIdx) => {
-            const uncorrected = colErrors.filter(e => !e.correctedValue);
-            const corrected = colErrors.filter(e => e.correctedValue !== undefined);
-            // First column is expanded by default (using index 0)
-            const isOpen = colIdx === 0
-              ? !expandedErrorColumns.has(`__closed__${column}`)
-              : expandedErrorColumns.has(column);
-            const toggleCol = () => {
-              setExpandedErrorColumns(prev => {
-                const s = new Set(prev);
-                if (colIdx === 0) {
-                  // Toggle "closed" marker for first column
-                  s.has(`__closed__${column}`) ? s.delete(`__closed__${column}`) : s.add(`__closed__${column}`);
-                } else {
-                  s.has(column) ? s.delete(column) : s.add(column);
-                }
-                return s;
-              });
-            };
-
-            return (
-              <div key={column} className="border rounded-lg overflow-hidden">
-                {/* Column group header */}
-                <button
-                  onClick={toggleCol}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-                    <code className="text-sm font-semibold font-mono">{column}</code>
-                    <div className="flex items-center gap-1.5">
-                      {uncorrected.length > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {uncorrected.length} offen
-                        </Badge>
-                      )}
-                      {corrected.length > 0 && (
-                        <Badge variant="secondary" className="text-xs text-pupil-success">
-                          {corrected.length} korrigiert
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className="inline-flex items-center gap-1.5 text-xs shrink-0 px-3 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); startStepByStep(colErrors.filter(err => !err.correctedValue).map(err => err.row), column); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); startStepByStep(colErrors.filter(err => !err.correctedValue).map(err => err.row), column); } }}
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Alle korrigieren
-                  </div>
-                </button>
-
-                {/* Collapsible table */}
-                {isOpen && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-pupil-teal">
-                        <TableHead className="text-pupil-teal-foreground w-20">Zeile</TableHead>
-                        <TableHead className="text-pupil-teal-foreground">Wert</TableHead>
-                        <TableHead className="text-pupil-teal-foreground">Fehler</TableHead>
-                        <TableHead className="text-pupil-teal-foreground w-32">Aktion</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {colErrors
-                        .filter(error => showOnlyOpenErrors ? error.correctedValue === undefined : true)
-                        .map((error, idx) => {
-                        const isEditing = editingCell?.row === error.row && editingCell?.column === error.column;
-                        const isCorrected = error.correctedValue !== undefined;
-                        const isLanguageCol = LANGUAGE_COLUMNS.has(error.column);
-                        const isNationalityCol = NATIONALITY_COLUMNS.has(error.column);
-                        const isLanguageDropdownOpen = languageDropdownCell?.row === error.row && languageDropdownCell?.column === error.column;
-                        const isNationalityDropdownOpen = nationalityDropdownCell?.row === error.row && nationalityDropdownCell?.column === error.column;
-                        const isDropdownCol = isLanguageCol || isNationalityCol;
-                        const shortMessage = error.message.length > 45
-                          ? error.message.slice(0, 42) + '…'
-                          : error.message;
-                        return (
-                          <TableRow
-                            key={idx}
-                            data-row={error.row}
-                            className={`transition-all ${isCorrected ? 'bg-pupil-success/5' : 'bg-destructive/5'}`}
-                          >
-                            <TableCell className="font-mono">{error.row}</TableCell>
-                            <TableCell>
-                              {isEditing ? (
-                                <Input
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  className="h-8"
-                                  autoFocus
-                                />
-                              ) : (
-                                <span className={isCorrected ? 'line-through text-muted-foreground' : ''}>
-                                  {error.value || '(leer)'}
-                                </span>
-                              )}
-                              {isCorrected && !isEditing && (
-                                <span className="ml-2 text-pupil-success font-medium">
-                                  → {error.correctedValue}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant={isCorrected ? 'secondary' : 'destructive'} className="cursor-help max-w-[180px] truncate inline-block">
-                                      {shortMessage}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  {error.message.length > 45 && (
-                                    <TooltipContent side="top" className="max-w-sm text-xs">
-                                      {error.message}
-                                    </TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell>
-                              {isLanguageCol && !isCorrected ? (
-                                /* Language dropdown for BISTA language columns */
-                                <div className="relative">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 w-full"
-                                    onClick={() => setLanguageDropdownCell(isLanguageDropdownOpen ? null : { row: error.row, column: error.column })}
-                                  >
-                                    <Languages className="h-3.5 w-3.5" />
-                                    Sprache wählen
-                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
-                                  </Button>
-                                  {isLanguageDropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-56">
-                                      <ScrollArea className="h-64">
-                                        <div className="p-1">
-                                          {BISTA_LANGUAGES_SORTED.map(lang => (
-                                            <button
-                                              key={lang}
-                                              className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                                              onClick={() => {
-                                                onErrorCorrect(error.row, error.column, lang, 'manual');
-                                                setLanguageDropdownCell(null);
-                                              }}
-                                            >
-                                              {lang}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </ScrollArea>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : isNationalityCol && !isCorrected ? (
-                                /* Nationality dropdown for S_Nationalitaet column */
-                                <div className="relative">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 w-full"
-                                    onClick={() => setNationalityDropdownCell(isNationalityDropdownOpen ? null : { row: error.row, column: error.column })}
-                                  >
-                                    <Globe className="h-3.5 w-3.5" />
-                                    Land wählen
-                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isNationalityDropdownOpen ? 'rotate-180' : ''}`} />
-                                  </Button>
-                                  {isNationalityDropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-64">
-                                      <ScrollArea className="h-72">
-                                        <div className="p-1">
-                                          {NATIONALITIES_SORTED.map(nat => (
-                                            <button
-                                              key={nat}
-                                              className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                                              onClick={() => {
-                                                onErrorCorrect(error.row, error.column, nat, 'manual');
-                                                setNationalityDropdownCell(null);
-                                              }}
-                                            >
-                                              {nat}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </ScrollArea>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : isEditing ? (
-                                <Button size="sm" onClick={handleSaveEdit}>
-                                  <Save className="h-4 w-4 mr-1" />
-                                  Speichern
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => isLanguageCol
-                                    ? setLanguageDropdownCell({ row: error.row, column: error.column })
-                                    : isNationalityCol
-                                    ? setNationalityDropdownCell({ row: error.row, column: error.column })
-                                    : handleStartEdit(error.row, error.column, error.correctedValue ?? error.value)
-                                  }
-                                >
-                                  {isLanguageCol ? <Languages className="h-4 w-4 mr-1" /> : isNationalityCol ? <Globe className="h-4 w-4 mr-1" /> : <Edit2 className="h-4 w-4 mr-1" />}
-                                  {isCorrected ? 'Ändern' : 'Korrigieren'}
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <ErrorTable
+          errors={errors}
+          dedicatedSectionErrorKeys={dedicatedSectionErrorKeys}
+          onErrorCorrect={onErrorCorrect}
+          onStartStepByStep={startStepByStep}
+        />
       )}
       {/* Sticky Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
