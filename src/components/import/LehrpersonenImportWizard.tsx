@@ -317,9 +317,10 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
                               : String(row[c.original] ?? '');
 
                           const isOverridden = isBeruf ? !!rowBerufOverrides[rowIdx] : hasEmailOverride;
+                          const isInvalidEmail = isEmail && hasEmailOverride && displayValue.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(displayValue.trim());
 
                           return (
-                            <TableCell key={c.index} className={`whitespace-nowrap ${isEmailDup ? 'text-destructive font-medium' : ''}`}>
+                            <TableCell key={c.index} className={`whitespace-nowrap ${isEmailDup ? 'text-destructive font-medium' : ''} ${isInvalidEmail ? 'bg-orange-50 dark:bg-orange-950/20' : ''}`}>
                               {isEditable ? (
                                 isEditingThis ? (
                                   <div className="flex items-center gap-1">
