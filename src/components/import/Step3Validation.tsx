@@ -105,12 +105,8 @@ export function Step3Validation({
   const [parentReliabilityFilter, setParentReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
   const PARENTS_PER_PAGE = 4;
 
-  // Name change UI state
-  const [nameChangeExpanded, setNameChangeExpanded] = useState(true);
-  const [nameChangePage, setNameChangePage] = useState(0);
-  const NAME_CHANGES_PER_PAGE = 5;
+  // Parent consolidation UI state
   const [expandedParentGroups, setExpandedParentGroups] = useState<Set<string>>(new Set());
-  const [expandedNameChanges, setExpandedNameChanges] = useState<Set<string>>(new Set());
   const [expandedErrorColumns, setExpandedErrorColumns] = useState<Set<string>>(new Set(['__first__']));
   
   // Filter toggle: show only open (uncorrected) errors in table
