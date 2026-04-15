@@ -86,6 +86,16 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
         setRowBerufOverrides(prev => { const next = { ...prev }; delete next[row]; return next; });
       }
     } else {
+      // Email validation
+      const isEmailCol = col === 'L_Privat_EMail' || col === 'L_Schule_EMail';
+      if (isEmailCol && editValue.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editValue.trim())) {
+        toast({
+          title: 'Ungültiges E-Mail-Format',
+          description: `"${editValue}" ist keine gültige E-Mail-Adresse. Der Wert wird trotzdem gespeichert.`,
+          variant: 'destructive',
+        });
+      }
+
       const original = String(parseResult?.rows[row]?.[col] ?? '');
       if (editValue !== original) {
         setRowEmailOverrides(prev => ({ ...prev, [row]: { ...prev[row], [col]: editValue } }));
