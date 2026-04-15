@@ -355,6 +355,7 @@ export default function Index() {
               onFileLoaded={setParseResult}
               onBack={handleBack}
               onNext={handleNext}
+              importType={state.importType}
             />
           )}
 

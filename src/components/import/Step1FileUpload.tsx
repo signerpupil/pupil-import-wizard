@@ -8,12 +8,14 @@ import { cn } from '@/lib/utils';
 import { parseFile, mergeParseResults, type ParseResult } from '@/lib/fileParser';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
+import { StammdatenInstructionGuide } from './StammdatenInstructionGuide';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
   onBack: () => void;
   onNext: () => void;
   parseResult: ParseResult | null;
+  importType?: string;
 }
 
 interface LoadedFile {
@@ -26,6 +28,7 @@ export function Step1FileUpload({
   onBack,
   onNext,
   parseResult,
+  importType,
 }: Step1FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,6 +128,8 @@ export function Step1FileUpload({
           Laden Sie eine oder mehrere CSV-/Excel-Dateien aus LehrerOffice hoch.
         </p>
       </div>
+
+      {importType === 'schueler' && <StammdatenInstructionGuide />}
 
       {error && (
         <Alert variant="destructive">
