@@ -1456,6 +1456,32 @@ function stripDiacritics(s: string): string {
         );
       })()}
 
+      {/* Success State - No errors */}
+      {errors.length === 0 && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">Keine Fehler gefunden</h3>
+            <p className="text-muted-foreground max-w-md">
+              Ihre Daten sind fehlerfrei und bereit für den Export. Klicken Sie auf «Weiter zur Vorschau», um fortzufahren.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Success State - All errors corrected */}
+      {errors.length > 0 && uncorrectedErrors.length === 0 && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
+            <h3 className="text-lg font-semibold text-foreground mb-1">Alle Fehler behoben</h3>
+            <p className="text-sm text-muted-foreground">
+              {correctedErrors.length} Korrekturen wurden erfolgreich angewendet. Sie können nun zur Vorschau wechseln.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ID Conflict Batch Resolution Card */}
       <IdConflictBatchCard
         errors={errors}
