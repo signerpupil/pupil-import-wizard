@@ -429,18 +429,8 @@ function stripDiacritics(s: string): string {
   // Current error for step-by-step mode
   const currentError = stepByStepErrors[currentErrorIndex];
 
-  const handleStartEdit = (row: number, column: string, currentValue: string) => {
-    setEditingCell({ row, column });
-    setEditValue(currentValue);
-  };
 
-  const handleSaveEdit = () => {
-    if (editingCell) {
-      onErrorCorrect(editingCell.row, editingCell.column, editValue);
-      setEditingCell(null);
-      setEditValue('');
-    }
-  };
+
 
   // Step-by-step mode functions
   const startStepByStep = (filterRows?: number[], filterColumn?: string) => {
