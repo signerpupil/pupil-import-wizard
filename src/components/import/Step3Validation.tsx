@@ -36,6 +36,8 @@ import { StudentDeduplicationCard } from './StudentDeduplicationCard';
 import { StudentParentOverlapCard } from './StudentParentOverlapCard';
 import { NameChangeCard, type NameChangeEntry } from './NameChangeCard';
 import { ParentConsolidationCard, type ParentIdInconsistencyGroup } from './ParentConsolidationCard';
+import { BulkCorrectionCard } from './BulkCorrectionCard';
+import { ErrorTable } from './ErrorTable';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
