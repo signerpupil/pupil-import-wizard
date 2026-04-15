@@ -38,6 +38,7 @@ export default function Index() {
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [correctedRows, setCorrectedRows] = useState<ParsedRow[]>([]);
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Correction Memory state
   const [processingMode, setProcessingMode] = useState<ProcessingMode>('initial');
