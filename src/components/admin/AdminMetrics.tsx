@@ -139,6 +139,65 @@ export function AdminMetrics() {
     }));
   }, [events]);
 
+  // Aggregate unmapped raw values across all `unmapped_value` events.
+  const unmappedRanking = useMemo(() => {
+    if (!events) return [];
+    const counts = new Map<string, number>(); // key = `${kind}|${value}`
+    for (const e of events) {
+      if (e.event_type !== 'unmapped_value') continue;
+      const p = (e.payload ?? {}) as Record<string, Array<{ value: string; count: number }>>;
+      for (const kind of ['language', 'nationality', 'plz'] as const) {
+        const arr = p[kind];
+        if (!Array.isArray(arr)) continue;
+        for (const item of arr) {
+          if (!item || typeof item.value !== 'string' || typeof item.count !== 'number') continue;
+          const key = `${kind}|${item.value}`;
+          counts.set(key, (counts.get(key) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([key, count]) => {
+        const [kind, value] = key.split('|', 2);
+        return { kind, value, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 30);
+  }, [events]);
+
+  // Aggregate pattern masks per column across all `unfixed_pattern` events.
+  const patternsByColumn = useMemo(() => {
+    if (!events) return [];
+    // column -> mask -> count
+    const byCol = new Map<string, Map<string, number>>();
+    for (const e of events) {
+      if (e.event_type !== 'unfixed_pattern') continue;
+      const p = (e.payload ?? {}) as Record<string, Array<{ mask: string; count: number }>>;
+      for (const [column, arr] of Object.entries(p)) {
+        if (!Array.isArray(arr)) continue;
+        let inner = byCol.get(column);
+        if (!inner) {
+          inner = new Map<string, number>();
+          byCol.set(column, inner);
+        }
+        for (const item of arr) {
+          if (!item || typeof item.mask !== 'string' || typeof item.count !== 'number') continue;
+          inner.set(item.mask, (inner.get(item.mask) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(byCol.entries())
+      .map(([column, inner]) => ({
+        column,
+        total: Array.from(inner.values()).reduce((a, b) => a + b, 0),
+        masks: Array.from(inner.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([mask, count]) => ({ mask, count })),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
