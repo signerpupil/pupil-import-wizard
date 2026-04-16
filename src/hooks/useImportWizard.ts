@@ -148,6 +148,19 @@ function reducer(state: ImportWizardState, action: Action): ImportWizardState {
 export function useImportWizard() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // Telemetry: anonymous step tracking (no payload data)
+  const lastTrackedStep = useRef<number>(-1);
+  useEffect(() => {
+    if (state.currentStep !== lastTrackedStep.current) {
+      lastTrackedStep.current = state.currentStep;
+      trackEvent({
+        event_type: 'step_reached',
+        step_number: state.currentStep,
+        import_type: state.importType,
+      });
+    }
+  }, [state.currentStep, state.importType]);
+
   // Convenience dispatchers
   const setStep = useCallback((step: number) => dispatch({ type: 'SET_STEP', step }), []);
   const nextStep = useCallback((maxStep?: number) => dispatch({ type: 'NEXT_STEP', maxStep }), []);

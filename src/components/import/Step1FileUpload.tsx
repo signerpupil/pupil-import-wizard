@@ -64,7 +64,7 @@ export function Step1FileUpload({
     } finally {
       setIsLoading(false);
     }
-  }, [onFileLoaded, loadedFiles]);
+  }, [onFileLoaded, loadedFiles, importType]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
