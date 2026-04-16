@@ -1,4 +1,5 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
 import type { ParseResult } from '@/lib/fileParser';
@@ -147,6 +148,19 @@ function reducer(state: ImportWizardState, action: Action): ImportWizardState {
 export function useImportWizard() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // Telemetry: anonymous step tracking (no payload data)
+  const lastTrackedStep = useRef<number>(-1);
+  useEffect(() => {
+    if (state.currentStep !== lastTrackedStep.current) {
+      lastTrackedStep.current = state.currentStep;
+      trackEvent({
+        event_type: 'step_reached',
+        step_number: state.currentStep,
+        import_type: state.importType,
+      });
+    }
+  }, [state.currentStep, state.importType]);
+
   // Convenience dispatchers
   const setStep = useCallback((step: number) => dispatch({ type: 'SET_STEP', step }), []);
   const nextStep = useCallback((maxStep?: number) => dispatch({ type: 'NEXT_STEP', maxStep }), []);
@@ -170,7 +184,10 @@ export function useImportWizard() {
   const addChangeLogEntry = useCallback((entry: ChangeLogEntry) => dispatch({ type: 'ADD_CHANGELOG_ENTRY', entry }), []);
   const addChangeLogEntries = useCallback((entries: ChangeLogEntry[]) => dispatch({ type: 'ADD_CHANGELOG_ENTRIES', entries }), []);
   const validationComplete = useCallback((errors: ValidationError[], rows: ParsedRow[]) => dispatch({ type: 'VALIDATION_COMPLETE', errors, rows }), []);
-  const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
+  const reset = useCallback(() => {
+    trackEvent({ event_type: 'import_reset' });
+    dispatch({ type: 'RESET' });
+  }, []);
 
   return {
     state,

@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert, BarChart3 } from 'lucide-react';
 import pupilLogo from '@/assets/pupil-logo.png';
 import { AdminColumnDefinitions } from '@/components/admin/AdminColumnDefinitions';
 import { AdminFormatRules } from '@/components/admin/AdminFormatRules';
 import { AdminBusinessRules } from '@/components/admin/AdminBusinessRules';
 import { AdminAISettings } from '@/components/admin/AdminAISettings';
 import { AdminUserRoles } from '@/components/admin/AdminUserRoles';
+import { AdminMetrics } from '@/components/admin/AdminMetrics';
 
 export default function Admin() {
   const { user, isAdmin, isLoading, signOut } = useAuth();
@@ -116,7 +117,7 @@ export default function Admin() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="columns" className="flex items-center gap-2">
               <Columns className="h-4 w-4" />
               <span className="hidden sm:inline">Spalten</span>
@@ -136,6 +137,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Benutzer</span>
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Statistik</span>
             </TabsTrigger>
           </TabsList>
 
@@ -157,6 +162,10 @@ export default function Admin() {
 
           <TabsContent value="users">
             <AdminUserRoles />
+          </TabsContent>
+
+          <TabsContent value="metrics">
+            <AdminMetrics />
           </TabsContent>
         </Tabs>
       </main>
