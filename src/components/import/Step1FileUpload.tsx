@@ -259,10 +259,12 @@ export function Step1FileUpload({
             </CardContent>
           </Card>
 
+          {preflightResult && <PreflightCheckCard result={preflightResult} />}
+
           <NavigationButtons
             onBack={onBack}
             onNext={onNext}
-            nextDisabled={!parseResult?.fileName}
+            nextDisabled={!parseResult?.fileName || preflightBlocks}
             size="lg"
           />
 
