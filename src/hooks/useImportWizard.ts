@@ -185,7 +185,6 @@ export function useImportWizard() {
   const addChangeLogEntries = useCallback((entries: ChangeLogEntry[]) => dispatch({ type: 'ADD_CHANGELOG_ENTRIES', entries }), []);
   const validationComplete = useCallback((errors: ValidationError[], rows: ParsedRow[]) => dispatch({ type: 'VALIDATION_COMPLETE', errors, rows }), []);
   const reset = useCallback(() => {
-    trackEvent({ type: 'import_reset' } as never);
     trackEvent({ event_type: 'import_reset' });
     dispatch({ type: 'RESET' });
   }, []);
