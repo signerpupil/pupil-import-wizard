@@ -12,6 +12,7 @@ import { Step4Preview } from '@/components/import/Step4Preview';
 import { GroupImportWizard } from '@/components/import/GroupImportWizard';
 import { LPImportWizard } from '@/components/import/LPImportWizard';
 import { LehrpersonenImportWizard } from '@/components/import/LehrpersonenImportWizard';
+import { ResumeSessionBanner } from '@/components/import/ResumeSessionBanner';
 import { Footer } from '@/components/layout/Footer';
 import type { ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
@@ -20,6 +21,8 @@ import { checkColumnStatus, validateData } from '@/lib/fileParser';
 import { useCorrectionMemory } from '@/hooks/useCorrectionMemory';
 import { useToast } from '@/hooks/use-toast';
 import { useImportWizard } from '@/hooks/useImportWizard';
+import { useSessionAutoSave, useSessionRestore } from '@/hooks/useSessionPersistence';
+import { loadSession, clearSession } from '@/lib/sessionStore';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
