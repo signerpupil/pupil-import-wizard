@@ -1,71 +1,65 @@
 
-Der User möchte Telemetrie für **fehlende Mappings** (z.B. Sprachen die nicht automatisch zu BISTA gemappt werden konnten) und für **Muster, die nicht automatisch korrigiert wurden** (z.B. AHV/Telefon/Email die das Auto-Fix nicht erkannt hat). Ziel: Lücken in den Mapping-Tabellen und Auto-Fix-Regeln zentral identifizieren.
+Der User möchte manuelle Korrekturen tracken, um Auto-Fix-Regel-Lücken zu erkennen. Strikt anonymisiert über Masken.
 
-## Was getrackt werden soll
+## Wo werden manuelle Korrekturen gemacht?
 
-**1. Unmapped Sprachwerte (BISTA)**
-Wenn `bistaLanguageValidation` einen Wert nicht zu einem BISTA-Code mappen kann (Sprachname unbekannt, kein Match in der Mapping-Tabelle), den **rohen Sprachwert** anonymisiert sammeln.
-- Anonymisierung: nur der unbekannte Sprach-Token (z.B. "Tigrinya", "Kurmandschi"), nicht der Name/AHV des Schülers.
-- Sprachen sind keine personenbezogenen Daten → DSG-konform.
+Aus Codebase-Kenntnis: Korrekturen passieren in `Step3Validation` (Inline-Edit + Modal mit `SearchableSelect`). Alle laufen am Ende durch denselben Update-Pfad in `useImportWizard` (vermutlich `applyManualCorrection` o.ä.) und werden im `ChangeLog` festgehalten.
 
-**2. Unmapped Nationalitäten**
-Analog: wenn `nationalityValidation` ein Land nicht erkennt, nur den rohen Nationalitäts-Wert sammeln.
+Effizientester Hook: **dort wo der ChangeLog-Eintrag erzeugt wird** — ein zentraler Punkt, alle manuellen Korrekturen laufen darüber.
 
-**3. Unmapped PLZ**
-Wenn eine PLZ nicht in `swissPlzData` gefunden wird → PLZ + (anonymisiert) Ort melden.
+## Plan
 
-**4. Auto-Fix-Misses (Muster)**
-Werte die in einer Spalte ein Validierungsfehler erzeugen aber **nicht** durch `localBulkCorrections` automatisch korrigiert werden konnten. 
-- Pro Spalte (S_AHV, S_Telefon, S_Email, S_Geburtsdatum, ...) den anonymisierten **Pattern** des fehlerhaften Werts:
-  - Länge
-  - Zeichen-Klassen-Maske (z.B. "999.9999.9999.99" statt "756.1234.5678.90", "AAA@AAA.AA" statt "max@firma.ch")
-  - **Niemals** den Roh-Wert
-- So sieht der Admin: "152 AHV-Fehler matchten nicht das Auto-Fix-Pattern, alle hatten die Form '756 9999 9999 99' (mit Leerzeichen)" → konkrete Regel-Erweiterung möglich.
+### 1. Datenbank
+Neuer Event-Typ `manual_correction` in `validate_usage_event`-Whitelist → Migration.
 
-## Implementation
+### 2. Sammlung im Frontend
+In `src/lib/telemetryCollectors.ts` zwei neue Helper:
+- `bufferManualCorrection(column, oldValue, newValue)` — sammelt Korrekturen in einem modul-internen Map (kein DB-Call pro Edit, sonst Spam).
+- `flushManualCorrections()` — aggregiert das Buffer und sendet **ein** Event mit Top-Patterns pro Spalte.
 
-### A. Datenbank
-Bestehende `usage_events`-Tabelle reicht aus — nur **2 neue Event-Typen** in der Trigger-Whitelist:
-- `unmapped_value` (für Sprache/Nationalität/PLZ)
-- `unfixed_pattern` (für Auto-Fix-Misses)
+**Anonymisierung pro Korrektur:**
+- Whitelist (Sprache/Nationalität/PLZ): Roh-Wert → Roh-Wert (analog bestehender Logik).
+- Alle anderen Spalten: `maskValue(old) → maskValue(new)`.
+- Niemals Roh-Werte für Namen/AHV/Email/Telefon/etc.
 
-→ **Migration**: erweitert die `validate_usage_event`-Funktion um diese 2 Event-Typen.
+**Payload-Form:**
+```
+{ corrections: { S_AHV: [{ from: "999 9999 9999 99", to: "999.9999.9999.99", count: 12 }, ...], ... } }
+```
+- Max 20 Pattern-Paare pro Spalte, sortiert nach Häufigkeit.
 
-### B. Frontend Sammlung
-Neue Helper-Datei `src/lib/telemetryCollectors.ts`:
-- `maskValue(value)` → wandelt String in Zeichen-Klassen-Maske um (a→A, A→A, 0→9, sonst Original). Gekappt auf 40 Zeichen.
-- `summarizeUnmapped(rows, errors)` → analysiert nach Validierungsdurchgang die Errors und sammelt:
-  - Unbekannte Werte für Sprach-/Nationalitäts-/PLZ-Fehler (gruppiert + Häufigkeit, max. 50 Top-Werte).
-  - Pattern-Masken pro Spalte für alle übrigen Format-Fehler (gruppiert + Häufigkeit, max. 20 pro Spalte).
-- Wird **einmal** pro Step-3-Eintritt aufgerufen (gleiche Stelle wie das schon implementierte `validation_completed`).
+### 3. Trigger zum Flushen
+Buffer wird gesendet:
+- Beim Reset (`import_reset` in `useImportWizard`).
+- Beim Wechsel zu Step 4 (Export-Schritt).
+- Beim Verlassen der Seite (`beforeunload`-Listener, einmalig in `App.tsx` registriert via `navigator.sendBeacon` oder normaler insert).
 
-### C. Tracking-Calls
-In `Step3Validation.tsx` zusätzlich zum existierenden `validation_completed`:
-- `trackEvent({ event_type: 'unmapped_value', payload: { language: [...], nationality: [...], plz: [...] } })`
-- `trackEvent({ event_type: 'unfixed_pattern', payload: { S_AHV: {...}, S_Telefon: {...}, ... } })`
+### 4. Tracking-Hook
+In dem zentralen Pfad, der manuelle Korrekturen anwendet (zu identifizieren in `useImportWizard.ts` / `Step3Validation.tsx` Inline-Edit + Modal-Save), `bufferManualCorrection(column, oldValue, newValue)` aufrufen — **bevor** der State aktualisiert wird, damit `oldValue` noch verfügbar ist.
 
-Beide nur wenn nicht-leer. Jeweils ein Event, nicht eines pro Wert (Performance + Payload-Limit von 4 KB).
+Ich werde im Implementierungs-Schritt prüfen:
+- `useImportWizard.ts` — nach `applyManualCorrection`/`updateCellValue`-ähnlicher Action.
+- `Step3Validation.tsx` — Inline-Edit-Handler.
+- `BulkCorrectionCard.tsx` — manuelle Modal-Korrekturen.
 
-### D. Admin-Dashboard
-Erweiterung von `AdminMetrics.tsx` um 2 neue Karten:
-1. **"Häufigste fehlende Mappings"** — Tabelle/Liste: Spalte (Sprache/Nationalität/PLZ) | Wert | Anzahl. Sortiert nach Häufigkeit. Top 30.
-2. **"Häufigste nicht korrigierbare Muster"** — gruppiert nach Spalte, zeigt Top-Pattern-Masken mit Häufigkeit. Hilft, neue Auto-Fix-Regeln zu definieren.
+Ein einziger zentraler Aufruf reicht, falls alle drei Stellen über denselben Reducer gehen.
 
-Beide Karten direkt unter den bestehenden 4 Charts, jeweils volle Breite.
+### 5. Admin-Dashboard
+Neue Karte in `AdminMetrics.tsx`: **"Manuelle Korrekturen (Auto-Fix-Lücken)"** — pro Spalte: `Maske alt` → `Maske neu` mit Anzahl. Sortiert nach Häufigkeit. Diese Tabelle zeigt direkt: "Das nächste Auto-Fix-Pattern, das du hinzufügen solltest".
 
-### E. Datenschutz
-Ergänzung in `DatenschutzDialog` Sektion 4a: "Bei Validierungsfehlern werden zusätzlich anonymisierte Muster (z.B. Zeichenmaske 'AAA@AAA.AA' statt der echten E-Mail) und unbekannte Sprach-/Nationalitäts-/PLZ-Werte erfasst. Es werden niemals echte Roh-Werte mit Personenbezug übertragen."
+### 6. Datenschutz
+Ergänzung in `DatenschutzDialog` Sektion 4a: Hinweis dass auch manuelle Korrekturen als Maske → Maske erfasst werden.
 
-## Strikte Datenschutz-Regeln
+## Datenschutz
 
-- **Niemals** Roh-Werte aus Spalten mit Personenbezug: Namen, AHV, IDs, Telefone, E-Mails, Adressen, Geburtsdaten → **nur Maske**.
-- **Roh-Werte erlaubt nur** für: Sprache, Nationalität, PLZ (≤ 4-stellige Zahl, kein Personenbezug).
-- Maske hart begrenzt auf 40 Zeichen.
-- Pro Event max. 50 Top-Werte (sonst gekappt).
+- Whitelist Roh-Werte: nur Sprache/Nationalität/PLZ (gleich wie bestehend).
+- Alle anderen Spalten: ausschließlich Maske via `maskValue()`.
+- Maske gekappt auf 40 Zeichen.
+- Buffer wird im Browser-RAM gehalten, keine Persistenz in localStorage.
+- Opt-out wirkt automatisch (sendet kein Event wenn `analytics-opt-out` gesetzt).
 
 ## Offene Punkte
-1. Bestätigung der **Whitelist für Roh-Werte** (Sprache, Nationalität, PLZ) — okay so?
-2. Soll der Admin auch einen **CSV-Export** der unmapped values bekommen, um direkt die Mapping-Tabellen zu erweitern? (Empfehlung: ja, sehr nützlich.)
-3. Auch tracken bei **manuellen Korrekturen** (welche Werte hat der User manuell zu was korrigiert)? Das wäre noch wertvoller für Auto-Fix-Verbesserungen, aber heikler datenschutzrechtlich → würde ich nur als Maske machen, nicht mit Roh-Werten.
+1. **Flush-Frequenz**: einmal pro Session (bei Reset/Step 4/unload) — okay? Alternative: alle 30 s. Empfehlung: einmal pro Session, weniger Last.
+2. **Bulk-Auto-Fix-Annahmen ebenfalls tracken?** Wenn der User "Alle X auto-fixen" klickt, ist das eine Bestätigung — würde ich **nicht** tracken (ist ja schon Auto-Fix). Nur echte manuelle Edits zählen.
 
 Nach Bestätigung umsetzen.
