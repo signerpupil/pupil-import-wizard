@@ -40,6 +40,7 @@ import { BulkCorrectionCard } from './BulkCorrectionCard';
 import { ErrorTable } from './ErrorTable';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { trackEvent } from '@/lib/analytics';
 
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -77,6 +78,38 @@ export function Step3Validation({
   const [hasRunAnalysis, setHasRunAnalysis] = useState(false);
   const [previousUncorrectedCount, setPreviousUncorrectedCount] = useState<number | null>(null);
   const isAutoFixingRef = useRef(false);
+  const validationTrackedRef = useRef(false);
+
+  // Telemetry: send aggregated error counts once per Step3 entry (no values).
+  useEffect(() => {
+    if (validationTrackedRef.current) return;
+    if (rows.length === 0) return;
+    validationTrackedRef.current = true;
+    const errorsByType: Record<string, number> = {};
+    const errorsByColumn: Record<string, number> = {};
+    for (const e of errors) {
+      const type = e.type || 'unknown';
+      errorsByType[type] = (errorsByType[type] ?? 0) + 1;
+      errorsByColumn[e.column] = (errorsByColumn[e.column] ?? 0) + 1;
+    }
+    trackEvent({
+      event_type: 'validation_completed',
+      step_number: 3,
+      payload: {
+        row_count_bucket:
+          rows.length < 100 ? '<100'
+          : rows.length < 500 ? '100-500'
+          : rows.length < 1000 ? '500-1000'
+          : rows.length < 3000 ? '1000-3000' : '>3000',
+        total_errors: errors.length,
+        error_count_by_type: errorsByType,
+        // top 10 columns to keep payload small
+        top_error_columns: Object.fromEntries(
+          Object.entries(errorsByColumn).sort((a, b) => b[1] - a[1]).slice(0, 10),
+        ),
+      },
+    });
+  }, [errors, rows.length]);
   
 
   // Language dropdown state for step-by-step modal
