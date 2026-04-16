@@ -356,6 +356,7 @@ export default function Index() {
               onBack={handleBack}
               onNext={handleNext}
               importType={state.importType}
+              expectedColumns={columnDefinitions}
             />
           )}
 
