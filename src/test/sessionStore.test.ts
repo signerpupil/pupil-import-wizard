@@ -68,7 +68,7 @@ describe('sessionStore', () => {
       timestamp: ts,
       row: 5,
       column: 'S_AHV',
-      oldValue: '7561234567890',
+      originalValue: '7561234567890',
       newValue: '756.1234.5678.90',
       type: 'auto',
     } as ChangeLogEntry;
@@ -110,8 +110,8 @@ describe('sessionStore', () => {
         { S_Name: 'C' },
       ],
       changeLog: [
-        { timestamp: new Date(), row: 2, column: 'X', oldValue: '', newValue: '', type: 'manual' } as ChangeLogEntry,
-        { timestamp: new Date(), row: 3, column: 'Y', oldValue: '', newValue: '', type: 'auto' } as ChangeLogEntry,
+        { timestamp: new Date(), row: 2, column: 'X', originalValue: '', oldValue: "", newValue: '', type: 'manual' } as ChangeLogEntry,
+        { timestamp: new Date(), row: 3, column: 'Y', originalValue: '', oldValue: "", newValue: '', type: 'auto' } as ChangeLogEntry,
       ],
     });
     await saveSession(state, 'meta-test.xlsx');
@@ -144,7 +144,7 @@ describe('sessionStore', () => {
         timestamp: d,
         row: i + 2,
         column: 'C',
-        oldValue: '',
+        originalValue: '',
         newValue: String(i),
         type: 'manual',
       })) as ChangeLogEntry[],
