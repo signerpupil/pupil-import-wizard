@@ -84,6 +84,8 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
                 Bei Validierungsfehlern werden zusätzlich anonymisierte Zeichenmasken (z.B. <code>AAA@AAA.AA</code>{' '}
                 statt der echten E-Mail, <code>999.9999.9999.99</code> statt einer AHV-Nummer) sowie unbekannte
                 Sprach-, Nationalitäts- und PLZ-Werte erfasst, um Lücken in den Mapping-Tabellen zu schliessen.
+                Auch manuelle Korrekturen werden ausschliesslich als Maskenpaar (z.B. <code>999 9999 9999 99</code> →{' '}
+                <code>999.9999.9999.99</code>) erfasst, um häufige Auto-Fix-Regel-Lücken zu erkennen.
               </p>
               <p className="text-muted-foreground mt-2">
                 <strong>Niemals übertragen werden:</strong> Schüler- oder Elterndaten, Namen, AHV-Nummern,
