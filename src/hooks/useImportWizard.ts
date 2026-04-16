@@ -46,6 +46,7 @@ type Action =
   | { type: 'CORRECT_ERROR'; rowIndex: number; column: string; value: string }
   | { type: 'BULK_CORRECT'; corrections: { row: number; column: string; value: string }[] }
   | { type: 'VALIDATION_COMPLETE'; errors: ValidationError[]; rows: ParsedRow[] }
+  | { type: 'RESTORE'; state: ImportWizardState }
   | { type: 'RESET' };
 
 const initialState: ImportWizardState = {
@@ -137,6 +138,8 @@ function reducer(state: ImportWizardState, action: Action): ImportWizardState {
     }
     case 'VALIDATION_COMPLETE':
       return { ...state, errors: action.errors, correctedRows: action.rows, autoCorrectionsApplied: false, isValidating: false };
+    case 'RESTORE':
+      return { ...action.state, isValidating: false };
     case 'RESET':
       return { ...initialState };
     default:
@@ -170,6 +173,7 @@ export function useImportWizard() {
   const addChangeLogEntry = useCallback((entry: ChangeLogEntry) => dispatch({ type: 'ADD_CHANGELOG_ENTRY', entry }), []);
   const addChangeLogEntries = useCallback((entries: ChangeLogEntry[]) => dispatch({ type: 'ADD_CHANGELOG_ENTRIES', entries }), []);
   const validationComplete = useCallback((errors: ValidationError[], rows: ParsedRow[]) => dispatch({ type: 'VALIDATION_COMPLETE', errors, rows }), []);
+  const restore = useCallback((state: ImportWizardState) => dispatch({ type: 'RESTORE', state }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   return {
@@ -198,6 +202,7 @@ export function useImportWizard() {
     addChangeLogEntry,
     addChangeLogEntries,
     validationComplete,
+    restore,
     reset,
   };
 }
