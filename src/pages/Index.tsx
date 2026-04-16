@@ -60,6 +60,8 @@ export default function Index() {
     reset,
   } = useImportWizard();
 
+  const { toast } = useToast();
+
   // Session-Persistenz: Restore-Banner + Auto-Save
   const { meta: resumeMeta, isChecked: isRestoreChecked, dismiss: dismissResume } = useSessionRestore();
   useSessionAutoSave({ state, isRestoreDecided: isRestoreChecked });
@@ -83,7 +85,6 @@ export default function Index() {
     pendingCorrectionRules, autoCorrectionsApplied,
   } = state;
 
-  const { toast } = useToast();
   const correctionMemory = useCorrectionMemory(importType || 'schueler');
 
   const columnDefinitions = importType ? getColumnsByType(importType, subType ?? undefined) : [];
