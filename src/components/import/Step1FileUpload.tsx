@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Upload, FileSpreadsheet, X, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,9 +6,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { parseFile, mergeParseResults, type ParseResult } from '@/lib/fileParser';
+import { runPreflightCheck } from '@/lib/preflightCheck';
+import type { ColumnDefinition } from '@/types/importTypes';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { StammdatenInstructionGuide } from './StammdatenInstructionGuide';
+import { PreflightCheckCard } from './PreflightCheckCard';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
@@ -16,6 +19,7 @@ interface Step1FileUploadProps {
   onNext: () => void;
   parseResult: ParseResult | null;
   importType?: string;
+  expectedColumns?: ColumnDefinition[];
 }
 
 interface LoadedFile {
