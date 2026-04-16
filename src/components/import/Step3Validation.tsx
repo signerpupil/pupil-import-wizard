@@ -1063,46 +1063,49 @@ function stripDiacritics(s: string): string {
         </p>
       </div>
 
-      {/* Summary */}
-      <div className={`grid gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
-        <div className="p-4 bg-muted rounded-lg text-center">
-          <p className="text-3xl font-bold">{rows.length}</p>
-          <p className="text-sm text-muted-foreground">Datensätze gesamt</p>
-        </div>
-        <div className="p-4 bg-destructive/10 rounded-lg text-center">
-          <p className="text-3xl font-bold text-destructive">{uncorrectedErrors.length}</p>
-          <p className="text-sm text-muted-foreground">Offene Fehler</p>
-        </div>
-        {nameChangeEntries.length > 0 && (
-          <div className="p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
-            <p className="text-3xl font-bold text-pupil-warning">{nameChangeEntries.length}</p>
-            <p className="text-sm text-muted-foreground">Namenswechsel</p>
+      {/* Summary + Progress — sticky auf Mobile, statisch ab md */}
+      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border/40 md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:border-0 space-y-3 md:space-y-4">
+        <div className={`grid gap-2 md:gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
+          <div className="p-2 md:p-4 bg-muted rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold leading-tight">{rows.length}</p>
+            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Datensätze gesamt</p>
           </div>
-        )}
-        <div className="p-4 bg-pupil-success/10 rounded-lg text-center">
-          <p className="text-3xl font-bold text-pupil-success">{correctedErrors.length}</p>
-          <p className="text-sm text-muted-foreground">Korrigiert</p>
+          <div className="p-2 md:p-4 bg-destructive/10 rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold text-destructive leading-tight">{uncorrectedErrors.length}</p>
+            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Offene Fehler</p>
+          </div>
+          {nameChangeEntries.length > 0 && (
+            <div className="p-2 md:p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
+              <p className="text-xl md:text-3xl font-bold text-pupil-warning leading-tight">{nameChangeEntries.length}</p>
+              <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Namenswechsel</p>
+            </div>
+          )}
+          <div className="p-2 md:p-4 bg-pupil-success/10 rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold text-pupil-success leading-tight">{correctedErrors.length}</p>
+            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Korrigiert</p>
+          </div>
         </div>
+
+        {/* Correction progress bar */}
+        {errors.length > 0 && (() => {
+          const correctionRate = Math.round((correctedErrors.length / errors.length) * 100);
+          return (
+            <div className="flex items-center gap-3">
+              <Progress value={correctionRate} className="flex-1 h-2" />
+              <span className="text-xs md:text-sm text-muted-foreground shrink-0 md:min-w-[10rem] text-right">
+                {correctionRate === 100 ? (
+                  <span className="text-pupil-success font-medium">✓ Alle behoben</span>
+                ) : correctionRate > 0 ? (
+                  <>{correctionRate}%<span className="hidden md:inline"> der Fehler behoben</span></>
+                ) : (
+                  <>{errors.length}<span className="hidden md:inline"> Fehler ausstehend</span></>
+                )}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
-      {/* Correction progress bar */}
-      {errors.length > 0 && (() => {
-        const correctionRate = Math.round((correctedErrors.length / errors.length) * 100);
-        return (
-          <div className="flex items-center gap-3">
-            <Progress value={correctionRate} className="flex-1 h-2" />
-            <span className="text-sm text-muted-foreground shrink-0 min-w-[10rem] text-right">
-              {correctionRate === 100 ? (
-                <span className="text-pupil-success font-medium">✓ Alle Fehler behoben</span>
-              ) : correctionRate > 0 ? (
-                <>{correctionRate}% der Fehler behoben</>
-              ) : (
-                <>{errors.length} Fehler ausstehend</>
-              )}
-            </span>
-          </div>
-        );
-      })()}
 
       {/* Success State - No errors */}
       {errors.length === 0 && (
