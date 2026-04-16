@@ -70,7 +70,22 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">4. Lokale Speicherung (localStorage)</h3>
+              <h3 className="font-semibold text-foreground mb-2">4a. Anonyme Nutzungsstatistiken</h3>
+              <p className="text-muted-foreground">
+                Zur Verbesserung der Anwendung erfassen wir <strong>ausschliesslich anonyme Nutzungsereignisse</strong>:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
+                <li>Erreichte Wizard-Schritte und Import-Typ (z.B. "schueler")</li>
+                <li>Aggregierte Fehleranzahl pro Fehlertyp und Spaltenname</li>
+                <li>Grössen-Bereich der verarbeiteten Datei (z.B. "100-500 Zeilen")</li>
+                <li>App-Version und eine zufällige, pro Browser-Tab generierte Sitzungs-ID</li>
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                <strong>Niemals übertragen werden:</strong> Schüler- oder Elterndaten, Namen, AHV-Nummern,
+                IDs, Dateinamen oder Spaltenwerte. Sie können diese Erfassung jederzeit über den Schalter
+                im Footer deaktivieren.
+              </p>
+            </section>
               <p className="text-muted-foreground">
                 Diese Anwendung verwendet <strong>keine Cookies</strong>. Lediglich der lokale 
                 Speicher (localStorage) des Browsers wird für folgende Zwecke genutzt:
