@@ -128,6 +128,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_events: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          event_type: string
+          id: string
+          import_type: string | null
+          payload: Json
+          session_id: string | null
+          step_number: number | null
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          import_type?: string | null
+          payload?: Json
+          session_id?: string | null
+          step_number?: number | null
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          import_type?: string | null
+          payload?: Json
+          session_id?: string | null
+          step_number?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
