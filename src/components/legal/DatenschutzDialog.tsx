@@ -86,6 +86,9 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
                 im Footer deaktivieren.
               </p>
             </section>
+
+            <section>
+              <h3 className="font-semibold text-foreground mb-2">4. Lokale Speicherung (localStorage)</h3>
               <p className="text-muted-foreground">
                 Diese Anwendung verwendet <strong>keine Cookies</strong>. Lediglich der lokale 
                 Speicher (localStorage) des Browsers wird für folgende Zwecke genutzt:
