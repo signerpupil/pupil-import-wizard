@@ -41,6 +41,7 @@ import { ErrorTable } from './ErrorTable';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { trackEvent } from '@/lib/analytics';
+import { summarizeForTelemetry, isUnmappedEmpty, isPatternsEmpty } from '@/lib/telemetryCollectors';
 
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -109,6 +110,28 @@ export function Step3Validation({
         ),
       },
     });
+
+    // Additional telemetry: unmapped raw values (whitelisted columns only)
+    // and anonymised pattern masks for all other columns.
+    try {
+      const { unmapped, patterns } = summarizeForTelemetry(errors);
+      if (!isUnmappedEmpty(unmapped)) {
+        trackEvent({
+          event_type: 'unmapped_value',
+          step_number: 3,
+          payload: unmapped as unknown as Record<string, unknown>,
+        });
+      }
+      if (!isPatternsEmpty(patterns)) {
+        trackEvent({
+          event_type: 'unfixed_pattern',
+          step_number: 3,
+          payload: patterns as unknown as Record<string, unknown>,
+        });
+      }
+    } catch {
+      // never break the wizard for telemetry
+    }
   }, [errors, rows.length]);
   
 

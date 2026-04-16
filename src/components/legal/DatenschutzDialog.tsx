@@ -81,9 +81,14 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
                 <li>App-Version und eine zufällige, pro Browser-Tab generierte Sitzungs-ID</li>
               </ul>
               <p className="text-muted-foreground mt-2">
+                Bei Validierungsfehlern werden zusätzlich anonymisierte Zeichenmasken (z.B. <code>AAA@AAA.AA</code>{' '}
+                statt der echten E-Mail, <code>999.9999.9999.99</code> statt einer AHV-Nummer) sowie unbekannte
+                Sprach-, Nationalitäts- und PLZ-Werte erfasst, um Lücken in den Mapping-Tabellen zu schliessen.
+              </p>
+              <p className="text-muted-foreground mt-2">
                 <strong>Niemals übertragen werden:</strong> Schüler- oder Elterndaten, Namen, AHV-Nummern,
-                IDs, Dateinamen oder Spaltenwerte. Sie können diese Erfassung jederzeit über den Schalter
-                im Footer deaktivieren.
+                IDs, E-Mails, Telefonnummern, Adressen, Dateinamen oder echte Roh-Werte aus Spalten mit
+                Personenbezug. Sie können diese Erfassung jederzeit über den Schalter im Footer deaktivieren.
               </p>
             </section>
 
