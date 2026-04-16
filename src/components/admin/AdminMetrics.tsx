@@ -198,6 +198,44 @@ export function AdminMetrics() {
       .sort((a, b) => b.total - a.total);
   }, [events]);
 
+  // Aggregate manual corrections (mask → mask) per column.
+  const manualCorrectionsByColumn = useMemo(() => {
+    if (!events) return [];
+    // column -> "from||to" -> count
+    const byCol = new Map<string, Map<string, number>>();
+    for (const e of events) {
+      if (e.event_type !== 'manual_correction') continue;
+      const corrections = ((e.payload ?? {}) as Record<string, unknown>).corrections;
+      if (!corrections || typeof corrections !== 'object') continue;
+      for (const [column, arr] of Object.entries(corrections as Record<string, Array<{ from: string; to: string; count: number }>>)) {
+        if (!Array.isArray(arr)) continue;
+        let inner = byCol.get(column);
+        if (!inner) {
+          inner = new Map<string, number>();
+          byCol.set(column, inner);
+        }
+        for (const item of arr) {
+          if (!item || typeof item.from !== 'string' || typeof item.to !== 'string' || typeof item.count !== 'number') continue;
+          const key = `${item.from}||${item.to}`;
+          inner.set(key, (inner.get(key) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(byCol.entries())
+      .map(([column, inner]) => ({
+        column,
+        total: Array.from(inner.values()).reduce((a, b) => a + b, 0),
+        pairs: Array.from(inner.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([key, count]) => {
+            const [from, to] = key.split('||', 2);
+            return { from, to, count };
+          }),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -377,6 +415,41 @@ export function AdminMetrics() {
                         <div key={i} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1">
                           <code className="font-mono">{m.mask}</code>
                           <span className="tabular-nums text-muted-foreground">{m.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Manuelle Korrekturen (Auto-Fix-Lücken)</CardTitle>
+            <CardDescription>
+              Anonymisierte Korrektur-Paare (Maske alt → Maske neu) pro Spalte – zeigt, welche Auto-Fix-Regeln Nutzer am häufigsten von Hand nachbauen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {manualCorrectionsByColumn.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Keine manuellen Korrekturen im Zeitraum.</p>
+            ) : (
+              <div className="space-y-4">
+                {manualCorrectionsByColumn.map(group => (
+                  <div key={group.column} className="border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{group.column}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{group.total} Korrekturen</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {group.pairs.map((p, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+                          <code className="font-mono flex-1 truncate" title={p.from}>{p.from}</code>
+                          <span className="text-muted-foreground">→</span>
+                          <code className="font-mono flex-1 truncate" title={p.to}>{p.to}</code>
+                          <span className="tabular-nums text-muted-foreground ml-2">{p.count}</span>
                         </div>
                       ))}
                     </div>

@@ -24,7 +24,8 @@ export type UsageEventType =
   | 'export_completed'
   | 'import_reset'
   | 'unmapped_value'
-  | 'unfixed_pattern';
+  | 'unfixed_pattern'
+  | 'manual_correction';
 
 export interface UsageEventPayload {
   event_type: UsageEventType;

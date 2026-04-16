@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
+import {
+  flushManualCorrections,
+  isManualCorrectionsEmpty,
+  hasBufferedManualCorrections,
+} from '@/lib/telemetryCollectors';
 import { WizardHeader } from '@/components/import/WizardHeader';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { WizardSummary } from '@/components/import/WizardSummary';
@@ -258,6 +264,13 @@ export default function Index() {
         newValue: value,
         studentName: getStudentName(rowIndex),
       });
+
+      // Telemetry: only track true manual corrections (not bulk/auto)
+      if (correctionType === 'manual') {
+        import('@/lib/telemetryCollectors').then(m => {
+          m.bufferManualCorrection(column, originalValue, value);
+        });
+      }
     }
 
     correctError(rowIndex, column, value);
@@ -284,7 +297,28 @@ export default function Index() {
     bulkCorrect(corrections);
   }, [errors, getStudentName, addChangeLogEntries, bulkCorrect]);
 
+  const flushManualCorrectionsTelemetry = useCallback(() => {
+    if (!hasBufferedManualCorrections()) return;
+    const corrections = flushManualCorrections();
+    if (!isManualCorrectionsEmpty(corrections)) {
+      trackEvent({ event_type: 'manual_correction', payload: { corrections } });
+    }
+  }, []);
+
+  // Flush when entering the export step (step 4)
+  const lastFlushedStep = useRef<number>(-1);
+  useEffect(() => {
+    if (state.currentStep === 4 && lastFlushedStep.current !== 4) {
+      lastFlushedStep.current = 4;
+      flushManualCorrectionsTelemetry();
+    }
+    if (state.currentStep !== 4) {
+      lastFlushedStep.current = state.currentStep;
+    }
+  }, [state.currentStep, flushManualCorrectionsTelemetry]);
+
   const handleReset = () => {
+    flushManualCorrectionsTelemetry();
     reset();
     initialValidationDone.current = false;
   };

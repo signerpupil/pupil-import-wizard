@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/analytics";
+import { flushManualCorrections, isManualCorrectionsEmpty, hasBufferedManualCorrections } from "@/lib/telemetryCollectors";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -17,6 +18,23 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     trackEvent({ event_type: 'app_loaded' });
+
+    const flushIfAny = () => {
+      if (!hasBufferedManualCorrections()) return;
+      const corrections = flushManualCorrections();
+      if (!isManualCorrectionsEmpty(corrections)) {
+        trackEvent({ event_type: 'manual_correction', payload: { corrections } });
+      }
+    };
+
+    const onPageHide = () => flushIfAny();
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flushIfAny(); };
+    window.addEventListener('pagehide', onPageHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   return (
