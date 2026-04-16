@@ -24,6 +24,20 @@ beforeEach(() => {
   localStorage.clear();
 });
 
+// jsdom < 22 hat kein File.prototype.text() — wir polyfillen es einmalig.
+if (typeof File !== 'undefined' && typeof (File.prototype as { text?: unknown }).text !== 'function') {
+  (File.prototype as unknown as { text: () => Promise<string> }).text = function (
+    this: Blob
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(this);
+    });
+  };
+}
+
 /** Erzeugt eine Regel mit sinnvollen Defaults. */
 function makeRule(overrides: Partial<CorrectionRule> = {}): CorrectionRule {
   return {
@@ -379,38 +393,52 @@ describe('useCorrectionMemory: file roundtrip', () => {
       version: '1.0',
       exportedAt: new Date().toISOString(),
       exportedFrom: 'test.csv',
-      importType: 'journal', // falsch
+      importType: 'journal',
       rules: [makeRule()],
     };
     const file = new File([JSON.stringify(fileContent)], 'rules.json');
 
-    await expect(
-      act(async () => {
+    let caught: Error | null = null;
+    await act(async () => {
+      try {
         await result.current.loadFromFile(file);
-      })
-    ).rejects.toThrow(/journal/);
+      } catch (e) {
+        caught = e as Error;
+      }
+    });
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/journal/);
   });
 
   it('loadFromFile lehnt invalides Format ab', async () => {
     const { result } = renderHook(() => useCorrectionMemory('schueler'));
     const file = new File(['{ "foo": "bar" }'], 'rules.json');
 
-    await expect(
-      act(async () => {
+    let caught: Error | null = null;
+    await act(async () => {
+      try {
         await result.current.loadFromFile(file);
-      })
-    ).rejects.toThrow(/Ungültiges Dateiformat/);
+      } catch (e) {
+        caught = e as Error;
+      }
+    });
+    expect(caught).not.toBeNull();
+    expect(caught!.message).toMatch(/Ungültiges Dateiformat/);
   });
 
   it('loadFromFile lehnt korruptes JSON ab', async () => {
     const { result } = renderHook(() => useCorrectionMemory('schueler'));
     const file = new File(['not-json{'], 'rules.json');
 
-    await expect(
-      act(async () => {
+    let caught: Error | null = null;
+    await act(async () => {
+      try {
         await result.current.loadFromFile(file);
-      })
-    ).rejects.toThrow();
+      } catch (e) {
+        caught = e as Error;
+      }
+    });
+    expect(caught).not.toBeNull();
   });
 });
 
