@@ -139,6 +139,65 @@ export function AdminMetrics() {
     }));
   }, [events]);
 
+  // Aggregate unmapped raw values across all `unmapped_value` events.
+  const unmappedRanking = useMemo(() => {
+    if (!events) return [];
+    const counts = new Map<string, number>(); // key = `${kind}|${value}`
+    for (const e of events) {
+      if (e.event_type !== 'unmapped_value') continue;
+      const p = (e.payload ?? {}) as Record<string, Array<{ value: string; count: number }>>;
+      for (const kind of ['language', 'nationality', 'plz'] as const) {
+        const arr = p[kind];
+        if (!Array.isArray(arr)) continue;
+        for (const item of arr) {
+          if (!item || typeof item.value !== 'string' || typeof item.count !== 'number') continue;
+          const key = `${kind}|${item.value}`;
+          counts.set(key, (counts.get(key) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([key, count]) => {
+        const [kind, value] = key.split('|', 2);
+        return { kind, value, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 30);
+  }, [events]);
+
+  // Aggregate pattern masks per column across all `unfixed_pattern` events.
+  const patternsByColumn = useMemo(() => {
+    if (!events) return [];
+    // column -> mask -> count
+    const byCol = new Map<string, Map<string, number>>();
+    for (const e of events) {
+      if (e.event_type !== 'unfixed_pattern') continue;
+      const p = (e.payload ?? {}) as Record<string, Array<{ mask: string; count: number }>>;
+      for (const [column, arr] of Object.entries(p)) {
+        if (!Array.isArray(arr)) continue;
+        let inner = byCol.get(column);
+        if (!inner) {
+          inner = new Map<string, number>();
+          byCol.set(column, inner);
+        }
+        for (const item of arr) {
+          if (!item || typeof item.mask !== 'string' || typeof item.count !== 'number') continue;
+          inner.set(item.mask, (inner.get(item.mask) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(byCol.entries())
+      .map(([column, inner]) => ({
+        column,
+        total: Array.from(inner.values()).reduce((a, b) => a + b, 0),
+        masks: Array.from(inner.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([mask, count]) => ({ mask, count })),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -250,6 +309,81 @@ export function AdminMetrics() {
                 <Bar dataKey="sessions" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Full-width: missing mappings + unfixable patterns */}
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Häufigste fehlende Mappings</CardTitle>
+            <CardDescription>
+              Unbekannte Sprach-, Nationalitäts- und PLZ-Werte (Top 30) – direkter Hinweis auf Lücken in den Mapping-Tabellen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {unmappedRanking.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Keine fehlenden Mappings im Zeitraum.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-border">
+                      <th className="py-2 pr-4 font-medium text-muted-foreground">Typ</th>
+                      <th className="py-2 pr-4 font-medium text-muted-foreground">Wert</th>
+                      <th className="py-2 font-medium text-muted-foreground text-right">Anzahl</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unmappedRanking.map((row, i) => (
+                      <tr key={i} className="border-b border-border/50">
+                        <td className="py-1.5 pr-4">
+                          <span className="inline-block px-2 py-0.5 rounded text-xs bg-muted text-foreground">
+                            {row.kind === 'language' ? 'Sprache' : row.kind === 'nationality' ? 'Nationalität' : 'PLZ'}
+                          </span>
+                        </td>
+                        <td className="py-1.5 pr-4 font-mono text-xs">{row.value}</td>
+                        <td className="py-1.5 text-right tabular-nums">{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Häufigste nicht korrigierbare Muster</CardTitle>
+            <CardDescription>
+              Anonymisierte Zeichenmasken (A=Buchstabe, 9=Ziffer) pro Spalte – zeigt, welche Auto-Fix-Regeln noch fehlen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {patternsByColumn.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Keine Muster im Zeitraum.</p>
+            ) : (
+              <div className="space-y-4">
+                {patternsByColumn.map(group => (
+                  <div key={group.column} className="border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{group.column}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{group.total} Fehler</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {group.masks.map((m, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1">
+                          <code className="font-mono">{m.mask}</code>
+                          <span className="tabular-nums text-muted-foreground">{m.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

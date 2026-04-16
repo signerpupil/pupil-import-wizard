@@ -22,7 +22,9 @@ export type UsageEventType =
   | 'step_reached'
   | 'validation_completed'
   | 'export_completed'
-  | 'import_reset';
+  | 'import_reset'
+  | 'unmapped_value'
+  | 'unfixed_pattern';
 
 export interface UsageEventPayload {
   event_type: UsageEventType;
