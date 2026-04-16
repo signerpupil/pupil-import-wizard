@@ -36,31 +36,52 @@ interface StoredSession {
 
 const DATE_MARKER = '__date';
 
-function replacer(_key: string, value: unknown): unknown {
+/**
+ * Recursively walk a value and convert Date instances to a marker object.
+ * We can't use JSON.stringify's replacer because Date.prototype.toJSON
+ * runs BEFORE the replacer, leaving us with a string instead of a Date.
+ */
+function encodeDates(value: unknown): unknown {
   if (value instanceof Date) {
     return { [DATE_MARKER]: value.toISOString() };
+  }
+  if (Array.isArray(value)) {
+    return value.map(encodeDates);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = encodeDates(v);
+    }
+    return out;
   }
   return value;
 }
 
-function reviver(_key: string, value: unknown): unknown {
-  if (
-    value &&
-    typeof value === 'object' &&
-    DATE_MARKER in (value as Record<string, unknown>) &&
-    typeof (value as Record<string, unknown>)[DATE_MARKER] === 'string'
-  ) {
-    return new Date((value as Record<string, string>)[DATE_MARKER]);
+function decodeDates(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(decodeDates);
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    if (Object.keys(obj).length === 1 && typeof obj[DATE_MARKER] === 'string') {
+      return new Date(obj[DATE_MARKER] as string);
+    }
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = decodeDates(v);
+    }
+    return out;
   }
   return value;
 }
 
 function serialise<T>(data: T): unknown {
-  return JSON.parse(JSON.stringify(data, replacer));
+  return encodeDates(data);
 }
 
 function deserialise<T>(data: unknown): T {
-  return JSON.parse(JSON.stringify(data), reviver) as T;
+  return decodeDates(data) as T;
 }
 
 function openDb(): Promise<IDBDatabase> {
