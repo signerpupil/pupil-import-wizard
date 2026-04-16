@@ -99,7 +99,7 @@ export function trackEvent(event: UsageEventPayload): void {
     // Fire and forget – ignore errors silently.
     void supabase
       .from('usage_events')
-      .insert(row)
+      .insert([row])
       .then(({ error }) => {
         if (error && import.meta.env.DEV) {
           // eslint-disable-next-line no-console
