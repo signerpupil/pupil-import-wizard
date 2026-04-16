@@ -111,3 +111,70 @@ export function isUnmappedEmpty(u: UnmappedSummary): boolean {
 export function isPatternsEmpty(p: PatternSummary): boolean {
   return Object.keys(p).length === 0;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Manual correction tracking (anonymised mask → mask)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_PAIRS_PER_COLUMN = 20;
+
+/** column -> "from||to" -> count */
+const manualCorrectionBuffer = new Map<string, Map<string, number>>();
+
+/** Choose raw value for whitelisted columns, mask for everything else. */
+function anonymizeForColumn(column: string, value: string): string {
+  const v = (value ?? '').trim();
+  if (!v) return '';
+  if (LANGUAGE_COLUMNS.has(column) || NATIONALITY_COLUMNS.has(column) || PLZ_COLUMNS.has(column)) {
+    return v.slice(0, MAX_MASK_LENGTH);
+  }
+  return maskValue(v);
+}
+
+/**
+ * Buffer a single manual correction. Anonymises both values immediately.
+ * Never stores raw personal data — masks live only in module memory.
+ */
+export function bufferManualCorrection(column: string, oldValue: string, newValue: string): void {
+  const from = anonymizeForColumn(column, oldValue);
+  const to = anonymizeForColumn(column, newValue);
+  if (!from || !to || from === to) return;
+
+  let inner = manualCorrectionBuffer.get(column);
+  if (!inner) {
+    inner = new Map<string, number>();
+    manualCorrectionBuffer.set(column, inner);
+  }
+  const key = `${from}||${to}`;
+  inner.set(key, (inner.get(key) ?? 0) + 1);
+}
+
+export interface ManualCorrectionSummary {
+  // column -> [{ from, to, count }]
+  [column: string]: Array<{ from: string; to: string; count: number }>;
+}
+
+/** Return + clear the buffer. Caller decides whether to send. */
+export function flushManualCorrections(): ManualCorrectionSummary {
+  const out: ManualCorrectionSummary = {};
+  for (const [column, inner] of manualCorrectionBuffer.entries()) {
+    const top = Array.from(inner.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_PAIRS_PER_COLUMN)
+      .map(([key, count]) => {
+        const [from, to] = key.split('||', 2);
+        return { from, to, count };
+      });
+    if (top.length > 0) out[column] = top;
+  }
+  manualCorrectionBuffer.clear();
+  return out;
+}
+
+export function isManualCorrectionsEmpty(s: ManualCorrectionSummary): boolean {
+  return Object.keys(s).length === 0;
+}
+
+export function hasBufferedManualCorrections(): boolean {
+  return manualCorrectionBuffer.size > 0;
+}
