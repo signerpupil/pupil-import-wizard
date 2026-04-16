@@ -1055,7 +1055,7 @@ function stripDiacritics(s: string): string {
 
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-32 md:pb-20">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Daten validieren</h2>
         <p className="text-muted-foreground mt-1">
@@ -1063,46 +1063,49 @@ function stripDiacritics(s: string): string {
         </p>
       </div>
 
-      {/* Summary */}
-      <div className={`grid gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
-        <div className="p-4 bg-muted rounded-lg text-center">
-          <p className="text-3xl font-bold">{rows.length}</p>
-          <p className="text-sm text-muted-foreground">Datensätze gesamt</p>
-        </div>
-        <div className="p-4 bg-destructive/10 rounded-lg text-center">
-          <p className="text-3xl font-bold text-destructive">{uncorrectedErrors.length}</p>
-          <p className="text-sm text-muted-foreground">Offene Fehler</p>
-        </div>
-        {nameChangeEntries.length > 0 && (
-          <div className="p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
-            <p className="text-3xl font-bold text-pupil-warning">{nameChangeEntries.length}</p>
-            <p className="text-sm text-muted-foreground">Namenswechsel</p>
+      {/* Sticky-on-mobile container: Summary + progress bar stay visible while scrolling */}
+      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border/40 space-y-3 md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:border-0 md:space-y-6">
+        {/* Summary */}
+        <div className={`grid gap-2 md:gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
+          <div className="p-2 md:p-4 bg-muted rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold">{rows.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Datensätze gesamt</p>
           </div>
-        )}
-        <div className="p-4 bg-pupil-success/10 rounded-lg text-center">
-          <p className="text-3xl font-bold text-pupil-success">{correctedErrors.length}</p>
-          <p className="text-sm text-muted-foreground">Korrigiert</p>
+          <div className="p-2 md:p-4 bg-destructive/10 rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold text-destructive">{uncorrectedErrors.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Offene Fehler</p>
+          </div>
+          {nameChangeEntries.length > 0 && (
+            <div className="p-2 md:p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
+              <p className="text-xl md:text-3xl font-bold text-pupil-warning">{nameChangeEntries.length}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Namenswechsel</p>
+            </div>
+          )}
+          <div className="p-2 md:p-4 bg-pupil-success/10 rounded-lg text-center">
+            <p className="text-xl md:text-3xl font-bold text-pupil-success">{correctedErrors.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Korrigiert</p>
+          </div>
         </div>
-      </div>
 
-      {/* Correction progress bar */}
-      {errors.length > 0 && (() => {
-        const correctionRate = Math.round((correctedErrors.length / errors.length) * 100);
-        return (
-          <div className="flex items-center gap-3">
-            <Progress value={correctionRate} className="flex-1 h-2" />
-            <span className="text-sm text-muted-foreground shrink-0 min-w-[10rem] text-right">
-              {correctionRate === 100 ? (
-                <span className="text-pupil-success font-medium">✓ Alle Fehler behoben</span>
-              ) : correctionRate > 0 ? (
-                <>{correctionRate}% der Fehler behoben</>
-              ) : (
-                <>{errors.length} Fehler ausstehend</>
-              )}
-            </span>
-          </div>
-        );
-      })()}
+        {/* Correction progress bar */}
+        {errors.length > 0 && (() => {
+          const correctionRate = Math.round((correctedErrors.length / errors.length) * 100);
+          return (
+            <div className="flex items-center gap-3">
+              <Progress value={correctionRate} className="flex-1 h-2" />
+              <span className="text-xs md:text-sm text-muted-foreground shrink-0 min-w-[8rem] md:min-w-[10rem] text-right">
+                {correctionRate === 100 ? (
+                  <span className="text-pupil-success font-medium">✓ Alle behoben</span>
+                ) : correctionRate > 0 ? (
+                  <>{correctionRate}% behoben</>
+                ) : (
+                  <>{errors.length} ausstehend</>
+                )}
+              </span>
+            </div>
+          );
+        })()}
+      </div>
 
       {/* Success State - No errors */}
       {errors.length === 0 && (
