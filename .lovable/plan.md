@@ -1,65 +1,81 @@
 
-Der User möchte manuelle Korrekturen tracken, um Auto-Fix-Regel-Lücken zu erkennen. Strikt anonymisiert über Masken.
+Der User möchte einen **manuellen Sende-Knopf** für die anonymisierten Telemetriedaten — als Alternative oder Ergänzung zum automatischen Tracking. So entscheidet jeder Nutzer aktiv, ob er Daten teilt.
 
-## Wo werden manuelle Korrekturen gemacht?
+## Designentscheidung: Opt-In-Modus statt Auto-Send
 
-Aus Codebase-Kenntnis: Korrekturen passieren in `Step3Validation` (Inline-Edit + Modal mit `SearchableSelect`). Alle laufen am Ende durch denselben Update-Pfad in `useImportWizard` (vermutlich `applyManualCorrection` o.ä.) und werden im `ChangeLog` festgehalten.
+Aktuell läuft Telemetrie automatisch (Opt-out). Der Wunsch impliziert ein **stärker nutzerkontrolliertes Modell**. Ich schlage einen **Drei-Modi-Schalter** im Footer vor:
 
-Effizientester Hook: **dort wo der ChangeLog-Eintrag erzeugt wird** — ein zentraler Punkt, alle manuellen Korrekturen laufen darüber.
+1. **Automatisch senden** (heutiges Verhalten, Opt-out via Toggle)
+2. **Manuell senden** (sammelt lokal, sendet erst auf Knopfdruck)
+3. **Nichts senden** (heutiger Opt-out)
 
-## Plan
+Der manuelle Modus ist der neue dritte Pfad.
 
-### 1. Datenbank
-Neuer Event-Typ `manual_correction` in `validate_usage_event`-Whitelist → Migration.
+## So funktioniert "Manuell senden"
 
-### 2. Sammlung im Frontend
-In `src/lib/telemetryCollectors.ts` zwei neue Helper:
-- `bufferManualCorrection(column, oldValue, newValue)` — sammelt Korrekturen in einem modul-internen Map (kein DB-Call pro Edit, sonst Spam).
-- `flushManualCorrections()` — aggregiert das Buffer und sendet **ein** Event mit Top-Patterns pro Spalte.
+### Sammlung im Browser
+- Alle anonymisierten Events (`unmapped_value`, `unfixed_pattern`, `manual_correction`, `validation_completed`, `export_completed` etc.) werden statt direkt gesendet **in einen lokalen Puffer in `localStorage`** geschrieben (Key: `analytics-pending-queue`).
+- Maximal 200 Events / 100 KB im Puffer (älteste werden verdrängt).
+- Der Puffer überlebt Tab-Schließen und Reloads.
 
-**Anonymisierung pro Korrektur:**
-- Whitelist (Sprache/Nationalität/PLZ): Roh-Wert → Roh-Wert (analog bestehender Logik).
-- Alle anderen Spalten: `maskValue(old) → maskValue(new)`.
-- Niemals Roh-Werte für Namen/AHV/Email/Telefon/etc.
+### UI-Anzeige
+- Im Footer erscheint im manuellen Modus zusätzlich ein Badge: **"X anonyme Ereignisse bereit zum Senden"** mit zwei Buttons:
+  - **"Vorschau anzeigen"** → Dialog mit lesbarem JSON aller gepufferten Events (volle Transparenz, der User sieht GENAU was übermittelt wird).
+  - **"Jetzt senden"** → schickt alle Events als Batch an Supabase, leert Puffer, zeigt Toast.
+  - **"Verwerfen"** → leert Puffer ohne zu senden.
 
-**Payload-Form:**
-```
-{ corrections: { S_AHV: [{ from: "999 9999 9999 99", to: "999.9999.9999.99", count: 12 }, ...], ... } }
-```
-- Max 20 Pattern-Paare pro Spalte, sortiert nach Häufigkeit.
+### Vorschau-Dialog
+- Listet alle gepufferten Events strukturiert auf (Event-Typ, Zeitpunkt, Payload formatiert).
+- Hinweis-Banner oben: "Diese Daten enthalten ausschliesslich anonymisierte Maskenzeichen und Häufigkeitszähler — keine Personendaten."
+- Optional: Einzel-Event löschen ("Diesen Eintrag entfernen").
 
-### 3. Trigger zum Flushen
-Buffer wird gesendet:
-- Beim Reset (`import_reset` in `useImportWizard`).
-- Beim Wechsel zu Step 4 (Export-Schritt).
-- Beim Verlassen der Seite (`beforeunload`-Listener, einmalig in `App.tsx` registriert via `navigator.sendBeacon` oder normaler insert).
+## Implementation
 
-### 4. Tracking-Hook
-In dem zentralen Pfad, der manuelle Korrekturen anwendet (zu identifizieren in `useImportWizard.ts` / `Step3Validation.tsx` Inline-Edit + Modal-Save), `bufferManualCorrection(column, oldValue, newValue)` aufrufen — **bevor** der State aktualisiert wird, damit `oldValue` noch verfügbar ist.
+### 1. Neuer Modus-State (`src/lib/analytics.ts`)
+- Erweitere `localStorage` um Key `analytics-mode` mit Werten `auto` | `manual` | `off`.
+- Ersetze `isOptedOut()` durch `getAnalyticsMode()`. Bestehende `analytics-opt-out=1` wird zu `off` migriert (Backward-Compat).
+- `trackEvent()` verzweigt:
+  - `off` → noop
+  - `auto` → direktes Insert (heute)
+  - `manual` → in Puffer schreiben (`enqueuePendingEvent`)
 
-Ich werde im Implementierungs-Schritt prüfen:
-- `useImportWizard.ts` — nach `applyManualCorrection`/`updateCellValue`-ähnlicher Action.
-- `Step3Validation.tsx` — Inline-Edit-Handler.
-- `BulkCorrectionCard.tsx` — manuelle Modal-Korrekturen.
+### 2. Lokaler Puffer (`src/lib/pendingTelemetry.ts` — neu)
+- `enqueuePendingEvent(event)` — schreibt in localStorage mit Cap.
+- `getPendingEvents()` — liest alle.
+- `clearPendingEvents()` — leert.
+- `removePendingEvent(id)` — einzeln löschen.
+- `flushPendingToSupabase()` — Batch-Insert via `supabase.from('usage_events').insert(rows)`, leert bei Erfolg.
+- Custom-Event `analytics-queue-changed` für UI-Updates.
 
-Ein einziger zentraler Aufruf reicht, falls alle drei Stellen über denselben Reducer gehen.
+### 3. Footer-Erweiterung (`src/components/layout/Footer.tsx`)
+- `Switch` → `RadioGroup` oder `Select` mit drei Optionen.
+- Wenn Modus = `manual` und Puffer > 0: zusätzliche Zeile mit Counter-Badge + Buttons "Vorschau" / "Senden" / "Verwerfen".
 
-### 5. Admin-Dashboard
-Neue Karte in `AdminMetrics.tsx`: **"Manuelle Korrekturen (Auto-Fix-Lücken)"** — pro Spalte: `Maske alt` → `Maske neu` mit Anzahl. Sortiert nach Häufigkeit. Diese Tabelle zeigt direkt: "Das nächste Auto-Fix-Pattern, das du hinzufügen solltest".
+### 4. Vorschau-Dialog (`src/components/analytics/PendingTelemetryDialog.tsx` — neu)
+- Standard `Dialog` mit ScrollArea.
+- Pro Event: Card mit Event-Typ, Zeitstempel, formatiertem JSON-Payload (read-only).
+- Footer-Buttons: "Alle senden", "Alle verwerfen", "Schliessen".
 
-### 6. Datenschutz
-Ergänzung in `DatenschutzDialog` Sektion 4a: Hinweis dass auch manuelle Korrekturen als Maske → Maske erfasst werden.
+### 5. Datenschutz-Update (`DatenschutzDialog.tsx`)
+- Sektion 4a ergänzen: "Sie können wählen zwischen automatischem Senden, manuellem Senden (mit Vorschau) oder vollständig deaktiviert."
 
-## Datenschutz
+### 6. Memory-Update
+- `mem://features/usage-telemetry.md` um den neuen Modus + Puffer-Mechanismus erweitern.
 
-- Whitelist Roh-Werte: nur Sprache/Nationalität/PLZ (gleich wie bestehend).
-- Alle anderen Spalten: ausschließlich Maske via `maskValue()`.
-- Maske gekappt auf 40 Zeichen.
-- Buffer wird im Browser-RAM gehalten, keine Persistenz in localStorage.
-- Opt-out wirkt automatisch (sendet kein Event wenn `analytics-opt-out` gesetzt).
+## Datenschutz / Sicherheit
+
+- Puffer-Inhalte sind **bereits anonymisiert** (gleiche Regeln wie heute: Roh-Werte nur für Sprache/Nationalität/PLZ, sonst Maske).
+- Im manuellen Modus liegen Maskenzeichen kurzzeitig in `localStorage` — KEIN Personenbezug, da die Anonymisierung **vor** dem Puffern passiert.
+- Vorschau zeigt 1:1 was gesendet wird → maximale Transparenz.
+- Beim Wechsel zu `off` wird der Puffer automatisch geleert.
+
+## Datenbank
+**Keine Änderungen nötig.** Bestehende `usage_events`-Tabelle und Insert-Policy reichen — der Batch-Insert nutzt denselben Pfad.
 
 ## Offene Punkte
-1. **Flush-Frequenz**: einmal pro Session (bei Reset/Step 4/unload) — okay? Alternative: alle 30 s. Empfehlung: einmal pro Session, weniger Last.
-2. **Bulk-Auto-Fix-Annahmen ebenfalls tracken?** Wenn der User "Alle X auto-fixen" klickt, ist das eine Bestätigung — würde ich **nicht** tracken (ist ja schon Auto-Fix). Nur echte manuelle Edits zählen.
 
-Nach Bestätigung umsetzen.
+1. **Default-Modus für neue Nutzer**: weiterhin `auto` (wie heute) oder neuer Default `manual`? Empfehlung: `auto` beibehalten, damit bestehende Telemetrie nicht abreisst. Aber im Datenschutz-Dialog prominent auf den manuellen Modus hinweisen.
+2. **Wo genau im UI**: Footer-Erweiterung okay, oder lieber separater Knopf neben "Hilfe & FAQ"? Empfehlung: im Footer, da dort schon der Toggle sitzt.
+3. **Vorschau-Detailgrad**: Volles JSON oder nur Zusammenfassung (z.B. "12 unmapped languages, 5 manual corrections")? Empfehlung: beides — Zusammenfassung oben, ausklappbares Detail-JSON darunter.
+
+Nach Bestätigung dieser drei Punkte (oder Freigabe wie vorgeschlagen) setze ich um.
