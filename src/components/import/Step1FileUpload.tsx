@@ -33,11 +33,19 @@ export function Step1FileUpload({
   onNext,
   parseResult,
   importType,
+  expectedColumns,
 }: Step1FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedFiles, setLoadedFiles] = useState<LoadedFile[]>([]);
+
+  const preflightResult = useMemo(() => {
+    if (!parseResult || !parseResult.fileName) return null;
+    return runPreflightCheck(parseResult, expectedColumns ?? []);
+  }, [parseResult, expectedColumns]);
+
+  const preflightBlocks = preflightResult?.hasErrors ?? false;
 
   const processFiles = useCallback(async (files: File[]) => {
     setIsLoading(true);
