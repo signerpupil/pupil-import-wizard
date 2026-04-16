@@ -308,6 +308,7 @@ export default function Index() {
   const handleReset = () => {
     reset();
     initialValidationDone.current = false;
+    clearSession();
   };
 
   const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung' && importType !== 'lehrpersonen';
@@ -344,6 +345,13 @@ export default function Index() {
         )}
 
         <div className="mt-6 space-y-4">
+          {!showSpecialWizard && currentStep === 0 && resumeMeta && (
+            <ResumeSessionBanner
+              meta={resumeMeta}
+              onResume={handleResumeSession}
+              onDismiss={dismissResume}
+            />
+          )}
           {!showSpecialWizard && <StepHelpCard step={currentStep} />}
 
           {currentStep === 0 && (
