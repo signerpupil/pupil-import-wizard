@@ -424,6 +424,41 @@ export function AdminMetrics() {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Manuelle Korrekturen (Auto-Fix-Lücken)</CardTitle>
+            <CardDescription>
+              Anonymisierte Korrektur-Paare (Maske alt → Maske neu) pro Spalte – zeigt, welche Auto-Fix-Regeln Nutzer am häufigsten von Hand nachbauen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {manualCorrectionsByColumn.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Keine manuellen Korrekturen im Zeitraum.</p>
+            ) : (
+              <div className="space-y-4">
+                {manualCorrectionsByColumn.map(group => (
+                  <div key={group.column} className="border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{group.column}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{group.total} Korrekturen</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {group.pairs.map((p, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+                          <code className="font-mono flex-1 truncate" title={p.from}>{p.from}</code>
+                          <span className="text-muted-foreground">→</span>
+                          <code className="font-mono flex-1 truncate" title={p.to}>{p.to}</code>
+                          <span className="tabular-nums text-muted-foreground ml-2">{p.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {events && events.length === 0 && (
