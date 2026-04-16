@@ -56,8 +56,25 @@ export default function Index() {
     addChangeLogEntry,
     addChangeLogEntries,
     validationComplete,
+    restore,
     reset,
   } = useImportWizard();
+
+  // Session-Persistenz: Restore-Banner + Auto-Save
+  const { meta: resumeMeta, isChecked: isRestoreChecked, dismiss: dismissResume } = useSessionRestore();
+  useSessionAutoSave({ state, isRestoreDecided: isRestoreChecked });
+
+  const handleResumeSession = useCallback(async () => {
+    const session = await loadSession();
+    if (session) {
+      restore(session.state);
+      toast({
+        title: 'Sitzung wiederhergestellt',
+        description: `${session.state.parseResult?.rows.length ?? 0} Zeilen und ${session.state.changeLog.length} Korrekturen geladen.`,
+      });
+    }
+    await dismissResume();
+  }, [restore, dismissResume, toast]);
 
   const {
     currentStep, maxVisitedStep, importType, subType, parseResult,
