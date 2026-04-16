@@ -1,49 +1,91 @@
 /**
- * IndexedDB-basierter Wizard-Session-Store.
+ * Session persistence via IndexedDB so that browser crashes / accidental
+ * tab closures do not lose validation progress. 100% local, DSG/GDPR
+ * compliant — no data leaves the browser.
  *
- * Ziel: Browser-Crash, Tab-Reload oder versehentlicher Refresh bei laufendem
- * Stammdaten-Import dürfen die manuelle Arbeit (Korrekturen, geladene Datei)
- * nicht zerstören.
- *
- * Daten bleiben 100% lokal (DSG/GDPR-konform) — keine Server-Übertragung.
- * Persistiert wird ausschliesslich der Standard-Wizard (importType ∈ schueler/
- * journal/foerderplaner). Spezialwizards (gruppen, lp-zuweisung, lehrpersonen)
- * haben eigenen Lifecycle und werden NICHT persistiert.
- *
- * Speicher-Schlüssel: einziger Eintrag mit ID 'current' im Object-Store
- * 'wizard-session'. Beim Reset oder Export-Abschluss wird er gelöscht.
+ * Supports a single active session (key = 'current'). Date instances inside
+ * the changeLog are preserved across save/load via JSON serialisation with
+ * an ISO marker.
  */
 
 import type { ImportWizardState } from '@/hooks/useImportWizard';
 
 const DB_NAME = 'pupil-import-wizard';
+const STORE_NAME = 'sessions';
 const DB_VERSION = 1;
-const STORE_NAME = 'wizard-session';
-const SESSION_KEY = 'current';
+const CURRENT_KEY = 'current';
 
-/** Was wir wirklich persistieren — Date-Objekte werden serialisiert */
-export interface PersistedSession {
+export interface SessionRecord {
   state: ImportWizardState;
-  savedAt: number; // epoch ms
-  /** Schema-Version für künftige Migrationen */
-  version: 1;
+  fileName: string | null;
+  savedAt: Date;
 }
 
-/** Meta-Information ohne den vollen State (für Banner) */
 export interface SessionMeta {
-  savedAt: number;
-  importType: string | null;
   fileName: string | null;
   rowCount: number;
-  currentStep: number;
   changeLogCount: number;
+  savedAt: Date;
 }
 
-let dbPromise: Promise<IDBDatabase> | null = null;
+interface StoredSession {
+  state: unknown; // serialised state (Dates → {__date: ISO})
+  fileName: string | null;
+  savedAt: string; // ISO
+}
+
+const DATE_MARKER = '__date';
+
+/**
+ * Recursively walk a value and convert Date instances to a marker object.
+ * We can't use JSON.stringify's replacer because Date.prototype.toJSON
+ * runs BEFORE the replacer, leaving us with a string instead of a Date.
+ */
+function encodeDates(value: unknown): unknown {
+  if (value instanceof Date) {
+    return { [DATE_MARKER]: value.toISOString() };
+  }
+  if (Array.isArray(value)) {
+    return value.map(encodeDates);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = encodeDates(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+function decodeDates(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(decodeDates);
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    if (Object.keys(obj).length === 1 && typeof obj[DATE_MARKER] === 'string') {
+      return new Date(obj[DATE_MARKER] as string);
+    }
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = decodeDates(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+function serialise<T>(data: T): unknown {
+  return encodeDates(data);
+}
+
+function deserialise<T>(data: unknown): T {
+  return decodeDates(data) as T;
+}
 
 function openDb(): Promise<IDBDatabase> {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
       reject(new Error('IndexedDB nicht verfügbar'));
       return;
@@ -56,107 +98,68 @@ function openDb(): Promise<IDBDatabase> {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('IndexedDB öffnen fehlgeschlagen'));
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
   });
-  return dbPromise;
 }
 
-function withStore<T>(
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T> | void
-): Promise<T | undefined> {
+function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T> | void): Promise<T | undefined> {
   return openDb().then(
     (db) =>
       new Promise<T | undefined>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, mode);
-        const store = tx.objectStore(STORE_NAME);
+        const transaction = db.transaction(STORE_NAME, mode);
+        const store = transaction.objectStore(STORE_NAME);
+        let result: T | undefined;
         const req = fn(store);
-        tx.oncomplete = () => resolve((req as IDBRequest<T> | undefined)?.result);
-        tx.onerror = () => reject(tx.error ?? new Error('IndexedDB Transaktion fehlgeschlagen'));
-        tx.onabort = () => reject(tx.error ?? new Error('IndexedDB Transaktion abgebrochen'));
-      })
+        if (req) {
+          req.onsuccess = () => {
+            result = req.result;
+          };
+          req.onerror = () => reject(req.error);
+        }
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(result);
+        };
+        transaction.onerror = () => {
+          db.close();
+          reject(transaction.error);
+        };
+      }),
   );
 }
 
-/** Date-Objekte im changeLog → ISO-Strings für IndexedDB-Serialisierung */
-function serializeState(state: ImportWizardState): ImportWizardState {
+export async function saveSession(state: ImportWizardState, fileName: string | null): Promise<void> {
+  const stored: StoredSession = {
+    state: serialise(state),
+    fileName,
+    savedAt: new Date().toISOString(),
+  };
+  await tx<IDBValidKey>('readwrite', (store) => store.put(stored, CURRENT_KEY));
+}
+
+export async function loadSession(): Promise<SessionRecord | null> {
+  const raw = (await tx<StoredSession | undefined>('readonly', (store) => store.get(CURRENT_KEY))) as
+    | StoredSession
+    | undefined;
+  if (!raw) return null;
   return {
-    ...state,
-    changeLog: state.changeLog.map((e) => ({
-      ...e,
-      timestamp: e.timestamp instanceof Date ? (e.timestamp.toISOString() as unknown as Date) : e.timestamp,
-    })),
+    state: deserialise<ImportWizardState>(raw.state),
+    fileName: raw.fileName ?? null,
+    savedAt: new Date(raw.savedAt),
   };
 }
 
-/** ISO-Strings → Date zurückwandeln */
-function deserializeState(state: ImportWizardState): ImportWizardState {
-  return {
-    ...state,
-    changeLog: state.changeLog.map((e) => ({
-      ...e,
-      timestamp: typeof e.timestamp === 'string' ? new Date(e.timestamp) : e.timestamp,
-    })),
-    // Laufende Validierung darf nach Restore nicht hängenbleiben
-    isValidating: false,
-  };
+export async function clearSession(): Promise<void> {
+  await tx<undefined>('readwrite', (store) => store.delete(CURRENT_KEY));
 }
 
-/**
- * Persistiert den aktuellen Wizard-State.
- * Stille Fehler (z.B. Quota überschritten) werden nicht geworfen — nur geloggt.
- */
-export async function saveSession(state: ImportWizardState): Promise<boolean> {
-  try {
-    const payload: PersistedSession = {
-      state: serializeState(state),
-      savedAt: Date.now(),
-      version: 1,
-    };
-    await withStore('readwrite', (store) => store.put(payload, SESSION_KEY));
-    return true;
-  } catch (err) {
-    console.warn('[sessionStore] save fehlgeschlagen:', err);
-    return false;
-  }
-}
-
-/** Lädt eine zuvor gespeicherte Session, oder null wenn nicht vorhanden. */
-export async function loadSession(): Promise<PersistedSession | null> {
-  try {
-    const result = (await withStore<PersistedSession>('readonly', (store) =>
-      store.get(SESSION_KEY)
-    )) as PersistedSession | undefined;
-    if (!result) return null;
-    return {
-      ...result,
-      state: deserializeState(result.state),
-    };
-  } catch (err) {
-    console.warn('[sessionStore] load fehlgeschlagen:', err);
-    return null;
-  }
-}
-
-/** Lädt nur Metadaten (für Banner, ohne grossen State zu deserialisieren). */
 export async function getSessionMeta(): Promise<SessionMeta | null> {
   const session = await loadSession();
   if (!session) return null;
   return {
+    fileName: session.fileName,
+    rowCount: session.state.correctedRows?.length ?? 0,
+    changeLogCount: session.state.changeLog?.length ?? 0,
     savedAt: session.savedAt,
-    importType: session.state.importType,
-    fileName: session.state.parseResult?.fileName ?? null,
-    rowCount: session.state.parseResult?.rows.length ?? 0,
-    currentStep: session.state.currentStep,
-    changeLogCount: session.state.changeLog.length,
   };
-}
-
-/** Löscht die persistierte Session vollständig. */
-export async function clearSession(): Promise<void> {
-  try {
-    await withStore('readwrite', (store) => store.delete(SESSION_KEY));
-  } catch (err) {
-    console.warn('[sessionStore] clear fehlgeschlagen:', err);
-  }
 }

@@ -12,7 +12,6 @@ import { Step4Preview } from '@/components/import/Step4Preview';
 import { GroupImportWizard } from '@/components/import/GroupImportWizard';
 import { LPImportWizard } from '@/components/import/LPImportWizard';
 import { LehrpersonenImportWizard } from '@/components/import/LehrpersonenImportWizard';
-import { ResumeSessionBanner } from '@/components/import/ResumeSessionBanner';
 import { Footer } from '@/components/layout/Footer';
 import type { ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
@@ -21,8 +20,6 @@ import { checkColumnStatus, validateData } from '@/lib/fileParser';
 import { useCorrectionMemory } from '@/hooks/useCorrectionMemory';
 import { useToast } from '@/hooks/use-toast';
 import { useImportWizard } from '@/hooks/useImportWizard';
-import { useSessionAutoSave, useSessionRestore } from '@/hooks/useSessionPersistence';
-import { loadSession, clearSession } from '@/lib/sessionStore';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
@@ -56,27 +53,8 @@ export default function Index() {
     addChangeLogEntry,
     addChangeLogEntries,
     validationComplete,
-    restore,
     reset,
   } = useImportWizard();
-
-  const { toast } = useToast();
-
-  // Session-Persistenz: Restore-Banner + Auto-Save
-  const { meta: resumeMeta, isChecked: isRestoreChecked, dismiss: dismissResume } = useSessionRestore();
-  useSessionAutoSave({ state, isRestoreDecided: isRestoreChecked });
-
-  const handleResumeSession = useCallback(async () => {
-    const session = await loadSession();
-    if (session) {
-      restore(session.state);
-      toast({
-        title: 'Sitzung wiederhergestellt',
-        description: `${session.state.parseResult?.rows.length ?? 0} Zeilen und ${session.state.changeLog.length} Korrekturen geladen.`,
-      });
-    }
-    await dismissResume();
-  }, [restore, dismissResume, toast]);
 
   const {
     currentStep, maxVisitedStep, importType, subType, parseResult,
@@ -85,6 +63,7 @@ export default function Index() {
     pendingCorrectionRules, autoCorrectionsApplied,
   } = state;
 
+  const { toast } = useToast();
   const correctionMemory = useCorrectionMemory(importType || 'schueler');
 
   const columnDefinitions = importType ? getColumnsByType(importType, subType ?? undefined) : [];
@@ -308,7 +287,6 @@ export default function Index() {
   const handleReset = () => {
     reset();
     initialValidationDone.current = false;
-    clearSession();
   };
 
   const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung' && importType !== 'lehrpersonen';
@@ -345,13 +323,6 @@ export default function Index() {
         )}
 
         <div className="mt-6 space-y-4">
-          {!showSpecialWizard && currentStep === 0 && resumeMeta && (
-            <ResumeSessionBanner
-              meta={resumeMeta}
-              onResume={handleResumeSession}
-              onDismiss={dismissResume}
-            />
-          )}
           {!showSpecialWizard && <StepHelpCard step={currentStep} />}
 
           {currentStep === 0 && (
@@ -385,7 +356,6 @@ export default function Index() {
               onBack={handleBack}
               onNext={handleNext}
               importType={state.importType}
-              expectedColumns={columnDefinitions}
             />
           )}
 

@@ -1055,7 +1055,7 @@ function stripDiacritics(s: string): string {
 
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-32 md:pb-20">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Daten validieren</h2>
         <p className="text-muted-foreground mt-1">
@@ -1063,26 +1063,27 @@ function stripDiacritics(s: string): string {
         </p>
       </div>
 
-      {/* Summary + Progress — sticky auf Mobile, statisch ab md */}
-      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border/40 md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:border-0 space-y-3 md:space-y-4">
+      {/* Sticky-on-mobile container: Summary + progress bar stay visible while scrolling */}
+      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border/40 space-y-3 md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:border-0 md:space-y-6">
+        {/* Summary */}
         <div className={`grid gap-2 md:gap-4 ${nameChangeEntries.length > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
           <div className="p-2 md:p-4 bg-muted rounded-lg text-center">
-            <p className="text-xl md:text-3xl font-bold leading-tight">{rows.length}</p>
-            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Datensätze gesamt</p>
+            <p className="text-xl md:text-3xl font-bold">{rows.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Datensätze gesamt</p>
           </div>
           <div className="p-2 md:p-4 bg-destructive/10 rounded-lg text-center">
-            <p className="text-xl md:text-3xl font-bold text-destructive leading-tight">{uncorrectedErrors.length}</p>
-            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Offene Fehler</p>
+            <p className="text-xl md:text-3xl font-bold text-destructive">{uncorrectedErrors.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Offene Fehler</p>
           </div>
           {nameChangeEntries.length > 0 && (
             <div className="p-2 md:p-4 bg-pupil-warning/10 rounded-lg text-center border border-pupil-warning/20">
-              <p className="text-xl md:text-3xl font-bold text-pupil-warning leading-tight">{nameChangeEntries.length}</p>
-              <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Namenswechsel</p>
+              <p className="text-xl md:text-3xl font-bold text-pupil-warning">{nameChangeEntries.length}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Namenswechsel</p>
             </div>
           )}
           <div className="p-2 md:p-4 bg-pupil-success/10 rounded-lg text-center">
-            <p className="text-xl md:text-3xl font-bold text-pupil-success leading-tight">{correctedErrors.length}</p>
-            <p className="text-[11px] md:text-sm text-muted-foreground leading-tight">Korrigiert</p>
+            <p className="text-xl md:text-3xl font-bold text-pupil-success">{correctedErrors.length}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">Korrigiert</p>
           </div>
         </div>
 
@@ -1092,20 +1093,19 @@ function stripDiacritics(s: string): string {
           return (
             <div className="flex items-center gap-3">
               <Progress value={correctionRate} className="flex-1 h-2" />
-              <span className="text-xs md:text-sm text-muted-foreground shrink-0 md:min-w-[10rem] text-right">
+              <span className="text-xs md:text-sm text-muted-foreground shrink-0 min-w-[8rem] md:min-w-[10rem] text-right">
                 {correctionRate === 100 ? (
                   <span className="text-pupil-success font-medium">✓ Alle behoben</span>
                 ) : correctionRate > 0 ? (
-                  <>{correctionRate}%<span className="hidden md:inline"> der Fehler behoben</span></>
+                  <>{correctionRate}% behoben</>
                 ) : (
-                  <>{errors.length}<span className="hidden md:inline"> Fehler ausstehend</span></>
+                  <>{errors.length} ausstehend</>
                 )}
               </span>
             </div>
           );
         })()}
       </div>
-
 
       {/* Success State - No errors */}
       {errors.length === 0 && (
@@ -1675,33 +1675,33 @@ function stripDiacritics(s: string): string {
           onStartStepByStep={startStepByStep}
         />
       )}
-      {/* Sticky Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
-        <div className="container mx-auto px-4 max-w-5xl py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* Sticky Bottom Navigation Bar — mobile only (desktop uses inline NavigationButtons above) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50 md:hidden">
+        <div className="container mx-auto px-4 max-w-5xl py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             {uncorrectedErrors.length > 0 && (
-              <Badge variant="destructive" className="text-sm px-3 py-1">
+              <Badge variant="destructive" className="text-xs px-2 py-0.5">
                 {uncorrectedErrors.length} offen
               </Badge>
             )}
             {correctedErrors.length > 0 && (
-              <Badge className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1">
-                {correctedErrors.length} korrigiert
+              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                {correctedErrors.length} ok
               </Badge>
             )}
             {errors.length === 0 && (
-              <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
+              <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
                 Keine Fehler
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" size="sm" onClick={onBack}>
               Zurück
             </Button>
-            <Button onClick={onNext} size="lg">
-              Weiter zur Vorschau
+            <Button onClick={onNext} size="sm">
+              Weiter
               {uncorrectedErrors.length > 0 && (
                 <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800 text-xs">
                   {uncorrectedErrors.length} ⚠
