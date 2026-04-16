@@ -26,7 +26,18 @@ function makeState(overrides: Partial<ImportWizardState> = {}): ImportWizardStat
   };
 }
 
-// Reset IndexedDB between tests to avoid cross-pollination.
+function makeChangeLogEntry(overrides: Partial<ChangeLogEntry> = {}): ChangeLogEntry {
+  return {
+    timestamp: new Date(),
+    type: 'manual',
+    row: 2,
+    column: 'S_AHV',
+    originalValue: '',
+    newValue: '',
+    ...overrides,
+  };
+}
+
 beforeEach(async () => {
   await new Promise<void>((resolve) => {
     const req = indexedDB.deleteDatabase('pupil-import-wizard');
@@ -38,13 +49,11 @@ beforeEach(async () => {
 
 describe('sessionStore', () => {
   it('returns null when no session exists', async () => {
-    const result = await loadSession();
-    expect(result).toBeNull();
+    expect(await loadSession()).toBeNull();
   });
 
   it('returns null meta when no session exists', async () => {
-    const meta = await getSessionMeta();
-    expect(meta).toBeNull();
+    expect(await getSessionMeta()).toBeNull();
   });
 
   it('saves and loads a session roundtrip', async () => {
@@ -64,23 +73,22 @@ describe('sessionStore', () => {
 
   it('preserves Date objects inside changeLog across save/load', async () => {
     const ts = new Date('2024-06-15T10:30:00.000Z');
-    const entry: ChangeLogEntry = {
+    const entry = makeChangeLogEntry({
       timestamp: ts,
       row: 5,
       column: 'S_AHV',
       originalValue: '7561234567890',
       newValue: '756.1234.5678.90',
       type: 'auto',
-    } as ChangeLogEntry;
+    });
 
-    const state = makeState({ changeLog: [entry] });
-    await saveSession(state, 'test.csv');
+    await saveSession(makeState({ changeLog: [entry] }), 'test.csv');
 
     const loaded = await loadSession();
     expect(loaded?.state.changeLog).toHaveLength(1);
     const restored = loaded!.state.changeLog[0];
     expect(restored.timestamp).toBeInstanceOf(Date);
-    expect((restored.timestamp as Date).toISOString()).toBe(ts.toISOString());
+    expect(restored.timestamp.toISOString()).toBe(ts.toISOString());
     expect(restored.column).toBe('S_AHV');
     expect(restored.newValue).toBe('756.1234.5678.90');
   });
@@ -104,14 +112,10 @@ describe('sessionStore', () => {
 
   it('getSessionMeta returns correct metadata', async () => {
     const state = makeState({
-      correctedRows: [
-        { S_Name: 'A' },
-        { S_Name: 'B' },
-        { S_Name: 'C' },
-      ],
+      correctedRows: [{ S_Name: 'A' }, { S_Name: 'B' }, { S_Name: 'C' }],
       changeLog: [
-        { timestamp: new Date(), row: 2, column: 'X', originalValue: '', oldValue: "", newValue: '', type: 'manual' } as ChangeLogEntry,
-        { timestamp: new Date(), row: 3, column: 'Y', originalValue: '', oldValue: "", newValue: '', type: 'auto' } as ChangeLogEntry,
+        makeChangeLogEntry({ row: 2, column: 'X', type: 'manual' }),
+        makeChangeLogEntry({ row: 3, column: 'Y', type: 'auto' }),
       ],
     });
     await saveSession(state, 'meta-test.xlsx');
@@ -126,11 +130,8 @@ describe('sessionStore', () => {
 
   it('handles null fileName', async () => {
     await saveSession(makeState(), null);
-    const loaded = await loadSession();
-    expect(loaded?.fileName).toBeNull();
-
-    const meta = await getSessionMeta();
-    expect(meta?.fileName).toBeNull();
+    expect((await loadSession())?.fileName).toBeNull();
+    expect((await getSessionMeta())?.fileName).toBeNull();
   });
 
   it('preserves nested Date objects in arrays', async () => {
@@ -140,21 +141,16 @@ describe('sessionStore', () => {
       new Date('2024-03-01T00:00:00.000Z'),
     ];
     const state = makeState({
-      changeLog: dates.map((d, i) => ({
-        timestamp: d,
-        row: i + 2,
-        column: 'C',
-        originalValue: '',
-        newValue: String(i),
-        type: 'manual',
-      })) as ChangeLogEntry[],
+      changeLog: dates.map((d, i) =>
+        makeChangeLogEntry({ timestamp: d, row: i + 2, column: 'C', newValue: String(i) }),
+      ),
     });
     await saveSession(state, 'dates.csv');
 
     const loaded = await loadSession();
     loaded?.state.changeLog.forEach((entry, i) => {
       expect(entry.timestamp).toBeInstanceOf(Date);
-      expect((entry.timestamp as Date).toISOString()).toBe(dates[i].toISOString());
+      expect(entry.timestamp.toISOString()).toBe(dates[i].toISOString());
     });
   });
 });
