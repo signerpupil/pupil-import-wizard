@@ -258,6 +258,13 @@ export default function Index() {
         newValue: value,
         studentName: getStudentName(rowIndex),
       });
+
+      // Telemetry: only track true manual corrections (not bulk/auto)
+      if (correctionType === 'manual') {
+        import('@/lib/telemetryCollectors').then(m => {
+          m.bufferManualCorrection(column, originalValue, value);
+        });
+      }
     }
 
     correctError(rowIndex, column, value);
