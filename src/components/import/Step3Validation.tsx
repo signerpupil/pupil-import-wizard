@@ -1675,33 +1675,33 @@ function stripDiacritics(s: string): string {
           onStartStepByStep={startStepByStep}
         />
       )}
-      {/* Sticky Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
-        <div className="container mx-auto px-4 max-w-5xl py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* Sticky Bottom Navigation Bar — mobile only (desktop uses inline NavigationButtons above) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50 md:hidden">
+        <div className="container mx-auto px-4 max-w-5xl py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             {uncorrectedErrors.length > 0 && (
-              <Badge variant="destructive" className="text-sm px-3 py-1">
+              <Badge variant="destructive" className="text-xs px-2 py-0.5">
                 {uncorrectedErrors.length} offen
               </Badge>
             )}
             {correctedErrors.length > 0 && (
-              <Badge className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1">
-                {correctedErrors.length} korrigiert
+              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+                {correctedErrors.length} ok
               </Badge>
             )}
             {errors.length === 0 && (
-              <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
+              <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
                 Keine Fehler
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" size="sm" onClick={onBack}>
               Zurück
             </Button>
-            <Button onClick={onNext} size="lg">
-              Weiter zur Vorschau
+            <Button onClick={onNext} size="sm">
+              Weiter
               {uncorrectedErrors.length > 0 && (
                 <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800 text-xs">
                   {uncorrectedErrors.length} ⚠
