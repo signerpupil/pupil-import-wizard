@@ -1,4 +1,5 @@
 import { useReducer, useCallback, useEffect, useRef } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import type { ImportType, FoerderplanerSubType, ParsedRow, ValidationError, ColumnStatus, ColumnDefinition, ChangeLogEntry } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
 import type { ParseResult } from '@/lib/fileParser';
@@ -170,7 +171,11 @@ export function useImportWizard() {
   const addChangeLogEntry = useCallback((entry: ChangeLogEntry) => dispatch({ type: 'ADD_CHANGELOG_ENTRY', entry }), []);
   const addChangeLogEntries = useCallback((entries: ChangeLogEntry[]) => dispatch({ type: 'ADD_CHANGELOG_ENTRIES', entries }), []);
   const validationComplete = useCallback((errors: ValidationError[], rows: ParsedRow[]) => dispatch({ type: 'VALIDATION_COMPLETE', errors, rows }), []);
-  const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
+  const reset = useCallback(() => {
+    trackEvent({ type: 'import_reset' } as never);
+    trackEvent({ event_type: 'import_reset' });
+    dispatch({ type: 'RESET' });
+  }, []);
 
   return {
     state,
