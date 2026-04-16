@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
 import type { ValidationError } from '@/types/importTypes';
+import { ErrorExplanation } from './ErrorExplanation';
 
 interface ErrorTableProps {
   errors: ValidationError[];
@@ -135,6 +136,9 @@ export function ErrorTable({
                 <div className="flex items-center gap-3">
                   {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
                   <code className="text-sm font-semibold font-mono">{column}</code>
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <ErrorExplanation column={column} variant="icon" />
+                  </span>
                   <div className="flex items-center gap-1.5">
                     {uncorrected.length > 0 && (
                       <Badge variant="destructive" className="text-xs">{uncorrected.length} offen</Badge>
@@ -198,18 +202,21 @@ export function ErrorTable({
                               )}
                             </TableCell>
                             <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant={isCorrected ? 'secondary' : 'destructive'} className="cursor-help max-w-[180px] truncate inline-block">
-                                      {shortMessage}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  {error.message.length > 45 && (
-                                    <TooltipContent side="top" className="max-w-sm text-xs">{error.message}</TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
+                              <div className="inline-flex items-center gap-1.5">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant={isCorrected ? 'secondary' : 'destructive'} className="cursor-help max-w-[180px] truncate inline-block">
+                                        {shortMessage}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    {error.message.length > 45 && (
+                                      <TooltipContent side="top" className="max-w-sm text-xs">{error.message}</TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <ErrorExplanation column={error.column} message={error.message} variant="inline" />
+                              </div>
                             </TableCell>
                             <TableCell>
                               {isLanguageCol && !isCorrected ? (
