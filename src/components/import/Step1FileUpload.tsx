@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Upload, FileSpreadsheet, X, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,9 +6,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { parseFile, mergeParseResults, type ParseResult } from '@/lib/fileParser';
+import { runPreflightCheck } from '@/lib/preflightCheck';
+import type { ColumnDefinition } from '@/types/importTypes';
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { StammdatenInstructionGuide } from './StammdatenInstructionGuide';
+import { PreflightCheckCard } from './PreflightCheckCard';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
@@ -16,6 +19,7 @@ interface Step1FileUploadProps {
   onNext: () => void;
   parseResult: ParseResult | null;
   importType?: string;
+  expectedColumns?: ColumnDefinition[];
 }
 
 interface LoadedFile {
@@ -29,11 +33,19 @@ export function Step1FileUpload({
   onNext,
   parseResult,
   importType,
+  expectedColumns,
 }: Step1FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedFiles, setLoadedFiles] = useState<LoadedFile[]>([]);
+
+  const preflightResult = useMemo(() => {
+    if (!parseResult || !parseResult.fileName) return null;
+    return runPreflightCheck(parseResult, expectedColumns ?? []);
+  }, [parseResult, expectedColumns]);
+
+  const preflightBlocks = preflightResult?.hasErrors ?? false;
 
   const processFiles = useCallback(async (files: File[]) => {
     setIsLoading(true);
@@ -247,10 +259,12 @@ export function Step1FileUpload({
             </CardContent>
           </Card>
 
+          {preflightResult && <PreflightCheckCard result={preflightResult} />}
+
           <NavigationButtons
             onBack={onBack}
             onNext={onNext}
-            nextDisabled={!parseResult?.fileName}
+            nextDisabled={!parseResult?.fileName || preflightBlocks}
             size="lg"
           />
 
