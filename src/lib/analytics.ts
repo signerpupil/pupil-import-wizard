@@ -91,7 +91,7 @@ export function trackEvent(event: UsageEventPayload): void {
       event_type: event.event_type,
       import_type: event.import_type ?? null,
       step_number: event.step_number ?? null,
-      payload: event.payload ?? {},
+      payload: (event.payload ?? {}) as never,
       app_version: APP_VERSION,
       session_id: getSessionId(),
     };
