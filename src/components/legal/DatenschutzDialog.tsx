@@ -90,8 +90,17 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
               <p className="text-muted-foreground mt-2">
                 <strong>Niemals übertragen werden:</strong> Schüler- oder Elterndaten, Namen, AHV-Nummern,
                 IDs, E-Mails, Telefonnummern, Adressen, Dateinamen oder echte Roh-Werte aus Spalten mit
-                Personenbezug. Sie können diese Erfassung jederzeit über den Schalter im Footer deaktivieren.
+                Personenbezug.
               </p>
+              <p className="text-muted-foreground mt-2">
+                <strong>Sie haben volle Kontrolle</strong> über das Senden dieser Daten. Im Footer
+                können Sie zwischen drei Modi wählen:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
+                <li><strong>Automatisch senden</strong> – Ereignisse werden direkt im Hintergrund übermittelt.</li>
+                <li><strong>Manuell senden</strong> – Ereignisse werden lokal gesammelt; Sie sehen vor dem Senden eine vollständige Vorschau und entscheiden selbst, ob übermittelt wird.</li>
+                <li><strong>Deaktiviert</strong> – Es werden keinerlei Nutzungsdaten erfasst.</li>
+              </ul>
             </section>
 
             <section>
