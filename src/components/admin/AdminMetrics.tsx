@@ -198,6 +198,44 @@ export function AdminMetrics() {
       .sort((a, b) => b.total - a.total);
   }, [events]);
 
+  // Aggregate manual corrections (mask → mask) per column.
+  const manualCorrectionsByColumn = useMemo(() => {
+    if (!events) return [];
+    // column -> "from||to" -> count
+    const byCol = new Map<string, Map<string, number>>();
+    for (const e of events) {
+      if (e.event_type !== 'manual_correction') continue;
+      const corrections = ((e.payload ?? {}) as Record<string, unknown>).corrections;
+      if (!corrections || typeof corrections !== 'object') continue;
+      for (const [column, arr] of Object.entries(corrections as Record<string, Array<{ from: string; to: string; count: number }>>)) {
+        if (!Array.isArray(arr)) continue;
+        let inner = byCol.get(column);
+        if (!inner) {
+          inner = new Map<string, number>();
+          byCol.set(column, inner);
+        }
+        for (const item of arr) {
+          if (!item || typeof item.from !== 'string' || typeof item.to !== 'string' || typeof item.count !== 'number') continue;
+          const key = `${item.from}||${item.to}`;
+          inner.set(key, (inner.get(key) ?? 0) + item.count);
+        }
+      }
+    }
+    return Array.from(byCol.entries())
+      .map(([column, inner]) => ({
+        column,
+        total: Array.from(inner.values()).reduce((a, b) => a + b, 0),
+        pairs: Array.from(inner.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([key, count]) => {
+            const [from, to] = key.split('||', 2);
+            return { from, to, count };
+          }),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [events]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
