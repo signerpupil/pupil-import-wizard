@@ -1,20 +1,27 @@
 /**
  * Anonymous usage telemetry.
  *
- * Sends fire-and-forget events to Lovable Cloud (`usage_events` table).
+ * Three modes (localStorage `analytics-mode`):
+ *  - 'auto'   → fire-and-forget direct insert (default).
+ *  - 'manual' → buffered into local queue, sent only on user action.
+ *  - 'off'    → completely disabled.
+ *
  * Strict rules:
  *  - NEVER include personal data (names, AHV, IDs, file names, cell values).
  *  - Only counters, bucket sizes, event types and step numbers.
- *  - Users can opt out via localStorage (`analytics-opt-out` = `'1'`).
  *  - Session ID is a per-tab UUID (sessionStorage), not persistent across tabs.
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { enqueuePendingEvent, clearPendingEvents } from './pendingTelemetry';
 
 const SESSION_KEY = 'analytics-session-id';
-const OPT_OUT_KEY = 'analytics-opt-out';
+const MODE_KEY = 'analytics-mode';
+const LEGACY_OPT_OUT_KEY = 'analytics-opt-out';
 const APP_VERSION =
   (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 'dev';
+
+export type AnalyticsMode = 'auto' | 'manual' | 'off';
 
 export type UsageEventType =
   | 'app_loaded'
@@ -50,15 +57,40 @@ function safeLocalStorage(): Storage | null {
   }
 }
 
-export function isOptedOut(): boolean {
-  return safeLocalStorage()?.getItem(OPT_OUT_KEY) === '1';
+export function getAnalyticsMode(): AnalyticsMode {
+  const ls = safeLocalStorage();
+  if (!ls) return 'auto';
+  const v = ls.getItem(MODE_KEY);
+  if (v === 'auto' || v === 'manual' || v === 'off') return v;
+  // Backward-compat: migrate legacy opt-out flag.
+  if (ls.getItem(LEGACY_OPT_OUT_KEY) === '1') {
+    ls.setItem(MODE_KEY, 'off');
+    return 'off';
+  }
+  return 'auto';
 }
 
-export function setOptOut(value: boolean): void {
+export function setAnalyticsMode(mode: AnalyticsMode): void {
   const ls = safeLocalStorage();
   if (!ls) return;
-  if (value) ls.setItem(OPT_OUT_KEY, '1');
-  else ls.removeItem(OPT_OUT_KEY);
+  ls.setItem(MODE_KEY, mode);
+  ls.removeItem(LEGACY_OPT_OUT_KEY);
+  if (mode === 'off') {
+    clearPendingEvents();
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('analytics-mode-changed'));
+  }
+}
+
+/** @deprecated Use getAnalyticsMode() === 'off' */
+export function isOptedOut(): boolean {
+  return getAnalyticsMode() === 'off';
+}
+
+/** @deprecated Use setAnalyticsMode('off' | 'auto') */
+export function setOptOut(value: boolean): void {
+  setAnalyticsMode(value ? 'off' : 'auto');
 }
 
 function getSessionId(): string {
@@ -72,9 +104,6 @@ function getSessionId(): string {
   return id;
 }
 
-/**
- * Bucket the row count to avoid leaking exact dataset sizes.
- */
 export function rowCountBucket(n: number): string {
   if (n < 100) return '<100';
   if (n < 500) return '100-500';
@@ -85,24 +114,31 @@ export function rowCountBucket(n: number): string {
 
 /**
  * Fire-and-forget telemetry. Never throws, never blocks the UI.
+ * Routes through queue or direct insert depending on mode.
  */
 export function trackEvent(event: UsageEventPayload): void {
-  if (isOptedOut()) return;
+  const mode = getAnalyticsMode();
+  if (mode === 'off') return;
 
   try {
     const row = {
       event_type: event.event_type,
       import_type: event.import_type ?? null,
       step_number: event.step_number ?? null,
-      payload: (event.payload ?? {}) as never,
+      payload: (event.payload ?? {}) as Record<string, unknown>,
       app_version: APP_VERSION,
       session_id: getSessionId(),
     };
 
-    // Fire and forget – ignore errors silently.
+    if (mode === 'manual') {
+      enqueuePendingEvent(row);
+      return;
+    }
+
+    // auto mode → fire and forget
     void supabase
       .from('usage_events')
-      .insert([row])
+      .insert([row as never])
       .then(({ error }) => {
         if (error && import.meta.env.DEV) {
           // eslint-disable-next-line no-console
@@ -110,6 +146,6 @@ export function trackEvent(event: UsageEventPayload): void {
         }
       });
   } catch {
-    // Swallow all errors – telemetry must never break the app.
+    /* telemetry must never break the app */
   }
 }
