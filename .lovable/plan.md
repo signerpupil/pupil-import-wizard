@@ -1,81 +1,46 @@
+## Ziel
 
-Der User möchte einen **manuellen Sende-Knopf** für die anonymisierten Telemetriedaten — als Alternative oder Ergänzung zum automatischen Tracking. So entscheidet jeder Nutzer aktiv, ob er Daten teilt.
+1. Neuer Importbereich **«Stammdaten Lehrpersonen»** an **erster Position** der Auswahl-Kacheln (vor «Stammdaten SuS und EZB»).
+2. Bestehender Bereich **«Stammdaten»** wird umbenannt zu **«Stammdaten SuS und EZB»**.
+3. Bestehender Bereich «Lehrpersonen» (LehrerOffice → PUPIL) bleibt unverändert.
 
-## Designentscheidung: Opt-In-Modus statt Auto-Send
+## Verhalten des neuen Bereichs
 
-Aktuell läuft Telemetrie automatisch (Opt-out). Der Wunsch impliziert ein **stärker nutzerkontrolliertes Modell**. Ich schlage einen **Drei-Modi-Schalter** im Footer vor:
+Vereinfachter 2-Schritt-Wizard (Datei hochladen → Export):
 
-1. **Automatisch senden** (heutiges Verhalten, Opt-out via Toggle)
-2. **Manuell senden** (sammelt lokal, sendet erst auf Knopfdruck)
-3. **Nichts senden** (heutiger Opt-out)
+- **Eingabe**: Original-LehrerOffice-Export (48 Spalten, identisches Schema wie bestehender Lehrpersonen-Import).
+- **Header-Mapping**: positionell, identisch zur Musterdatei `Bereinigter_Export_Lehrpersonen.xlsx` Zeile 1 (52 Spalten – am Ende kommen 4 zusätzliche leere Spalten dazu). Mapping z.B. `Q_System→IDVRSG`, `L_AHV→AHV-V-Nr`, `L_ID→LID`, `L_Name→Name`, `L_Vorname→Vorname`, `L_Geschlecht→Ges`, `L_Geburtsdatum→Geb`, `L_Funktion→Beruf`, `L_Nationalitaet→Nationalitaet`, `L_Mobil→Natel`, `L_Eintritt→Eintritt`, `L_Anrede→Anrede`, `L_Privat_Strasse→Strasse`, `L_Privat_PLZ→Plz`, `L_Privat_Ort→Ort`, `L_Privat_Land→Land`, `L_Privat_EMail→EMail_P`, `L_Privat_Telefon→Tel_P`, `L_Schule_EMail→EMail_G`, `L_Schule_Telefon→Tel_G`. Restliche Spalten: leerer Header (Daten bleiben erhalten in Spalten ohne Header).
+- **Beruf-Spalte (L_Funktion)**: für **alle befüllten Datenzeilen** wird der Wert mit `"Spezial - Deaktiviert"` überschrieben.
+- **Standard-User-Zeile** wird **fix** als Zeile 3 eingefügt (Inhalt aus Musterdatei):
+  - `LID=PUP6546654679797`, `Name=Testuser`, `Vorname=Pupil`, `Ges=m `, `Geb=01.01.1990`, `Beruf=Spezial - Deaktiviert`, `EMail_G=lp@einfach.schule`, restliche Felder leer.
+- **Reihenfolge**: Zeile 1 = Headerzeile, Zeile 2 = Standard-User, Zeile 3+ = transformierte LO-Daten.
+- **Export-Dateiname**: `<originalname>_Bereinigt.xlsx` bzw. `Stammdaten_Lehrpersonen_Bereinigt_<YYYY-MM-DD>.xlsx`.
 
-Der manuelle Modus ist der neue dritte Pfad.
+## Technische Umsetzung
 
-## So funktioniert "Manuell senden"
+### Neue Dateien
+- `src/lib/stammdatenLehrpersonenExport.ts` — Header-Mapping (52 Spalten), Standard-User-Konstante, `exportStammdatenLehrpersonenToXlsx()` mit ExcelJS analog zu `lehrpersonenExport.ts`. Alle Werte über `sanitizeCellValue` und Spalten-Format `@` für Datums-/Zahlentreue.
+- `src/components/import/StammdatenLehrpersonenImportWizard.tsx` — Neuer Wizard (Schritt 1 Upload via `Step1FileUpload`, Schritt 2 kompakte Vorschau + Export-Button). Keine Beruf-Auswahl, keine Zellenedition.
 
-### Sammlung im Browser
-- Alle anonymisierten Events (`unmapped_value`, `unfixed_pattern`, `manual_correction`, `validation_completed`, `export_completed` etc.) werden statt direkt gesendet **in einen lokalen Puffer in `localStorage`** geschrieben (Key: `analytics-pending-queue`).
-- Maximal 200 Events / 100 KB im Puffer (älteste werden verdrängt).
-- Der Puffer überlebt Tab-Schließen und Reloads.
+### Änderungen
+- `src/types/importTypes.ts`
+  - `ImportType` um `'stammdaten-lehrpersonen'` erweitern.
+  - In `importConfigs`: neuer Eintrag mit `name: 'Stammdaten Lehrpersonen'`, Icon `UserCog` (oder `BookUser`).
+  - Bestehenden Eintrag `type: 'schueler'` umbenennen: `name: 'Stammdaten SuS und EZB'`.
+- `src/components/import/Step0TypeSelect.tsx`
+  - `iconMap` ggf. erweitern.
+  - Filter `.filter(...)` ergänzt um `'stammdaten-lehrpersonen'`.
+  - Reihenfolge im Grid sicherstellen: Stammdaten Lehrpersonen → Stammdaten SuS und EZB → Gruppenzuweisungen → LP-Klassenzuweisungen → Lehrpersonen. (Über expliziten Sortier-Array statt importConfigs-Reihenfolge.)
+  - `isSpecialType` um neuen Typ ergänzen.
+- `src/pages/Index.tsx`
+  - Neue Variable `showStammdatenLPWizard` und in `showSpecialWizard`/`showSummary` einbinden.
+  - Komponente einbinden: `{showStammdatenLPWizard && <StammdatenLehrpersonenImportWizard onReset={handleReset} />}`.
+- `src/components/import/WizardSummary.tsx` / `getImportTypeName` in Index.tsx funktionieren automatisch via `importConfigs`.
 
-### UI-Anzeige
-- Im Footer erscheint im manuellen Modus zusätzlich ein Badge: **"X anonyme Ereignisse bereit zum Senden"** mit zwei Buttons:
-  - **"Vorschau anzeigen"** → Dialog mit lesbarem JSON aller gepufferten Events (volle Transparenz, der User sieht GENAU was übermittelt wird).
-  - **"Jetzt senden"** → schickt alle Events als Batch an Supabase, leert Puffer, zeigt Toast.
-  - **"Verwerfen"** → leert Puffer ohne zu senden.
+### Memory
+- `mem://index.md`: Eintrag «User Guidance and Naming» aktualisieren (Stammdaten → «Stammdaten SuS und EZB»).
+- Neue Memory-Datei `mem://features/stammdaten-lehrpersonen-export` mit Standard-User-Daten + fixem Beruf.
 
-### Vorschau-Dialog
-- Listet alle gepufferten Events strukturiert auf (Event-Typ, Zeitpunkt, Payload formatiert).
-- Hinweis-Banner oben: "Diese Daten enthalten ausschliesslich anonymisierte Maskenzeichen und Häufigkeitszähler — keine Personendaten."
-- Optional: Einzel-Event löschen ("Diesen Eintrag entfernen").
-
-## Implementation
-
-### 1. Neuer Modus-State (`src/lib/analytics.ts`)
-- Erweitere `localStorage` um Key `analytics-mode` mit Werten `auto` | `manual` | `off`.
-- Ersetze `isOptedOut()` durch `getAnalyticsMode()`. Bestehende `analytics-opt-out=1` wird zu `off` migriert (Backward-Compat).
-- `trackEvent()` verzweigt:
-  - `off` → noop
-  - `auto` → direktes Insert (heute)
-  - `manual` → in Puffer schreiben (`enqueuePendingEvent`)
-
-### 2. Lokaler Puffer (`src/lib/pendingTelemetry.ts` — neu)
-- `enqueuePendingEvent(event)` — schreibt in localStorage mit Cap.
-- `getPendingEvents()` — liest alle.
-- `clearPendingEvents()` — leert.
-- `removePendingEvent(id)` — einzeln löschen.
-- `flushPendingToSupabase()` — Batch-Insert via `supabase.from('usage_events').insert(rows)`, leert bei Erfolg.
-- Custom-Event `analytics-queue-changed` für UI-Updates.
-
-### 3. Footer-Erweiterung (`src/components/layout/Footer.tsx`)
-- `Switch` → `RadioGroup` oder `Select` mit drei Optionen.
-- Wenn Modus = `manual` und Puffer > 0: zusätzliche Zeile mit Counter-Badge + Buttons "Vorschau" / "Senden" / "Verwerfen".
-
-### 4. Vorschau-Dialog (`src/components/analytics/PendingTelemetryDialog.tsx` — neu)
-- Standard `Dialog` mit ScrollArea.
-- Pro Event: Card mit Event-Typ, Zeitstempel, formatiertem JSON-Payload (read-only).
-- Footer-Buttons: "Alle senden", "Alle verwerfen", "Schliessen".
-
-### 5. Datenschutz-Update (`DatenschutzDialog.tsx`)
-- Sektion 4a ergänzen: "Sie können wählen zwischen automatischem Senden, manuellem Senden (mit Vorschau) oder vollständig deaktiviert."
-
-### 6. Memory-Update
-- `mem://features/usage-telemetry.md` um den neuen Modus + Puffer-Mechanismus erweitern.
-
-## Datenschutz / Sicherheit
-
-- Puffer-Inhalte sind **bereits anonymisiert** (gleiche Regeln wie heute: Roh-Werte nur für Sprache/Nationalität/PLZ, sonst Maske).
-- Im manuellen Modus liegen Maskenzeichen kurzzeitig in `localStorage` — KEIN Personenbezug, da die Anonymisierung **vor** dem Puffern passiert.
-- Vorschau zeigt 1:1 was gesendet wird → maximale Transparenz.
-- Beim Wechsel zu `off` wird der Puffer automatisch geleert.
-
-## Datenbank
-**Keine Änderungen nötig.** Bestehende `usage_events`-Tabelle und Insert-Policy reichen — der Batch-Insert nutzt denselben Pfad.
-
-## Offene Punkte
-
-1. **Default-Modus für neue Nutzer**: weiterhin `auto` (wie heute) oder neuer Default `manual`? Empfehlung: `auto` beibehalten, damit bestehende Telemetrie nicht abreisst. Aber im Datenschutz-Dialog prominent auf den manuellen Modus hinweisen.
-2. **Wo genau im UI**: Footer-Erweiterung okay, oder lieber separater Knopf neben "Hilfe & FAQ"? Empfehlung: im Footer, da dort schon der Toggle sitzt.
-3. **Vorschau-Detailgrad**: Volles JSON oder nur Zusammenfassung (z.B. "12 unmapped languages, 5 manual corrections")? Empfehlung: beides — Zusammenfassung oben, ausklappbares Detail-JSON darunter.
-
-Nach Bestätigung dieser drei Punkte (oder Freigabe wie vorgeschlagen) setze ich um.
+## Nicht im Scope
+- Validierung/Auto-Korrekturen für den neuen Bereich (analog bestehendem schlanken Lehrpersonen-Wizard nicht nötig).
+- Änderungen am bestehenden «Lehrpersonen»-Bereich.

@@ -65,7 +65,7 @@ export function Step0TypeSelect({
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
 
-  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'lehrpersonen';
+  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'lehrpersonen' || selectedType === 'stammdaten-lehrpersonen';
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
     (isSpecialType ||
@@ -94,8 +94,9 @@ export function Step0TypeSelect({
 
       {/* Import Type Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {importConfigs
-          .filter((config) => config.type === 'schueler' || config.type === 'gruppen' || config.type === 'lp-zuweisung' || config.type === 'lehrpersonen')
+        {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung', 'lehrpersonen'] as const)
+          .map(t => importConfigs.find(c => c.type === t))
+          .filter((c): c is NonNullable<typeof c> => !!c)
           .map((config) => {
             const Icon = iconMap[config.icon as keyof typeof iconMap];
             const isSelected = selectedType === config.type;
