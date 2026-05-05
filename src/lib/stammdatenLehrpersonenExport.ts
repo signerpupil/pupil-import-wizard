@@ -83,13 +83,13 @@ export function buildOutputRows(
     const out: string[] = Array.from({ length: STAMMDATEN_LP_TOTAL_COLS }, () => '');
     originalHeaders.forEach((h, idx) => {
       if (idx >= STAMMDATEN_LP_TOTAL_COLS) return;
-      let raw = formatCellValue(row[h]);
-      // Beruf column: overwrite when the source cell is populated
-      if (idx + 1 === BERUF_COL_INDEX && raw.trim() !== '') {
-        raw = BERUF_FIXED_VALUE;
-      }
+      const raw = formatCellValue(row[h]);
       out[idx] = sanitizeCellValue(raw);
     });
+    // Beruf (Spalte P) wird auf fixen Wert gesetzt, sobald Spalte E (LID) befüllt ist
+    if (out[4] && out[4].trim() !== '') {
+      out[BERUF_COL_INDEX - 1] = sanitizeCellValue(BERUF_FIXED_VALUE);
+    }
     return out;
   });
 
