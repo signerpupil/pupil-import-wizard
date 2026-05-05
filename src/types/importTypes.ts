@@ -1,7 +1,7 @@
 // Import Types & Field Definitions for PUPIL Import Wizard
 // Spalten werden NICHT umbenannt - nur validiert
 
-export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen' | 'lp-zuweisung' | 'lehrpersonen';
+export type ImportType = 'schueler' | 'journal' | 'foerderplaner' | 'gruppen' | 'lp-zuweisung' | 'lehrpersonen' | 'stammdaten-lehrpersonen';
 export type FoerderplanerSubType = 'diagnostik' | 'foerderplanung' | 'lernberichte';
 
 export interface ColumnDefinition {
@@ -292,7 +292,7 @@ export function getColumnsByType(type: ImportType, subType?: FoerderplanerSubTyp
 export const importConfigs: ImportConfig[] = [
   {
     type: 'schueler',
-    name: 'Stammdaten',
+    name: 'Stammdaten SuS und EZB',
     description: 'Schüler, Erziehungsberechtigte und Klassen importieren',
     icon: 'Users',
     columns: schuelerColumns,
@@ -329,6 +329,13 @@ export const importConfigs: ImportConfig[] = [
     type: 'lehrpersonen',
     name: 'Lehrpersonen',
     description: 'Lehrpersonen aus LehrerOffice exportieren und für PUPIL aufbereiten',
+    icon: 'UserCog',
+    columns: [],
+  },
+  {
+    type: 'stammdaten-lehrpersonen',
+    name: 'Stammdaten Lehrpersonen',
+    description: 'LehrerOffice-Export bereinigen, Standard-User einfügen und Beruf auf «Spezial - Deaktiviert» setzen',
     icon: 'UserCog',
     columns: [],
   },
