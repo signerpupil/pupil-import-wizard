@@ -164,7 +164,7 @@ export function StammdatenLehrpersonenImportWizard({ onReset }: Props) {
           </Card>
 
           <div className="flex flex-wrap gap-3 justify-between items-center">
-            <NavigationButtons onBack={handleBack} hideNext />
+            <NavigationButtons onBack={handleBack} showNext={false} />
             <Button onClick={handleExport} disabled={isExporting} size="lg">
               <Download className="mr-2 h-4 w-4" />
               {isExporting ? 'Export läuft…' : 'XLSX herunterladen'}
