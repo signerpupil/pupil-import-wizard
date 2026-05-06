@@ -2583,6 +2583,12 @@ function buildCorrectionMap(errors: ValidationError[]): Map<string, string> {
 }
 
 // Export to CSV - keeps original column names
+const DEFAULT_KL1_VALUES: Record<string, string> = {
+  L_KL1_ID: 'PUP6546654679797',
+  L_KL1_Name: 'Testuser',
+  L_KL1_Vorname: 'Pupil',
+};
+
 export function exportToCSV(
   rows: ParsedRow[],
   headers: string[],
