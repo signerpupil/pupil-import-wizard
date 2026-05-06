@@ -2596,6 +2596,10 @@ export function exportToCSV(
 ): void {
   const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
   const correctionMap = buildCorrectionMap(errors);
+  const hasDefaultKL1 = headers.includes('S_ID')
+    && headers.includes('L_KL1_ID')
+    && headers.includes('L_KL1_Name')
+    && headers.includes('L_KL1_Vorname');
 
   // Filter rows if onlyErrorFree, keeping track of original row numbers
   let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 2 }));
@@ -2629,7 +2633,14 @@ export function exportToCSV(
       const corrected = correctionMap.get(`${rowNum}:${header}`);
       if (corrected !== undefined) return escapeCSVValue(corrected);
       const value = row[header];
-      return escapeCSVValue(value !== null && value !== undefined ? String(value) : '');
+      const str = value !== null && value !== undefined ? String(value) : '';
+      if (hasDefaultKL1 && (header === 'L_KL1_ID' || header === 'L_KL1_Name' || header === 'L_KL1_Vorname')) {
+        const sId = String(row['S_ID'] ?? '').trim();
+        if (sId !== '' && str.trim() === '') {
+          return escapeCSVValue(DEFAULT_KL1_VALUES[header]);
+        }
+      }
+      return escapeCSVValue(str);
     });
     csvLines.push(values.join(';'));
   });
@@ -2658,6 +2669,10 @@ export async function exportToExcel(
 ): Promise<void> {
   const { onlyErrorFree = false, errors = [], removeExtraColumns = false, expectedColumns = [] } = options;
   const correctionMap = buildCorrectionMap(errors);
+  const hasDefaultKL1 = headers.includes('S_ID')
+    && headers.includes('L_KL1_ID')
+    && headers.includes('L_KL1_Name')
+    && headers.includes('L_KL1_Vorname');
 
   // Filter rows if onlyErrorFree, keeping track of original row numbers
   let exportRowsWithIndex: { row: ParsedRow; rowNum: number }[] = rows.map((r, i) => ({ row: r, rowNum: i + 2 }));
@@ -2691,7 +2706,14 @@ export async function exportToExcel(
       const corrected = correctionMap.get(`${rowNum}:${header}`);
       if (corrected !== undefined) return sanitizeCellValue(corrected);
       const value = row[header];
-      return value !== null && value !== undefined ? sanitizeCellValue(String(value)) : '';
+      const str = value !== null && value !== undefined ? String(value) : '';
+      if (hasDefaultKL1 && (header === 'L_KL1_ID' || header === 'L_KL1_Name' || header === 'L_KL1_Vorname')) {
+        const sId = String(row['S_ID'] ?? '').trim();
+        if (sId !== '' && str.trim() === '') {
+          return sanitizeCellValue(DEFAULT_KL1_VALUES[header]);
+        }
+      }
+      return sanitizeCellValue(str);
     });
     const addedRow = worksheet.addRow(values);
     // Ensure each cell is explicitly typed as string to prevent date auto-detection
