@@ -65,7 +65,7 @@ export function Step0TypeSelect({
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
   }, [processingMode, correctionSource]);
 
-  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'lehrpersonen' || selectedType === 'stammdaten-lehrpersonen';
+  const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'stammdaten-lehrpersonen';
   const canProceed = selectedType !== null && 
     (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
     (isSpecialType ||
@@ -94,7 +94,7 @@ export function Step0TypeSelect({
 
       {/* Import Type Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung', 'lehrpersonen'] as const)
+        {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
           .map(t => importConfigs.find(c => c.type === t))
           .filter((c): c is NonNullable<typeof c> => !!c)
           .map((config) => {
