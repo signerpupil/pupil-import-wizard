@@ -72,6 +72,7 @@ function formatCellValue(val: unknown): string {
 export function buildOutputRows(
   originalHeaders: string[],
   rows: ParsedRow[],
+  rowEmailOverrides?: Record<number, Partial<Record<string, string>>>,
 ): { headers: string[]; standardUser: string[]; data: string[][] } {
   const headers = buildOutputHeaders();
 
@@ -79,11 +80,15 @@ export function buildOutputRows(
     sanitizeCellValue(STANDARD_USER[i + 1] ?? '')
   );
 
-  const data: string[][] = rows.map(row => {
+  const data: string[][] = rows.map((row, rowIdx) => {
+    const override = rowEmailOverrides?.[rowIdx];
     const out: string[] = Array.from({ length: STAMMDATEN_LP_TOTAL_COLS }, () => '');
     originalHeaders.forEach((h, idx) => {
       if (idx >= STAMMDATEN_LP_TOTAL_COLS) return;
-      const raw = formatCellValue(row[h]);
+      const overridden = override && Object.prototype.hasOwnProperty.call(override, h)
+        ? override[h]
+        : undefined;
+      const raw = overridden !== undefined ? String(overridden) : formatCellValue(row[h]);
       out[idx] = sanitizeCellValue(raw);
     });
     // Beruf (Spalte P) wird auf fixen Wert gesetzt, sobald Spalte E (LID) befüllt ist
@@ -100,8 +105,9 @@ export async function exportStammdatenLehrpersonenToXlsx(
   originalHeaders: string[],
   rows: ParsedRow[],
   fileName?: string,
+  rowEmailOverrides?: Record<number, Partial<Record<string, string>>>,
 ) {
-  const { headers, standardUser, data } = buildOutputRows(originalHeaders, rows);
+  const { headers, standardUser, data } = buildOutputRows(originalHeaders, rows, rowEmailOverrides);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'PUPIL Import Wizard';
