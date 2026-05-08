@@ -17,7 +17,6 @@ import { Step3Validation } from '@/components/import/Step3Validation';
 import { Step4Preview } from '@/components/import/Step4Preview';
 import { GroupImportWizard } from '@/components/import/GroupImportWizard';
 import { LPImportWizard } from '@/components/import/LPImportWizard';
-import { LehrpersonenImportWizard } from '@/components/import/LehrpersonenImportWizard';
 import { StammdatenLehrpersonenImportWizard } from '@/components/import/StammdatenLehrpersonenImportWizard';
 import { Footer } from '@/components/layout/Footer';
 import type { ChangeLogEntry } from '@/types/importTypes';
@@ -324,12 +323,11 @@ export default function Index() {
     initialValidationDone.current = false;
   };
 
-  const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung' && importType !== 'lehrpersonen' && importType !== 'stammdaten-lehrpersonen';
+  const showSummary = currentStep >= 1 && importType !== 'gruppen' && importType !== 'lp-zuweisung' && importType !== 'stammdaten-lehrpersonen';
   const showGroupWizard = importType === 'gruppen' && currentStep >= 1;
   const showLPWizard = importType === 'lp-zuweisung' && currentStep >= 1;
-  const showLehrpersonenWizard = importType === 'lehrpersonen' && currentStep >= 1;
   const showStammdatenLPWizard = importType === 'stammdaten-lehrpersonen' && currentStep >= 1;
-  const showSpecialWizard = showGroupWizard || showLPWizard || showLehrpersonenWizard || showStammdatenLPWizard;
+  const showSpecialWizard = showGroupWizard || showLPWizard || showStammdatenLPWizard;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -383,7 +381,6 @@ export default function Index() {
 
           {showGroupWizard && <GroupImportWizard onReset={handleReset} />}
           {showLPWizard && <LPImportWizard onReset={handleReset} />}
-          {showLehrpersonenWizard && <LehrpersonenImportWizard onReset={handleReset} />}
           {showStammdatenLPWizard && <StammdatenLehrpersonenImportWizard onReset={handleReset} />}
 
           {!showSpecialWizard && currentStep === 1 && (
