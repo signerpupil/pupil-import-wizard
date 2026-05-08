@@ -16,6 +16,7 @@ import type { ParseResult } from '@/lib/fileParser';
 import { mapHeaders, BERUF_PRESETS, exportLehrpersonenToXlsx } from '@/lib/lehrpersonenExport';
 import { useToast } from '@/hooks/use-toast';
 import { findDuplicateEmails, type EmailDuplicate } from '@/lib/lehrpersonenEmailCheck';
+import { computeEmailFill, type EmailConflict, type EmailColumn } from '@/lib/lehrpersonenEmailFill';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
@@ -35,12 +36,55 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
   const [customBeruf, setCustomBeruf] = useState('');
   const [rowBerufOverrides, setRowBerufOverrides] = useState<Record<number, string>>({});
   const [rowEmailOverrides, setRowEmailOverrides] = useState<Record<number, Record<string, string>>>({});
+  const [emailConflicts, setEmailConflicts] = useState<EmailConflict[]>([]);
+  const [conflictCustomValue, setConflictCustomValue] = useState<Record<string, string>>({});
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
   const effectiveBeruf = customBeruf || defaultBeruf;
+
+  const handleFileLoaded = useCallback((pr: ParseResult | null) => {
+    setParseResult(pr);
+    setRowEmailOverrides({});
+    setEmailConflicts([]);
+    setConflictCustomValue({});
+    if (!pr || pr.rows.length === 0) return;
+    const fill = computeEmailFill(pr.rows);
+    if (fill.filledCount > 0) {
+      const overrides: Record<number, Record<string, string>> = {};
+      for (const [rowIdxStr, cols] of Object.entries(fill.autoFills)) {
+        overrides[Number(rowIdxStr)] = { ...cols } as Record<string, string>;
+      }
+      setRowEmailOverrides(overrides);
+      toast({
+        title: 'E-Mail-Adressen ergänzt',
+        description: `${fill.filledCount} fehlende E-Mail-Adresse${fill.filledCount === 1 ? '' : 'n'} aus anderen Zeilen derselben Person übernommen.`,
+      });
+    }
+    if (fill.conflicts.length > 0) {
+      setEmailConflicts(fill.conflicts);
+      toast({
+        title: `${fill.conflicts.length} E-Mail-Konflikt${fill.conflicts.length === 1 ? '' : 'e'}`,
+        description: 'Bitte im Schritt 2 entscheiden, welche E-Mail-Adresse verwendet werden soll.',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
+  const resolveConflict = (conflict: EmailConflict, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setRowEmailOverrides(prev => {
+      const next = { ...prev };
+      for (const i of conflict.rowIndices) {
+        next[i] = { ...(next[i] ?? {}), [conflict.column]: trimmed };
+      }
+      return next;
+    });
+    setEmailConflicts(prev => prev.filter(c => !(c.personKey === conflict.personKey && c.column === conflict.column)));
+  };
 
   const handleNext = useCallback(() => {
     const nextStep = Math.min(currentStep + 1, 2);
@@ -203,7 +247,7 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
       {currentStep === 0 && (
         <Step1FileUpload
           parseResult={parseResult}
-          onFileLoaded={setParseResult}
+          onFileLoaded={handleFileLoaded}
           onBack={handleBack}
           onNext={handleNext}
         />
@@ -254,6 +298,58 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
               </p>
             </CardContent>
           </Card>
+
+          {/* Email Conflict Resolver */}
+          {emailConflicts.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>E-Mail-Konflikte bei gleicher Person ({emailConflicts.length})</AlertTitle>
+              <AlertDescription className="mt-3 space-y-4">
+                <p className="text-sm">
+                  Für die folgenden Personen wurden in mehreren Zeilen unterschiedliche E-Mail-Adressen gefunden.
+                  Bitte wählen Sie pro Konflikt, welche Adresse für alle Zeilen übernommen werden soll.
+                </p>
+                {emailConflicts.map((c, idx) => {
+                  const key = `${c.personKey}|${c.column}`;
+                  return (
+                    <div key={key} className="rounded-md border bg-card p-3 space-y-2">
+                      <div className="text-sm font-medium">
+                        {c.displayName} — {c.column === 'L_Privat_EMail' ? 'Privat-E-Mail' : 'Schul-E-Mail'}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {c.candidates.map(cand => (
+                          <Button
+                            key={cand}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => resolveConflict(c, cand)}
+                          >
+                            {cand}
+                          </Button>
+                        ))}
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={conflictCustomValue[key] ?? ''}
+                            onChange={e => setConflictCustomValue(prev => ({ ...prev, [key]: e.target.value }))}
+                            placeholder="Eigene Adresse…"
+                            className="h-8 w-56 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={!conflictCustomValue[key]?.trim()}
+                            onClick={() => resolveConflict(c, conflictCustomValue[key] ?? '')}
+                          >
+                            Übernehmen
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Email Duplicate Warning */}
           {emailDuplicates.length > 0 && (
