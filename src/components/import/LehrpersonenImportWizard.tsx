@@ -299,6 +299,58 @@ export function LehrpersonenImportWizard({ onReset }: LehrpersonenImportWizardPr
             </CardContent>
           </Card>
 
+          {/* Email Conflict Resolver */}
+          {emailConflicts.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>E-Mail-Konflikte bei gleicher Person ({emailConflicts.length})</AlertTitle>
+              <AlertDescription className="mt-3 space-y-4">
+                <p className="text-sm">
+                  Für die folgenden Personen wurden in mehreren Zeilen unterschiedliche E-Mail-Adressen gefunden.
+                  Bitte wählen Sie pro Konflikt, welche Adresse für alle Zeilen übernommen werden soll.
+                </p>
+                {emailConflicts.map((c, idx) => {
+                  const key = `${c.personKey}|${c.column}`;
+                  return (
+                    <div key={key} className="rounded-md border bg-card p-3 space-y-2">
+                      <div className="text-sm font-medium">
+                        {c.displayName} — {c.column === 'L_Privat_EMail' ? 'Privat-E-Mail' : 'Schul-E-Mail'}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {c.candidates.map(cand => (
+                          <Button
+                            key={cand}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => resolveConflict(c, cand)}
+                          >
+                            {cand}
+                          </Button>
+                        ))}
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={conflictCustomValue[key] ?? ''}
+                            onChange={e => setConflictCustomValue(prev => ({ ...prev, [key]: e.target.value }))}
+                            placeholder="Eigene Adresse…"
+                            className="h-8 w-56 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={!conflictCustomValue[key]?.trim()}
+                            onClick={() => resolveConflict(c, conflictCustomValue[key] ?? '')}
+                          >
+                            Übernehmen
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Email Duplicate Warning */}
           {emailDuplicates.length > 0 && (
             <Alert variant="destructive">
