@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Send, Eye, FileText } from 'lucide-react';
+import { BookOpen, Send, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Select,
@@ -74,23 +74,6 @@ export function Footer() {
                 <BookOpen className="h-3 w-3" />
                 Hilfe & FAQ
               </button>
-              <a
-                href={`${import.meta.env.BASE_URL}regeluebersicht-import-wizard.html`}
-                download
-                className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
-              >
-                <FileText className="h-3 w-3" />
-                Regelübersicht (HTML)
-              </a>
-              <a
-                href={`${import.meta.env.BASE_URL}test-report.html`}
-                target="_blank"
-                rel="noopener"
-                className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
-              >
-                <FileText className="h-3 w-3" />
-                Test-Report (CI)
-              </a>
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="analytics-mode" className="text-xs whitespace-nowrap">
