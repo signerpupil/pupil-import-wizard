@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<title>Import-Regeln & Beispiele — Übersicht</title>
+<style>
+:root{--teal:#0f766e;--teal2:#14b8a6;--bg:#f8fafc;--ink:#0f172a;--mute:#64748b;--line:#e2e8f0}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:1200px;margin:0 auto;padding:2rem 1.5rem;color:var(--ink);background:var(--bg);line-height:1.5}
+h1{color:var(--teal);margin:0 0 .25rem}
+h2{color:var(--teal);border-bottom:2px solid var(--teal2);padding-bottom:.3rem;margin:2.5rem 0 1rem;font-size:1.4rem}
+h3{color:var(--teal);margin:1.5rem 0 .5rem;font-size:1.05rem}
+.meta{color:var(--mute);font-size:.85rem;margin-bottom:1.5rem}
+.toc{background:#fff;border:1px solid var(--line);border-radius:.5rem;padding:1rem 1.5rem;margin-bottom:2rem}
+.toc ul{margin:.5rem 0;padding-left:1.25rem}
+.toc a{color:var(--teal);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:.5rem;overflow:hidden;margin:.5rem 0 1rem;font-size:.9rem}
+th,td{padding:.55rem .75rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f1f5f9;font-weight:600;color:var(--teal)}
+tr:last-child td{border-bottom:none}
+code{background:#f1f5f9;padding:.1rem .35rem;border-radius:.25rem;font-size:.85em;color:#0f766e}
+.tag{display:inline-block;background:var(--teal);color:#fff;padding:.15rem .55rem;border-radius:.3rem;font-size:.7rem;letter-spacing:.05em;font-weight:600;margin-right:.4rem;vertical-align:middle}
+.tag.warn{background:#d97706}
+.tag.info{background:#0284c7}
+.tag.muted{background:#64748b}
+.box{background:#fff;border:1px solid var(--line);border-radius:.5rem;padding:1rem 1.25rem;margin-bottom:1rem}
+.lead{color:var(--mute);font-size:.95rem;margin-top:.3rem}
+.arrow{color:var(--teal);font-weight:700}
+.bad{color:#dc2626}
+.good{color:#0d9488}
+hr{border:0;border-top:1px dashed var(--line);margin:2rem 0}
+</style></head><body>
+<h1>Import-Regeln & Beispiele</h1>
+<div class="meta">Vollständige Übersicht aller Validierungs- und Korrektur-Regeln je Import-Typ · Generiert: 23.5.2026, 20:31:58</div>
+
+<div class="toc">
+<strong>Inhalt</strong>
+<ul>
+<li><a href="#schueler">1. Schüler-Stammdaten</a></li>
+<li><a href="#stamm-lp">2. Stammdaten Lehrpersonen</a></li>
+<li><a href="#lp-zuw">3. Lehrpersonen-Zuweisungen</a></li>
+<li><a href="#gruppen">4. Gruppen-Zuweisungen</a></li>
+<li><a href="#global">5. Globale Regeln (Import-übergreifend)</a></li>
+</ul>
+</div>
+
+<!-- ============ SCHÜLER ============ -->
+<h2 id="schueler">1. Schüler-Stammdaten</h2>
+<p class="lead">Import der LehrerOffice-Schülerexporte (S_*, P_ERZ1_*, P_ERZ2_*). Erzeugt PUPIL-konforme XLSX.</p>
+
+<h3>1.1 Format-Regeln (automatische Normalisierung)</h3>
+<table><thead><tr><th>Code</th><th>Feld(er)</th><th>Regel</th><th>Beispiel: Input <span class="arrow">→</span> Output</th></tr></thead><tbody>
+<tr><td><code>F-NAME</code></td><td>S_Name, S_Vorname, P_ERZ*_Name, P_ERZ*_Vorname</td><td>Proper-Case nur bei ALL-UPPER/ALL-LOWER. Adelsprefixe (von, van, de, della, …) bleiben lowercase. Diakritika werden erhalten.</td><td><code>MEIER</code> <span class="arrow">→</span> Meier<br><code>VON DER HEIDE</code> <span class="arrow">→</span> von der Heide<br><code>JUHÁSZ</code> <span class="arrow">→</span> Juhász<br><code>MeIer</code> <span class="arrow">→</span> <em>unverändert (Mischschreibung)</em></td></tr>
+<tr><td><code>F-EMAIL</code></td><td>S_Email, P_ERZ*_Email</td><td>Trim + lowercase + NFD-Strip (ä→a). Häufige Tippfehler werden korrigiert (@gmial→@gmail, @hotmial→@hotmail …). Platzhalter werden geleert.</td><td><code> JOSÉ@X.CH </code> <span class="arrow">→</span> jose@x.ch<br><code>name@gmial.com</code> <span class="arrow">→</span> name@gmail.com<br><code>Keine</code> / <code>-</code> / <code>verstorben</code> <span class="arrow">→</span> <em>leer (Warnung)</em></td></tr>
+<tr><td><code>F-PHONE</code></td><td>S_Mobil, S_Tel, P_ERZ*_Mobil, P_ERZ*_Tel</td><td>Schweizer Telefon → <code>+41 XX XXX XX XX</code>. Akzeptiert 0041, +41, 0xx, mit/ohne Trennzeichen.</td><td><code>079 123 45 67</code> <span class="arrow">→</span> +41 79 123 45 67<br><code>0041791234567</code> <span class="arrow">→</span> +41 79 123 45 67<br><code>079/123.45.67</code> <span class="arrow">→</span> +41 79 123 45 67</td></tr>
+<tr><td><code>F-PLZ</code></td><td>S_Plz, P_ERZ*_Plz</td><td>Schweizer PLZ: 4-stellig, links mit 0 gepaddet.</td><td><code>3000</code> <span class="arrow">→</span> 3000<br><code> 8001 </code> <span class="arrow">→</span> 8001<br><code>abc</code> <span class="arrow">→</span> <em>Fehler</em></td></tr>
+<tr><td><code>F-AHV</code></td><td>S_AHV, P_ERZ*_AHV</td><td>13-stellig, formatiert <code>756.XXXX.XXXX.XX</code>. Prüfziffer (EAN-13) wird validiert.</td><td><code>7561234567897</code> <span class="arrow">→</span> 756.1234.5678.97 <span class="good">✓ Prüfziffer ok</span><br><code>7561234567890</code> <span class="arrow">→</span> <span class="bad">Prüfziffer falsch</span></td></tr>
+<tr><td><code>F-DATE</code></td><td>S_Geb, P_ERZ*_Geb</td><td>ISO/DE/Kurz → <code>DD.MM.YYYY</code>. 2-stelliges Jahr: YY≤30 → 20YY, sonst 19YY. <code>00.00.0000</code> → leer.</td><td><code>2010-05-04</code> <span class="arrow">→</span> 04.05.2010<br><code>4.5.10</code> <span class="arrow">→</span> 04.05.2010<br><code>31.12.31</code> <span class="arrow">→</span> 31.12.1931</td></tr>
+<tr><td><code>F-IBAN</code></td><td>P_ERZ*_IBAN</td><td>Uppercase, Whitespace entfernt, in 4er-Gruppen formatiert.</td><td><code>ch93 0076 2011 6238 5295 7</code> <span class="arrow">→</span> CH93 0076 2011 6238 5295 7</td></tr>
+<tr><td><code>F-GENDER</code></td><td>S_Geschlecht, P_ERZ*_Geschl</td><td>Normalisierung auf <code>M</code> / <code>W</code> / <code>D</code>.</td><td><code>männlich</code>, <code>Mann</code>, <code>Herr</code>, <code>H</code> <span class="arrow">→</span> M<br><code>weiblich</code>, <code>Frau</code>, <code>F</code> <span class="arrow">→</span> W<br><code>divers</code>, <code>X</code>, <code>Anderes</code> <span class="arrow">→</span> D</td></tr>
+<tr><td><code>F-STREET</code></td><td>S_Strasse, P_ERZ*_Strasse</td><td>Proper-Case, Strasse-Suffixe (str.→strasse) ausgeschrieben.</td><td><code>HAUPTSTR. 12</code> <span class="arrow">→</span> Hauptstrasse 12</td></tr>
+<tr><td><code>F-ORT</code></td><td>S_Ort, P_ERZ*_Ort</td><td>Proper-Case, Trim. Wird gegen Schweizer PLZ-Liste geprüft.</td><td><code>ZÜRICH</code> <span class="arrow">→</span> Zürich</td></tr>
+<tr><td><code>F-BISTA</code></td><td>S_Erstsprache</td><td>Mapping freier Sprachen auf BISTA-Codes. Dialekte/Varianten werden gruppiert. Platzhalter (—, k.A.) geleert.</td><td><code>Schweizerdeutsch</code> <span class="arrow">→</span> Deutsch<br><code>Arabische Sprachen</code> <span class="arrow">→</span> Arabisch<br><code>Tigrigna</code> <span class="arrow">→</span> Afrikanische Sprachen</td></tr>
+<tr><td><code>F-NAT</code></td><td>S_Nat, P_ERZ*_Nat</td><td>200+ Länder mit Synonymen/Schreibweisen. Doppelbürgerschaft (<code>CH/DE</code>) wird gesplittet. Strikte Auto-Korrektur.</td><td><code>schweiz</code> <span class="arrow">→</span> Schweiz<br><code>CH/DE</code> <span class="arrow">→</span> Schweiz + Deutschland<br><code>USA</code> <span class="arrow">→</span> Vereinigte Staaten</td></tr>
+</tbody></table>
+
+<h3>1.2 Validierungs-Regeln (Fehler/Warnungen)</h3>
+<table><thead><tr><th>Code</th><th>Prüfung</th><th>Beispiel</th></tr></thead><tbody>
+<tr><td><code>V-AGE-S</code></td><td>Schüleralter zw. <strong>4 und 20</strong> Jahren.</td><td>Geburtsdatum <code>01.01.2000</code> <span class="bad">→ zu alt</span></td></tr>
+<tr><td><code>V-AGE-P</code></td><td>Elternalter <strong>&gt; 18</strong> Jahre.</td><td>P_ERZ1_Geb <code>15.06.2015</code> <span class="bad">→ Elternteil zu jung</span></td></tr>
+<tr><td><code>V-PLZ-ORT</code></td><td>PLZ und Ort müssen zusammenpassen (3190 Schweizer Einträge).</td><td>PLZ <code>8001</code> + Ort <code>Bern</code> <span class="bad">→ ungültige Kombination</span></td></tr>
+<tr><td><code>V-DATE-RANGE</code></td><td>Datum nicht in der Zukunft und nicht vor 1900.</td><td><code>04.05.2099</code> <span class="bad">→ Zukunftsdatum</span></td></tr>
+<tr><td><code>V-DUP</code></td><td>Schüler-ID-Duplikate werden zusammengeführt (Master-Record).</td><td>2× identische <code>S_ID</code> mit gleicher AHV/Geburt <span class="arrow">→</span> 1 Eintrag</td></tr>
+<tr><td><code>V-PARENT-MERGE</code></td><td>Geschwister mit identischer Eltern-Identität (Name+Vorname+Geb) werden konsolidiert (Eltern-ID).</td><td>3 Kinder × 2 Slots <span class="arrow">→</span> 2 Eltern-IDs statt 6</td></tr>
+<tr><td><code>V-SIB-INK</code></td><td>Geschwister mit unterschiedlicher PLZ/Ort bei gleicher Eltern-ID werden gruppiert zur manuellen Auflösung.</td><td>Kind A: 8001 Zürich, Kind B: 8002 Zürich <span class="bad">→ Inkonsistenz</span></td></tr>
+<tr><td><code>V-NAME-CHG</code></td><td>Erkennt Nachnamen-Änderungen bei Geschwistern (Bindestrich, Umkehrung, Fuzzy).</td><td>A: Müller-Schmid · B: Müller <span class="arrow">→</span> Vorschlag „übernehmen"/„beibehalten"</td></tr>
+<tr><td><code>V-S-AS-P</code></td><td>Erkennt, wenn eine <code>S_ID</code> gleichzeitig als <code>P_ERZ_ID</code> verwendet wird (Heuristik &gt; 14 Jahre).</td><td>Älteres Geschwister wird als Erziehungsberechtigter geführt</td></tr>
+<tr><td><code>V-ID-CONFL</code></td><td>Identische IDs unterschiedlicher Personen → automatisches Suffixing (Majority/Auto-Second).</td><td>2× <code>P_ERZ_ID=123</code> mit verschiedenen Namen <span class="arrow">→</span> 123 + 123_2</td></tr>
+<tr><td><code>V-MISSING</code></td><td>Pflichtfelder leer (S_Name, S_Vorname, S_Geb, S_Geschlecht).</td><td>S_Vorname leer <span class="bad">→ Fehler</span></td></tr>
+</tbody></table>
+
+<!-- ============ STAMMDATEN LP ============ -->
+<h2 id="stamm-lp">2. Stammdaten Lehrpersonen</h2>
+<p class="lead">Import der LO-Lehrpersonen-Stammdaten (L_*-Felder) zur Erstellung der PUPIL-Lehrerdatei.</p>
+<table><thead><tr><th>Regel</th><th>Beschreibung</th><th>Beispiel</th></tr></thead><tbody>
+<tr><td><code>F-NAME</code> / <code>F-EMAIL</code> / <code>F-PHONE</code> / <code>F-PLZ</code> / <code>F-DATE</code> / <code>F-GENDER</code></td><td>Identisch zu Schüler-Import (siehe oben).</td><td>—</td></tr>
+<tr><td><span class="tag muted">AUSNAHME</span><code>L_KL1_AHV</code></td><td><strong>Vollständig von Validierung ausgeschlossen</strong>: keine AHV-Formatprüfung, keine Prüfziffer, keine Duplikat-/ID-Konfliktprüfung.</td><td>Beliebiger Inhalt wird unverändert übernommen.</td></tr>
+<tr><td><code>V-LP-DUP</code></td><td>Doppelte Lehrer-Einträge (gleiche L_ID) werden zusammengeführt.</td><td>2× L_ID=42 <span class="arrow">→</span> 1 Eintrag</td></tr>
+<tr><td><code>V-LP-MISSING</code></td><td>Pflichtfelder: L_Name, L_Vorname, L_Kuerzel.</td><td>Kürzel fehlt <span class="bad">→ Fehler</span></td></tr>
+</tbody></table>
+
+<!-- ============ LP ZUWEISUNG ============ -->
+<h2 id="lp-zuw">3. Lehrpersonen-Zuweisungen</h2>
+<p class="lead">3-Step-Wizard: ordnet LO-Lehrpersonen den PUPIL-Referenzen zu (positional mapping).</p>
+<table><thead><tr><th>Regel</th><th>Beschreibung</th><th>Beispiel</th></tr></thead><tbody>
+<tr><td><code>LP-MATCH-EXACT</code></td><td>Exakter Match per Kürzel zwischen LO und PUPIL.</td><td>LO <code>MEI</code> ↔ PUPIL <code>MEI</code> <span class="good">✓ auto</span></td></tr>
+<tr><td><code>LP-MATCH-FUZZY</code></td><td>Fuzzy-Match per Nachname+Vorname (Levenshtein).</td><td>LO „Müller, A." ↔ PUPIL „Mueller, Anna" <span class="arrow">→</span> Vorschlag</td></tr>
+<tr><td><code>LP-UNMATCHED</code></td><td>Nicht zuweisbare Einträge müssen manuell verknüpft oder übersprungen werden.</td><td>Listet alle offenen Fälle in Schritt 2</td></tr>
+<tr><td><code>LP-MEMORY</code></td><td>Manuelle Zuweisungen werden im Correction-Memory gespeichert und beim nächsten Import vorgeschlagen.</td><td>Einmal „MUE → MEI" gemappt <span class="arrow">→</span> beim nächsten Import automatisch</td></tr>
+</tbody></table>
+
+<!-- ============ GRUPPEN ============ -->
+<h2 id="gruppen">4. Gruppen-Zuweisungen</h2>
+<p class="lead">Mappt LO-Fächer/Klassen auf PUPIL-Gruppen. Liefert <code>Gruppen.xlsx</code> + <code>SuS_Gruppen_Import.xlsx</code>.</p>
+<table><thead><tr><th>Regel</th><th>Beschreibung</th><th>Beispiel</th></tr></thead><tbody>
+<tr><td><code>GRP-MAP</code></td><td>LO-Fachbezeichnung → PUPIL-Gruppenname per Mapping-Tabelle.</td><td>LO <code>MA</code> <span class="arrow">→</span> PUPIL <code>Mathematik</code></td></tr>
+<tr><td><code>GRP-CLASS</code></td><td>Klassenzuweisung wird aus <code>S_Klasse</code> abgeleitet.</td><td><code>3a</code> <span class="arrow">→</span> Gruppe „Klasse 3a"</td></tr>
+<tr><td><code>GRP-LP</code></td><td>Verknüpft Gruppen mit Lehrperson-Kürzel (übernommen aus LP-Zuweisung).</td><td>Gruppe „Mathematik 3a" + Lehrer „MEI"</td></tr>
+<tr><td><code>GRP-DEDUP</code></td><td>Gleiche Schüler-Gruppen-Kombination wird dedupliziert.</td><td>2× „Anna in Mathe 3a" <span class="arrow">→</span> 1 Eintrag</td></tr>
+<tr><td><code>GRP-EMPTY</code></td><td>Leere Gruppen werden nicht exportiert (Warnung).</td><td>Gruppe ohne Schüler <span class="bad">→ Skip</span></td></tr>
+</tbody></table>
+
+<!-- ============ GLOBAL ============ -->
+<h2 id="global">5. Globale Regeln (Import-übergreifend)</h2>
+<div class="box">
+<table><thead><tr><th>Bereich</th><th>Regel</th></tr></thead><tbody>
+<tr><td><span class="tag info">PRIVACY</span> Datenverarbeitung</td><td>100 % lokal im Browser (RAM). Keine Übertragung an Dritte. DSG/GDPR-konform.</td></tr>
+<tr><td><span class="tag info">EXPORT</span> Format</td><td>Excel (.xlsx) als priorisierter Default. Datumsspalten werden mit Zellformat <code>@</code> (Text) erzwungen, um Auto-Konvertierung zu verhindern.</td></tr>
+<tr><td><span class="tag info">ROWS</span> Zeilennummern</td><td>Alle Fehler-Zeilen tragen ein <strong>+2-Offset</strong> (Header=1, erste Datenzeile=2), damit sie 1:1 zu Excel passen.</td></tr>
+<tr><td><span class="tag warn">SKIP</span> Diakritika-Warnungen</td><td>System-weit deaktiviert — <code>León</code> ↔ <code>Leon</code> erzeugt keine Warnung mehr.</td></tr>
+<tr><td><span class="tag muted">MULTI</span> Mehrere Dateien</td><td>Mehrere Quelldateien können in Step 1 zusammengeführt werden, Herkunft via <code>_source_file</code>.</td></tr>
+<tr><td><span class="tag info">MEMORY</span> Correction-Memory</td><td>Manuelle und Bulk-Auto-Fixes werden persistiert und beim nächsten Import als Vorschlag angeboten. Matching: exakt ODER identifier-basiert.</td></tr>
+<tr><td><span class="tag info">UI</span> Fehler-Gruppierung</td><td>Fehler werden pro Spalte gruppiert, nach Häufigkeit sortiert. Spezialfälle (Sibling, NameChange, Dedup, ParentConsolidation) werden in eigenen Cards angezeigt und aus der allgemeinen Fehlertabelle entfernt.</td></tr>
+</tbody></table>
+</div>
+
+<hr>
+<p style="color:var(--mute);font-size:.8rem">Quelldateien: <code>src/lib/formatters.ts</code> · <code>src/lib/fileParser.ts</code> · <code>src/lib/localBulkCorrections.ts</code> · Wizard-Komponenten unter <code>src/components/import/</code></p>
+</body></html>
