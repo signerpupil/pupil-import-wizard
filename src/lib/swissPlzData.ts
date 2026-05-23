@@ -3,6 +3,16 @@
 // Format: PLZ → Array von gültigen Ortsnamen (inkl. Varianten)
 
 const SWISS_PLZ_ORT: Record<string, string[]> = {
+  // Generische Regional-PLZ (Sammelpostleitzahlen) — werden teilweise in Adressen verwendet
+  '1000': ['Lausanne'],
+  '2000': ['Neuchâtel', 'Neuenburg'],
+  '3000': ['Bern'],
+  '4000': ['Basel'],
+  '5000': ['Aarau'],
+  '6000': ['Luzern'],
+  '7000': ['Chur'],
+  '8000': ['Zürich'],
+  '9000': ['St. Gallen', 'Sankt Gallen', 'St Gallen'],
   // Zürich (ZH)
   '8001': ['Zürich'],
   '8002': ['Zürich'],

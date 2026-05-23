@@ -73,12 +73,19 @@ export function buildOutputRows(
   originalHeaders: string[],
   rows: ParsedRow[],
   rowEmailOverrides?: Record<number, Partial<Record<string, string>>>,
+  options?: { includeStandardUser?: boolean; forceBeruf?: boolean },
 ): { headers: string[]; standardUser: string[]; data: string[][] } {
+  const includeStandardUser = options?.includeStandardUser ?? true;
+  // R8: Beruf wird nur überschrieben, wenn die Zelle leer ist. Bestehende Werte
+  // bleiben erhalten, ausser forceBeruf=true ist explizit gesetzt.
+  const forceBeruf = options?.forceBeruf ?? false;
   const headers = buildOutputHeaders();
 
-  const standardUser: string[] = Array.from({ length: STAMMDATEN_LP_TOTAL_COLS }, (_, i) =>
-    sanitizeCellValue(STANDARD_USER[i + 1] ?? '')
-  );
+  const standardUser: string[] = includeStandardUser
+    ? Array.from({ length: STAMMDATEN_LP_TOTAL_COLS }, (_, i) =>
+        sanitizeCellValue(STANDARD_USER[i + 1] ?? '')
+      )
+    : [];
 
   const data: string[][] = rows.map((row, rowIdx) => {
     const override = rowEmailOverrides?.[rowIdx];
@@ -91,8 +98,12 @@ export function buildOutputRows(
       const raw = overridden !== undefined ? String(overridden) : formatCellValue(row[h]);
       out[idx] = sanitizeCellValue(raw);
     });
-    // Beruf (Spalte P) wird auf fixen Wert gesetzt, sobald Spalte E (LID) befüllt ist
-    if (out[4] && out[4].trim() !== '') {
+    // Beruf (Spalte P): nur setzen, wenn LID befüllt ist UND
+    //   (Zelle leer ist  ODER  forceBeruf explizit aktiv).
+    // Damit werden bestehende Beruf-Angaben aus dem LO-Export nicht stillschweigend überschrieben.
+    const lidFilled = out[4] && out[4].trim() !== '';
+    const berufEmpty = !out[BERUF_COL_INDEX - 1] || out[BERUF_COL_INDEX - 1].trim() === '';
+    if (lidFilled && (berufEmpty || forceBeruf)) {
       out[BERUF_COL_INDEX - 1] = sanitizeCellValue(BERUF_FIXED_VALUE);
     }
     return out;
@@ -106,8 +117,9 @@ export async function exportStammdatenLehrpersonenToXlsx(
   rows: ParsedRow[],
   fileName?: string,
   rowEmailOverrides?: Record<number, Partial<Record<string, string>>>,
+  options?: { includeStandardUser?: boolean; forceBeruf?: boolean },
 ) {
-  const { headers, standardUser, data } = buildOutputRows(originalHeaders, rows, rowEmailOverrides);
+  const { headers, standardUser, data } = buildOutputRows(originalHeaders, rows, rowEmailOverrides, options);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'PUPIL Import Wizard';
@@ -126,7 +138,7 @@ export async function exportStammdatenLehrpersonenToXlsx(
     col.numFmt = '@';
   });
 
-  sheet.addRow(standardUser);
+  if (standardUser.length > 0) sheet.addRow(standardUser);
   data.forEach(r => sheet.addRow(r));
 
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
