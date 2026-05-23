@@ -1,7 +1,34 @@
-<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Test-Report</title>
-<style>body{font-family:system-ui,sans-serif;max-width:700px;margin:4rem auto;padding:2rem;color:#0f172a;background:#f8fafc;text-align:center}
-h1{color:#0f766e}.card{background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;padding:2rem;margin-top:2rem}
-code{background:#f1f5f9;padding:.2rem .4rem;border-radius:.2rem}</style></head><body>
-<h1>Test-Report</h1><div class="card"><p>Dieser Report wird bei jedem Push automatisch vom CI-Job <code>Tests &amp; Report</code> erzeugt.</p>
-<p style="color:#64748b;font-size:.9rem">Beim nächsten Commit auf <code>main</code> erscheint hier die vollständige Vitest-Übersicht.</p>
-<p style="margin-top:1.5rem"><a href="regeluebersicht-import-wizard.html" style="color:#0f766e">→ Regelübersicht ansehen</a></p></div></body></html>
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>Import-Wizard Test Report</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1.5rem;color:#0f172a;background:#f8fafc}
+h1{color:#0f766e;margin-bottom:.25rem}
+.meta{color:#64748b;font-size:.85rem;margin-bottom:1.5rem}
+.status{display:inline-block;padding:.25rem .75rem;border-radius:.375rem;color:#fff;background:#0d9488;font-weight:600;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1rem 0 2rem}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;padding:1rem}
+.card .n{font-size:1.75rem;font-weight:700}
+.card .l{font-size:.8rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.pass{color:#0d9488}.fail{color:#dc2626}.skip{color:#a16207}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;overflow:hidden}
+th,td{padding:.5rem .75rem;border-bottom:1px solid #e2e8f0;text-align:left;font-size:.875rem}
+th{background:#f1f5f9;font-weight:600}
+tr:last-child td{border-bottom:none}
+.fail-detail{background:#fef2f2;padding:.75rem 1rem;margin:.5rem 0;border-left:3px solid #dc2626;border-radius:.25rem;font-size:.85rem}
+pre{background:#0f172a;color:#e2e8f0;padding:.75rem;border-radius:.25rem;overflow-x:auto;font-size:.75rem}
+</style></head><body>
+<h1>Import-Wizard Test Report</h1>
+<div class="meta">Generiert: 2026-05-23T20:12:46.369Z · <span class="status">PASS</span></div>
+<div class="grid">
+  <div class="card"><div class="n">2236</div><div class="l">Total</div></div>
+  <div class="card"><div class="n pass">2234</div><div class="l">Passed</div></div>
+  <div class="card"><div class="n fail">0</div><div class="l">Failed</div></div>
+  <div class="card"><div class="n skip">2</div><div class="l">Skipped</div></div>
+</div>
+<h2>Dateien (13)</h2>
+<table><thead><tr><th>Datei</th><th>Tests</th><th class="pass">✓</th><th class="fail">✗</th><th class="skip">⊘</th></tr></thead><tbody>
+<tr><td><code>src/test/crossFileFamilyConsistency.test.ts</code></td><td>9</td><td class="pass">9</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/duplicateMerging.test.ts</code></td><td>38</td><td class="pass">36</td><td class="fail">0</td><td class="skip">2</td></tr><tr><td><code>src/test/edgeCases.test.ts</code></td><td>13</td><td class="pass">13</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/example.test.ts</code></td><td>1</td><td class="pass">1</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/formatters.test.ts</code></td><td>82</td><td class="pass">82</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/idConflictAnalysis.test.ts</code></td><td>10</td><td class="pass">10</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/lehrpersonenEmailFill.test.ts</code></td><td>6</td><td class="pass">6</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/mergeParseResults.test.ts</code></td><td>6</td><td class="pass">6</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/newRules.test.ts</code></td><td>217</td><td class="pass">217</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/parameterized.test.ts</code></td><td>1808</td><td class="pass">1808</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/revalidation.test.ts</code></td><td>28</td><td class="pass">28</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/sessionStore.test.ts</code></td><td>9</td><td class="pass">9</td><td class="fail">0</td><td class="skip">0</td></tr><tr><td><code>src/test/studentDeduplication.test.ts</code></td><td>9</td><td class="pass">9</td><td class="fail">0</td><td class="skip">0</td></tr>
+</tbody></table>
+
+<p style="margin-top:2rem;color:#64748b;font-size:.8rem">Auto-generiert via GitHub Actions · <a href="regeluebersicht-import-wizard.html">Regelübersicht</a></p>
+</body></html>
