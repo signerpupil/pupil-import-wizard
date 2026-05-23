@@ -82,6 +82,15 @@ export function Footer() {
                 <FileText className="h-3 w-3" />
                 Regelübersicht (HTML)
               </a>
+              <a
+                href="/test-report.html"
+                target="_blank"
+                rel="noopener"
+                className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
+              >
+                <FileText className="h-3 w-3" />
+                Test-Report (CI)
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="analytics-mode" className="text-xs whitespace-nowrap">
