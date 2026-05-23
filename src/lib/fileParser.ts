@@ -318,6 +318,9 @@ export const LANGUAGE_AUTO_CORRECTIONS: Record<string, string> = {
   'Uzbekisch': 'Übrige westasiatische Sprachen',
   'Tunesisch': 'Arabisch',
   'Hebräisch': 'Übrige westasiatische Sprachen',
+  // Telemetrie-basierte Ergänzungen (häufig manuell korrigiert)
+  'Arabische Sprachen': 'Arabisch',
+  'Andere Sprachen': 'nicht definiert',
   // Phase 2 additions
   'Somalisch': 'Afrikanische Sprachen',
   'Eritreisch': 'Afrikanische Sprachen',
