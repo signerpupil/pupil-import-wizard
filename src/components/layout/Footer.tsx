@@ -75,7 +75,7 @@ export function Footer() {
                 Hilfe & FAQ
               </button>
               <a
-                href="/regeluebersicht-import-wizard.html"
+                href={`${import.meta.env.BASE_URL}regeluebersicht-import-wizard.html`}
                 download
                 className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
               >
@@ -83,7 +83,7 @@ export function Footer() {
                 Regelübersicht (HTML)
               </a>
               <a
-                href="/test-report.html"
+                href={`${import.meta.env.BASE_URL}test-report.html`}
                 target="_blank"
                 rel="noopener"
                 className="hover:text-foreground transition-colors underline-offset-4 hover:underline inline-flex items-center gap-1"
