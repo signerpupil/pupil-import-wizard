@@ -3,6 +3,13 @@
 // Format: PLZ → Array von gültigen Ortsnamen (inkl. Varianten)
 
 const SWISS_PLZ_ORT: Record<string, string[]> = {
+  // Generische Regional-PLZ (Sammelpostleitzahlen) ohne spezifische Zustellung,
+  // die jedoch häufig in Adressdaten auftauchen. Weitere generische PLZ (1000,
+  // 2000, 5000, 7000, 9000) sind weiter unten im File definiert.
+  '3000': ['Bern'],
+  '4000': ['Basel'],
+  '6000': ['Luzern'],
+  '8000': ['Zürich'],
   // Zürich (ZH)
   '8001': ['Zürich'],
   '8002': ['Zürich'],

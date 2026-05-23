@@ -633,6 +633,10 @@ describe('Clean data — no false positives', () => {
         S_PLZ: '8001',
         S_Muttersprache: 'Deutsch',
         S_Nationalitaet: 'Schweiz',
+        // Eindeutige Namen, damit die R2-Regel "gleiche Person, unterschiedliche S_ID"
+        // nicht ausgelöst wird (sonst werden alle 50 Zeilen als identische Person gewertet).
+        S_Name: `Cleanmann${i}`,
+        S_Vorname: `Cleania${i}`,
         P_ERZ1_ID: String(90000 + i),
         P_ERZ1_AHV: generateValidAHV(200000 + i),
         P_ERZ1_Name: `Eltern${i}a`,
@@ -649,7 +653,8 @@ describe('Clean data — no false positives', () => {
       !e.message.includes('Duplikat') &&
       !e.message.includes('Inkonsistente') &&
       !e.message.includes('Namenswechsel') &&
-      !e.message.includes('Diakritische')
+      !e.message.includes('Diakritische') &&
+      !e.message.includes('Gleiche Person')
     );
     expect(fieldErrors.length).toBe(0);
   });
