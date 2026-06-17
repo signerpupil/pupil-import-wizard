@@ -221,51 +221,75 @@ export function ErrorTable({
                             </TableCell>
                             <TableCell>
                               {isLanguageCol && !isCorrected ? (
-                                <div className="relative">
-                                  <Button size="sm" variant="outline" className="gap-1.5 w-full"
-                                    onClick={() => setLanguageDropdownCell(isLanguageDropdownOpen ? null : { row: error.row, column: error.column })}>
-                                    <Languages className="h-3.5 w-3.5" />
-                                    Sprache wählen
-                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
-                                  </Button>
-                                  {isLanguageDropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-56">
-                                      <ScrollArea className="h-64">
-                                        <div className="p-1">
+                                <Popover
+                                  open={isLanguageDropdownOpen}
+                                  onOpenChange={(open) => setLanguageDropdownCell(open ? { row: error.row, column: error.column } : null)}
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button size="sm" variant="outline" className="gap-1.5 w-full">
+                                      <Languages className="h-3.5 w-3.5" />
+                                      Sprache wählen
+                                      <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isLanguageDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="end" className="p-0 w-72" sideOffset={4}>
+                                    <Command>
+                                      <CommandInput placeholder="Sprache suchen…" />
+                                      <CommandList className="max-h-72">
+                                        <CommandEmpty>Keine Sprache gefunden.</CommandEmpty>
+                                        <CommandGroup>
                                           {BISTA_LANGUAGES_SORTED.map(lang => (
-                                            <button key={lang} className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                                              onClick={() => { onErrorCorrect(error.row, error.column, lang, 'manual'); setLanguageDropdownCell(null); }}>
+                                            <CommandItem
+                                              key={lang}
+                                              value={lang}
+                                              onSelect={() => {
+                                                onErrorCorrect(error.row, error.column, lang, 'manual');
+                                                setLanguageDropdownCell(null);
+                                              }}
+                                            >
                                               {lang}
-                                            </button>
+                                            </CommandItem>
                                           ))}
-                                        </div>
-                                      </ScrollArea>
-                                    </div>
-                                  )}
-                                </div>
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
                               ) : isNationalityCol && !isCorrected ? (
-                                <div className="relative">
-                                  <Button size="sm" variant="outline" className="gap-1.5 w-full"
-                                    onClick={() => setNationalityDropdownCell(isNationalityDropdownOpen ? null : { row: error.row, column: error.column })}>
-                                    <Globe className="h-3.5 w-3.5" />
-                                    Land wählen
-                                    <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isNationalityDropdownOpen ? 'rotate-180' : ''}`} />
-                                  </Button>
-                                  {isNationalityDropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-1 z-50 bg-background border border-border rounded-md shadow-lg w-64">
-                                      <ScrollArea className="h-72">
-                                        <div className="p-1">
+                                <Popover
+                                  open={isNationalityDropdownOpen}
+                                  onOpenChange={(open) => setNationalityDropdownCell(open ? { row: error.row, column: error.column } : null)}
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button size="sm" variant="outline" className="gap-1.5 w-full">
+                                      <Globe className="h-3.5 w-3.5" />
+                                      Land wählen
+                                      <ChevronDown className={`h-3.5 w-3.5 ml-auto transition-transform ${isNationalityDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="end" className="p-0 w-72" sideOffset={4}>
+                                    <Command>
+                                      <CommandInput placeholder="Land suchen…" />
+                                      <CommandList className="max-h-72">
+                                        <CommandEmpty>Kein Land gefunden.</CommandEmpty>
+                                        <CommandGroup>
                                           {NATIONALITIES_SORTED.map(nat => (
-                                            <button key={nat} className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                                              onClick={() => { onErrorCorrect(error.row, error.column, nat, 'manual'); setNationalityDropdownCell(null); }}>
+                                            <CommandItem
+                                              key={nat}
+                                              value={nat}
+                                              onSelect={() => {
+                                                onErrorCorrect(error.row, error.column, nat, 'manual');
+                                                setNationalityDropdownCell(null);
+                                              }}
+                                            >
                                               {nat}
-                                            </button>
+                                            </CommandItem>
                                           ))}
-                                        </div>
-                                      </ScrollArea>
-                                    </div>
-                                  )}
-                                </div>
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
                               ) : isEditing ? (
                                 <Button size="sm" onClick={handleSaveEdit}>
                                   <Save className="h-4 w-4 mr-1" />
