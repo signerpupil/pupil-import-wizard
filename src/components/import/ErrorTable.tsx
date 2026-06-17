@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Save, ChevronDown, ChevronUp, Languages, Globe } from 'lucide-react';
+import { Edit2, Save, ChevronDown, ChevronUp, Languages, Globe, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
 import type { ValidationError } from '@/types/importTypes';
 import { ErrorExplanation } from './ErrorExplanation';
