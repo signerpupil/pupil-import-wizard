@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Save, ChevronDown, ChevronUp, Languages, Globe, Check } from 'lucide-react';
+import { Edit2, Save, ChevronDown, ChevronUp, Languages, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
