@@ -230,7 +230,7 @@ export function ParentConsolidationCard({
       value: group.correctId,
     }));
     if (corrections.length === 0) return;
-    onBulkCorrect(corrections, 'manual');
+    onBulkCorrect(corrections, 'bulk');
     toast({
       title: 'Manuell zusammengeführt',
       description: `${corrections.length} ${corrections.length === 1 ? 'Eintrag' : 'Einträge'} trotz Namensunterschied auf ID "${group.correctId}" gesetzt.`,
