@@ -1833,8 +1833,10 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
           const rowFieldKey = `${rowIndex + 2}:${check.idField}`;
           if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
 
-          const displayName = `${vorname} ${name} ↔ ${prev.vorname} ${prev.name}`;
-          const errorKey = `${rowIndex + 2}:${check.idField}:fuzzy:${displayName}`;
+          // Use the PREVIOUS entry's name in the identifier so the UI groups this
+          // fuzzy-matched row into the same parent-consolidation card as the exact matches.
+          const identifier = `${prev.vorname} ${prev.name}, ${prev.strasse}`;
+          const errorKey = `${rowIndex + 2}:${check.idField}:fuzzy:${identifier}`;
           if (errorSet.has(errorKey)) continue;
           errorSet.add(errorKey);
           resolvedByHigherStrategy.add(rowFieldKey);
@@ -1845,7 +1847,7 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
             row: rowIndex + 2,
             column: check.idField,
             value: id,
-            message: `Inkonsistente ID: Elternteil (${vorname} ${name}, ${strasse}) hat in Zeile ${prev.firstRow} (${prev.slotLabel}) den Vornamen '${prev.vorname}' mit ID '${prev.id}', aber hier (${check.label}) '${vorname}' mit ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+            message: `Inkonsistente ID: Elternteil (${identifier}) hat in Zeile ${prev.firstRow} (${prev.slotLabel}) die ID '${prev.id}', aber hier (${check.label}) die ID '${id}' – Vorname weicht ab ('${prev.vorname}' ↔ '${vorname}') [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
             severity: 'warning',
           });
         }
