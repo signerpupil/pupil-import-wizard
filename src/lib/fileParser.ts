@@ -1459,7 +1459,7 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
 
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 // Uses a UNIFIED pool across ERZ1 and ERZ2 so cross-slot inconsistencies are detected
-type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only' | 'name_phone' | 'name_pair';
+type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only' | 'name_phone' | 'name_pair' | 'fuzzy_name';
 
 const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: string; warning?: string }> = {
   ahv: {
@@ -1483,6 +1483,11 @@ const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: strin
     label: 'Name + Vorname',
     reliability: 'Tiefe Zuverlässigkeit',
     warning: '⚠ Nur Name und Vorname stimmen überein – gleichnamige, aber verschiedene Personen sind möglich. Bitte manuell prüfen!',
+  },
+  fuzzy_name: {
+    label: 'Ähnlicher Vorname + Strasse (Tippfehler)',
+    reliability: 'Mittlere Zuverlässigkeit',
+    warning: '⚠ Vornamen unterscheiden sich um wenige Buchstaben (z.B. Marko/Marco). Adresse und Telefon oder zweiter Elternteil stimmen überein. Bitte prüfen.',
   },
 };
 
