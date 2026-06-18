@@ -1459,7 +1459,7 @@ function checkDiacriticNameInconsistencies(rows: ParsedRow[]): ValidationError[]
 
 // Optimized: Check parent ID consistency - same parent should have same ID across all rows
 // Uses a UNIFIED pool across ERZ1 and ERZ2 so cross-slot inconsistencies are detected
-type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only' | 'name_phone' | 'name_pair';
+type MatchStrategy = 'ahv' | 'name_strasse' | 'name_only' | 'name_phone' | 'name_pair' | 'fuzzy_name';
 
 const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: string; warning?: string }> = {
   ahv: {
@@ -1483,6 +1483,11 @@ const STRATEGY_LABELS: Record<MatchStrategy, { label: string; reliability: strin
     label: 'Name + Vorname',
     reliability: 'Tiefe Zuverlässigkeit',
     warning: '⚠ Nur Name und Vorname stimmen überein – gleichnamige, aber verschiedene Personen sind möglich. Bitte manuell prüfen!',
+  },
+  fuzzy_name: {
+    label: 'Ähnlicher Vorname + Strasse (Tippfehler)',
+    reliability: 'Mittlere Zuverlässigkeit',
+    warning: '⚠ Vornamen unterscheiden sich um wenige Buchstaben (z.B. Marko/Marco). Adresse und Telefon oder zweiter Elternteil stimmen überein. Bitte prüfen.',
   },
 };
 
@@ -1757,6 +1762,96 @@ function checkParentIdConsistency(rows: ParsedRow[]): ValidationError[] {
         existing.push(entry);
       } else {
         singleParentMap.set(nameKey, [entry]);
+      }
+    }
+  }
+
+  // Pass 4: Fuzzy first-name (Tippfehler) – e.g. "Marko" ↔ "Marco"
+  // Requirements (to avoid false positives):
+  //   - identical Nachname (after normalization)
+  //   - identical Strasse (after normalization)
+  //   - Levenshtein distance on Vorname ≤ 1 (and Vornamen != equal)
+  //   - additional confirmation: same phone number OR same partner-name
+  type FuzzyEntry = {
+    id: string;
+    firstRow: number;
+    vorname: string; // original
+    vornameNorm: string;
+    name: string;
+    strasse: string;
+    phoneNumbers: string[];
+    partnerKey: string;
+    slotLabel: string;
+    idField: string;
+  };
+  const fuzzyBuckets = new Map<string, FuzzyEntry[]>();
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    for (let slotIndex = 0; slotIndex < PARENT_CONSISTENCY_CHECKS.length; slotIndex++) {
+      const check = PARENT_CONSISTENCY_CHECKS[slotIndex];
+      const otherCheck = PARENT_CONSISTENCY_CHECKS[1 - slotIndex];
+      const id = String(row[check.idField] ?? '').trim();
+      const name = String(row[check.nameField] ?? '').trim();
+      const vorname = String(row[check.vornameField] ?? '').trim();
+      const strasse = String(row[check.strasseField] ?? '').trim();
+      if (!id || !name || !vorname || !strasse) continue;
+
+      const phones: string[] = [];
+      for (const phoneField of [check.telefonPrivatField, check.telefonGeschaeftField, check.mobilField]) {
+        const p = normalizePhone(String(row[phoneField] ?? ''));
+        if (p.length >= 5) phones.push(p);
+      }
+      const otherName = String(row[otherCheck.nameField] ?? '').trim();
+      const otherVorname = String(row[otherCheck.vornameField] ?? '').trim();
+      const partnerKey = (otherName && otherVorname)
+        ? `${normalizeForComparison(otherName)}|${normalizeForComparison(otherVorname)}`
+        : '';
+
+      const bucketKey = `${normalizeForComparison(name)}|${normalizeForComparison(strasse)}`;
+      const entry: FuzzyEntry = {
+        id, firstRow: rowIndex + 2,
+        vorname, vornameNorm: normalizeForComparison(vorname),
+        name, strasse, phoneNumbers: phones, partnerKey,
+        slotLabel: check.label, idField: check.idField,
+      };
+      const bucket = fuzzyBuckets.get(bucketKey);
+      if (bucket) {
+        // Compare with all prior entries in the same bucket
+        for (const prev of bucket) {
+          if (prev.id === id) continue;
+          if (prev.vornameNorm === entry.vornameNorm) continue; // handled by name_strasse
+          // Levenshtein ≤ 1 on first name
+          if (levenshtein(prev.vornameNorm, entry.vornameNorm) > 1) continue;
+
+          // Confirmation signal: shared phone OR same partner
+          const phoneOverlap = phones.length > 0 && prev.phoneNumbers.length > 0
+            && phones.some(p => prev.phoneNumbers.includes(p));
+          const samePartner = !!partnerKey && partnerKey === prev.partnerKey;
+          if (!phoneOverlap && !samePartner) continue;
+
+          const rowFieldKey = `${rowIndex + 2}:${check.idField}`;
+          if (resolvedByHigherStrategy.has(rowFieldKey)) continue;
+
+          const displayName = `${vorname} ${name} ↔ ${prev.vorname} ${prev.name}`;
+          const errorKey = `${rowIndex + 2}:${check.idField}:fuzzy:${displayName}`;
+          if (errorSet.has(errorKey)) continue;
+          errorSet.add(errorKey);
+          resolvedByHigherStrategy.add(rowFieldKey);
+
+          const strategyInfo = STRATEGY_LABELS['fuzzy_name'];
+          const warningPart = strategyInfo.warning ? `\n${strategyInfo.warning}` : '';
+          errors.push({
+            row: rowIndex + 2,
+            column: check.idField,
+            value: id,
+            message: `Inkonsistente ID: Elternteil (${vorname} ${name}, ${strasse}) hat in Zeile ${prev.firstRow} (${prev.slotLabel}) den Vornamen '${prev.vorname}' mit ID '${prev.id}', aber hier (${check.label}) '${vorname}' mit ID '${id}' [Erkannt via: ${strategyInfo.label} – ${strategyInfo.reliability}]${warningPart}`,
+            severity: 'warning',
+          });
+        }
+        bucket.push(entry);
+      } else {
+        fuzzyBuckets.set(bucketKey, [entry]);
       }
     }
   }
