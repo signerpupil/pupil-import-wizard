@@ -223,6 +223,20 @@ export function ParentConsolidationCard({
     });
   }, [onBulkCorrect, toast]);
 
+  const forceMergeGroup = useCallback((group: ParentIdInconsistencyGroup) => {
+    const corrections = group.affectedRows.map(r => ({
+      row: r.row,
+      column: r.column,
+      value: group.correctId,
+    }));
+    if (corrections.length === 0) return;
+    onBulkCorrect(corrections, 'bulk');
+    toast({
+      title: 'Manuell zusammengeführt',
+      description: `${corrections.length} ${corrections.length === 1 ? 'Eintrag' : 'Einträge'} trotz Namensunterschied auf ID "${group.correctId}" gesetzt.`,
+    });
+  }, [onBulkCorrect, toast]);
+
   if (parentIdInconsistencyGroups.length === 0) return null;
 
   return (
@@ -471,11 +485,14 @@ export function ParentConsolidationCard({
                                   <>
                                     <div className="mt-1.5 flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
                                       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                                      <span className="font-medium">Unterschiedliche Namen erkannt — keine automatische Konsolidierung möglich</span>
+                                      <span className="font-medium">Unterschiedliche Namen erkannt — Sammel-Konsolidierung übersprungen. Manuell mit «Trotzdem zusammenführen» bestätigen.</span>
                                     </div>
                                     <div className="mt-1.5 bg-muted/40 rounded border p-2 space-y-1.5">
                                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                        <Edit2 className="h-3 w-3" /> AHV-Nummer korrigieren
+                                        <Edit2 className="h-3 w-3" /> AHV-Nummer des Elternteils ergänzen (optional)
+                                      </p>
+                                      <p className="text-[11px] text-muted-foreground leading-snug">
+                                        Wenn dieselbe Eltern-AHV in allen betroffenen Zeilen erfasst ist, kann der Elternteil sicher (auch bei Schreibweisen wie «Marko/Marco») automatisch verknüpft werden. Die Felder beziehen sich auf <code className="font-mono">{refAhvColumn.startsWith('P_ERZ1') ? 'P_ERZ1_AHV' : 'P_ERZ2_AHV'}</code> in der jeweiligen Zeile – <strong>nicht</strong> auf die Schüler-AHV.
                                       </p>
                                       {allEditRows.map(({ row: editRow, label, ahvCol }) => {
                                         const ahvKey = `${editRow}:${ahvCol}`;
@@ -591,6 +608,24 @@ export function ParentConsolidationCard({
                                 {isGroupExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 Details
                               </Button>
+                              {group.hasNameMismatch && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="sm" variant="default"
+                                        onClick={(e) => { e.stopPropagation(); forceMergeGroup(group); }}
+                                        className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white">
+                                        <Check className="h-3.5 w-3.5" />
+                                        Trotzdem zusammenführen
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs text-xs">
+                                      Setzt alle betroffenen Zeilen trotz unterschiedlicher Vornamen auf die ID <code className="font-mono">{group.correctId}</code>.<br />
+                                      Verwende dies, wenn du sicher bist, dass es dieselbe Person ist (z.B. Tippfehler «Marko/Marco»).
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
