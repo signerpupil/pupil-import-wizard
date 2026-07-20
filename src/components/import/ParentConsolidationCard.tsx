@@ -129,7 +129,7 @@ export function ParentConsolidationCard({
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [reliabilityFilter, setReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
+  const [reliabilityFilter, setReliabilityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [editingAhv, setEditingAhv] = useState<Map<string, string>>(new Map());
   const { toast } = useToast();
@@ -147,7 +147,6 @@ export function ParentConsolidationCard({
     if (reliabilityFilter !== 'all') {
       result = result.filter(group => {
         const r = group.matchReason.toLowerCase();
-        if (reliabilityFilter === 'medium_high') return r.includes('hohe') || r.includes('mittlere');
         if (reliabilityFilter === 'high') return r.includes('hohe');
         if (reliabilityFilter === 'medium') return r.includes('mittlere');
         if (reliabilityFilter === 'low') return r.includes('tiefe');
@@ -327,12 +326,6 @@ export function ParentConsolidationCard({
                   <Button size="sm" variant={reliabilityFilter === 'all' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('all')} className="gap-1.5">
                     Alle ({parentIdInconsistencyGroups.length})
                   </Button>
-                  {(countHigh + countMedium) > 0 && (
-                    <Button size="sm" variant={reliabilityFilter === 'medium_high' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('medium_high')}
-                      className={`gap-1.5 ${reliabilityFilter !== 'medium_high' ? 'border-primary/50 text-primary hover:bg-primary/5' : ''}`}>
-                      Mittel + Hoch ({countHigh + countMedium})
-                    </Button>
-                  )}
                   {countHigh > 0 && (
                     <Button size="sm" variant={reliabilityFilter === 'high' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('high')}
                       className={`gap-1.5 ${reliabilityFilter !== 'high' ? 'border-green-500/50 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700'}`}>
@@ -659,13 +652,19 @@ export function ParentConsolidationCard({
                                     <span className="font-semibold">Aktueller Stand</span>
                                     <span className="text-muted-foreground text-[10px]">{(group.referenceRow ? 1 : 0) + group.affectedRows.length} Einträge</span>
                                   </div>
+                                  {group.parentName && (
+                                    <div className="text-[11px] text-muted-foreground border-t pt-1.5 leading-snug">
+                                      Elternperson: <span className="font-medium text-foreground">{group.parentName}</span><br />
+                                      Angezeigt wird die <span className="font-medium">Eltern-ID</span>, wie sie aktuell in der jeweiligen Kinderzeile in Spalte <code className="font-mono">{group.column}</code> steht.
+                                    </div>
+                                  )}
                                   <div className="space-y-1 border-t pt-1.5">
                                     {group.referenceRow && (() => {
                                       const refStudentName = getStudentNameForRow(group.referenceRow!);
                                       return (
                                         <div className="flex items-center gap-1.5 flex-wrap bg-blue-500/5 rounded px-1 py-0.5">
                                           <span className="text-muted-foreground truncate">
-                                            Referenz (Z. {group.referenceRow}){refStudentName ? ` – ${refStudentName}` : ''}:
+                                            Referenz – Eltern-ID in Zeile von {refStudentName ? refStudentName : `Zeile ${group.referenceRow}`} (Z. {group.referenceRow}):
                                           </span>
                                           <code className="px-1.5 py-0.5 rounded font-mono bg-blue-500/10 text-blue-600 font-bold">{group.correctId}</code>
                                         </div>
@@ -676,11 +675,9 @@ export function ParentConsolidationCard({
                                       group.affectedRows.forEach(r => { const n = r.studentName || ''; nc.set(n, (nc.get(n) || 0) + 1); });
                                       return group.affectedRows.map(r => {
                                         const name = r.studentName || `Zeile ${r.row}`;
-                                        const needsDisambig = r.studentName && (nc.get(r.studentName) || 0) > 1;
-                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
                                         return (
                                           <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            <span className="text-muted-foreground truncate">Eltern-ID in Zeile von {name} (Z. {r.row}):</span>
                                             <code className={`px-1.5 py-0.5 rounded font-mono ${r.currentId !== group.correctId ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-700'}`}>
                                               {r.currentId}
                                             </code>
@@ -696,9 +693,17 @@ export function ParentConsolidationCard({
                                   <div className="flex items-center justify-between">
                                     <span className="font-semibold text-blue-700">Nach Konsolidierung</span>
                                   </div>
-                                  <div className="flex items-center gap-1.5 pb-1.5 border-b">
-                                    <span className="text-muted-foreground shrink-0">Einheitliche ID:</span>
-                                    <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
+                                  {group.parentName && (
+                                    <div className="text-[11px] text-muted-foreground border-t pt-1.5 leading-snug">
+                                      Alle Kinderzeilen von <span className="font-medium text-foreground">{group.parentName}</span> erhalten in Spalte <code className="font-mono">{group.column}</code> dieselbe Eltern-ID.
+                                    </div>
+                                  )}
+                                  <div className="pb-1.5 border-b">
+                                    <div className="text-[11px] text-muted-foreground mb-1">Neuer Wert in Spalte <code className="font-mono">{group.column}</code> für alle betroffenen Kinderzeilen:</div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-muted-foreground shrink-0">Einheitliche Eltern-ID:</span>
+                                      <code className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded font-mono font-bold">{group.correctId}</code>
+                                    </div>
                                   </div>
                                   <div className="space-y-1 pt-0.5">
                                     {(() => {
@@ -706,11 +711,9 @@ export function ParentConsolidationCard({
                                       group.affectedRows.forEach(r => { const n = r.studentName || ''; nc.set(n, (nc.get(n) || 0) + 1); });
                                       return group.affectedRows.map(r => {
                                         const name = r.studentName || `Zeile ${r.row}`;
-                                        const needsDisambig = r.studentName && (nc.get(r.studentName) || 0) > 1;
-                                        const displayName = needsDisambig ? `${name} (Z. ${r.row})` : name;
                                         return (
                                           <div key={r.row} className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-muted-foreground truncate">{displayName}:</span>
+                                            <span className="text-muted-foreground truncate">Eltern-ID in Zeile von {name} (Z. {r.row}):</span>
                                             {r.currentId !== group.correctId ? (
                                               <div className="flex items-center gap-1">
                                                 <code className="px-1 py-0.5 bg-destructive/10 text-destructive rounded font-mono line-through text-[10px]">{r.currentId}</code>

@@ -1,78 +1,48 @@
 ## Ziel
 
-Im Lehrpersonen-Import sollen für ein und dieselbe Person fehlende E-Mail-Adressen (Privat und Schule) automatisch aus den anderen Zeilen derselben Person übernommen werden. Bei Konflikten (zwei verschiedene, nicht-leere E-Mails) erhält die Nutzerin eine Auswahl.
+1. In der Karte „Eltern-ID Konsolidierung" klarer zeigen, dass die IDs in „Aktueller Stand" **Eltern-IDs** sind (nicht Kinder-IDs) — im Header **und** pro Zeile.
+2. Die Filter-Buttons für die Zuverlässigkeit neu aufteilen: getrennte Buttons für **Hohe**, **Mittlere** und **Tiefe** Zuverlässigkeit — kein kombinierter „Mittel + Hoch"-Button mehr. Die zugrunde liegende Prüf-/Kategorisierungslogik bleibt unverändert.
 
-## Personen-Erkennung
+## Datei
 
-Identitätsschlüssel pro Zeile:
-1. `L_ID` (getrimmt) – wenn vorhanden
-2. Fallback: normalisierter String aus `L_Name` + `L_Vorname` + `L_Geburtsdatum`
+`src/components/import/ParentConsolidationCard.tsx` (reine UI-Änderung, keine Logikänderung, keine Änderung an `fileParser.ts`).
 
-Zeilen mit gleichem Schlüssel gelten als dieselbe Person.
+## Änderungen im Detail
 
-## Verhalten beim Datei-Upload (automatisch)
+### 1. Vergleichsansicht klarer beschriften
 
-Direkt nach `setParseResult` läuft eine Auffüll-Routine über die Zeilen. Pro Personen-Gruppe und pro E-Mail-Spalte (`L_Privat_EMail`, `L_Schule_EMail`):
+Im aufgeklappten Detailblock (`Einträge im Vergleich`, Zeilen ~650–732):
 
-- Sammle alle nicht-leeren, normalisierten Werte (lowercased, trim; Platzhalter `-`, `null`, `keine` ignoriert wie in `lehrpersonenEmailCheck.ts`).
-- **0 Werte**: nichts tun.
-- **1 eindeutiger Wert**: alle leeren Zellen der Gruppe per `rowEmailOverrides` mit diesem Wert auffüllen.
-- **2+ unterschiedliche Werte (Konflikt)**: nicht automatisch befüllen, Konflikt für UI vormerken.
+- **Karten-Header „Aktueller Stand"** ergänzen um Elternnamen und Erläuterung:
+  - Zeile darunter: `Elternperson: {group.parentName} — Eltern-ID gemäss jeder Kinderzeile`
+- **Zeilenlabel** pro Kind umformulieren:
+  - alt: `Lena Gaertner: SCZID2FEBLIL6S`
+  - neu: `Eltern-ID in Zeile von Lena Gaertner (Z. 10): SCZID2FEBLIL6S`
+  - Referenzzeile analog: `Referenz – Eltern-ID in Zeile von Lena Gaertner (Z. 10): SCZID2FEBLIL6S`
+- Kleine Info-Zeile am oberen Rand der linken Karte:
+  - `Die ID zeigt, welche Eltern-ID aktuell in der jeweiligen Kinderzeile steht.`
+- **Karten-Header „Nach Konsolidierung"** ergänzen um:
+  - Untertitel: `Alle Kinderzeilen von {parentName} erhalten dieselbe Eltern-ID.`
+- Der bereits vorhandene Chip „Einheitliche ID: …" behält seine Position; darüber neu ein Hinweis:
+  - `Neuer Wert in Spalte {group.column} für alle betroffenen Kinderzeilen:`
+- Klarstellendes Label an jedem ID-Chip (`px-1.5 py-0.5 … font-mono`): Prefix-Text „Eltern-ID" links vom Chip nur einmal pro Karte (im Header), damit die Zeilen kompakt bleiben.
 
-Bestehende, manuell gepflegte `rowEmailOverrides` werden respektiert / nicht überschrieben.
+### 2. Filter-Buttons für Zuverlässigkeit
 
-## Konflikt-UI in Schritt 2
+Im Button-Block (Zeilen ~320–358):
 
-Neue Karte „E-Mail-Konflikte bei gleicher Person" oberhalb der Vorschau, nur sichtbar wenn Konflikte existieren. Pro Konflikt:
+- **Button „Mittel + Hoch" entfernen.**
+- Übrige Buttons bleiben: `Alle` / `Hohe Zuverlässigkeit` / `Mittlere Zuverlässigkeit` / `Tiefe Zuverlässigkeit`.
+- Default-Filter (`useState`, Zeile 132) von `'medium_high'` auf `'all'` umstellen, damit beim Öffnen alle drei Kategorien sichtbar sind.
+- Filter-Logik in `filteredGroups` (Zeilen 147–156): Zweig `medium_high` entfernen; `all|high|medium|low` bleiben unverändert.
+- Farbliche Kennzeichnung bleibt gleich (Grün / Amber / Rot); jeder Button zeigt weiterhin seine Anzahl.
 
-- Anzeige: Personenname + L_ID, betroffene Spalte (Privat/Schule), Liste der gefundenen E-Mails als Radio-Auswahl + Option „Manuell eingeben".
-- Bei Auswahl wird der gewählte Wert für alle Zeilen der Gruppe in `rowEmailOverrides` gesetzt → die bestehende Duplikatsprüfung und Vorschau aktualisieren sich automatisch.
-- Solange ein Konflikt offen ist: Warnung im „Weiter zum Export"-Flow (nicht-blockierend, analog zu bestehenden Warnungen).
+### 3. Nicht angepasst
 
-## Technische Umsetzung
+- `matchReason`-Strings und Kategorisierung in `src/lib/fileParser.ts` bleiben unverändert (Hohe = AHV, Mittlere = Name+Strasse / Name+Telefon / Name+Elternpaar / Fuzzy, Tiefe = Name+Vorname).
+- Keine Änderungen an `ParentIdInconsistencyGroup`-Typ, keine neuen Felder erforderlich; `group.parentName`, `group.column` und `group.correctId` reichen für die Textausgabe.
 
-Neue Datei `src/lib/lehrpersonenEmailFill.ts`:
+## Ergebnis
 
-```ts
-export interface EmailConflict {
-  personKey: string;
-  displayName: string;
-  column: 'L_Privat_EMail' | 'L_Schule_EMail';
-  candidates: string[];
-  rowIndices: number[];
-}
-
-export interface EmailFillResult {
-  autoFills: Record<number, Record<string, string>>; // rowIdx → { col → email }
-  conflicts: EmailConflict[];
-}
-
-export function computeEmailFill(rows: ParsedRow[]): EmailFillResult
-```
-
-Logik: gruppiere Zeilen nach Identitätsschlüssel, je Spalte unique non-empty Werte ermitteln, entsprechend autoFill oder Conflict erzeugen.
-
-Änderungen in `LehrpersonenImportWizard.tsx`:
-
-- Beim `onFileLoaded` zusätzlich `computeEmailFill` aufrufen, `autoFills` in initialen `rowEmailOverrides` einspielen, `conflicts` in neuen State `emailConflicts` ablegen.
-- Neue Komponente `EmailConflictResolver` (in der gleichen Datei oder als kleine eigene Datei) für die Konfliktauswahl. Bei Auswahl: `rowEmailOverrides` für alle `rowIndices` der Gruppe setzen und Konflikt aus dem State entfernen.
-- Hinweis-Toast nach Upload, falls Auto-Fill erfolgt ist (z. B. „N E-Mail-Adressen automatisch ergänzt").
-- Vorschautabelle markiert auto-aufgefüllte Zellen visuell wie bestehende Overrides (`text-primary font-medium`).
-
-Keine Änderungen am Export-Pfad nötig – dieser nutzt bereits `rowEmailOverrides`.
-
-## Tests
-
-Neue Datei `src/test/lehrpersonenEmailFill.test.ts`:
-
-- Eine Person, zwei Zeilen, eine E-Mail leer → wird befüllt.
-- Eine Person, zwei verschiedene E-Mails → Konflikt, kein Auto-Fill.
-- Personen-Erkennung: Fallback Name+Vorname+Geburtsdatum funktioniert ohne L_ID.
-- Privat- und Schule-Spalte werden unabhängig behandelt.
-- Platzhalter (`-`, `null`) zählen als leer.
-
-## Geänderte / neue Dateien
-
-- neu: `src/lib/lehrpersonenEmailFill.ts`
-- neu: `src/test/lehrpersonenEmailFill.test.ts`
-- bearbeitet: `src/components/import/LehrpersonenImportWizard.tsx`
+- „Einträge im Vergleich" macht durch Elternname im Header **und** durch das Präfix „Eltern-ID in Zeile von …" pro Zeile eindeutig sichtbar, dass es sich um die in der jeweiligen Kinderzeile eingetragene Eltern-ID handelt.
+- Die drei Zuverlässigkeitsstufen sind einzeln filterbar; der irreführende Kombi-Button entfällt.
