@@ -34,7 +34,7 @@ const HEADER_BY_POSITION: Record<number, string> = {
 
 // 1-based column index for L_Funktion (Beruf) in the original LO export
 const BERUF_COL_INDEX = 16;
-export const BERUF_FIXED_VALUE = 'Spezial - Deaktiviert';
+export const BERUF_FIXED_VALUE = 'MA';
 
 // Standard user values keyed by 1-based output column index.
 // Values mirror Musterdatei "Bereinigter Export Lehrpersonen" Zeile 3.
@@ -76,9 +76,10 @@ export function buildOutputRows(
   options?: { includeStandardUser?: boolean; forceBeruf?: boolean },
 ): { headers: string[]; standardUser: string[]; data: string[][] } {
   const includeStandardUser = options?.includeStandardUser ?? true;
-  // R8: Beruf wird nur überschrieben, wenn die Zelle leer ist. Bestehende Werte
-  // bleiben erhalten, ausser forceBeruf=true ist explizit gesetzt.
-  const forceBeruf = options?.forceBeruf ?? false;
+  // Beruf wird bei allen befüllten Datenzeilen (LID vorhanden) auf den
+  // fixen Wert gesetzt – überschreibt auch bestehende Werte. Kann via
+  // forceBeruf=false explizit deaktiviert werden.
+  const forceBeruf = options?.forceBeruf ?? true;
   const headers = buildOutputHeaders();
 
   const standardUser: string[] = includeStandardUser
