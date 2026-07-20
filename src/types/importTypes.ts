@@ -328,7 +328,7 @@ export const importConfigs: ImportConfig[] = [
   {
     type: 'stammdaten-lehrpersonen',
     name: 'Stammdaten Lehrpersonen',
-    description: 'LehrerOffice-Export bereinigen, Standard-User einfügen und Beruf auf «Spezial - Deaktiviert» setzen',
+    description: 'LehrerOffice-Export bereinigen, Standard-User einfügen und Beruf auf «MA» setzen',
     icon: 'UserCog',
     columns: [],
   },
