@@ -142,13 +142,44 @@ export function ParentConsolidationCard({
     [parentIdInconsistencyGroups]
   );
 
+  // Upgrade "Mittlere Zuverlässigkeit" → "Hohe Zuverlässigkeit" wenn keine AHV vorhanden
+  // ist und alle übrigen Vergleichsfelder identisch sind. Ohne AHV ist das das stärkste
+  // verfügbare Signal, ein besseres gibt es nicht.
+  const enhancedGroups = useMemo(() => {
+    return parentIdInconsistencyGroups.map(group => {
+      if (!group.matchReason.toLowerCase().includes('mittlere')) return group;
+      const fields = getParentFieldComparison(
+        group.affectedRows,
+        group.column,
+        rows,
+        getStudentNameForRow,
+        group.referenceRow,
+        group.correctId,
+        group.referencePrefix,
+      );
+      const ahvField = fields.find(f => f.fieldKey === 'AHV');
+      const ahvMissing = !ahvField; // getParentFieldComparison filtert allEmpty raus
+      if (!ahvMissing) return group;
+      const compareFields = fields.filter(f => f.fieldKey !== 'AHV');
+      if (compareFields.length === 0) return group;
+      const allIdentical = compareFields.every(f => f.allSame);
+      if (!allIdentical) return group;
+      return {
+        ...group,
+        matchReason: `${group.matchReason} → Hohe Zuverlässigkeit (alle Vergleichsfelder identisch, keine AHV vorhanden)`,
+      };
+    });
+  }, [parentIdInconsistencyGroups, rows, getStudentNameForRow]);
+
   const filteredGroups = useMemo(() => {
-    let result = parentIdInconsistencyGroups;
+    let result = enhancedGroups;
     if (reliabilityFilter !== 'all') {
       result = result.filter(group => {
         const r = group.matchReason.toLowerCase();
-        if (reliabilityFilter === 'high') return r.includes('hohe');
-        if (reliabilityFilter === 'medium') return r.includes('mittlere');
+        // Upgrade-Marker "→ Hohe" zählt als hoch, nicht mehr als mittel
+        const upgradedToHigh = r.includes('→ hohe');
+        if (reliabilityFilter === 'high') return r.includes('hohe') && (upgradedToHigh || !r.includes('mittlere'));
+        if (reliabilityFilter === 'medium') return r.includes('mittlere') && !upgradedToHigh;
         if (reliabilityFilter === 'low') return r.includes('tiefe');
         return true;
       });
@@ -164,7 +195,7 @@ export function ParentConsolidationCard({
       );
     }
     return result;
-  }, [parentIdInconsistencyGroups, search, reliabilityFilter]);
+  }, [enhancedGroups, search, reliabilityFilter]);
 
   const paginatedGroups = useMemo(() => {
     const start = page * PARENTS_PER_PAGE;
@@ -318,9 +349,15 @@ export function ParentConsolidationCard({
           <CollapsibleContent className="mt-4 space-y-3">
             {/* Reliability filter buttons */}
             {(() => {
-              const countHigh = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('hohe')).length;
-              const countMedium = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('mittlere')).length;
-              const countLow = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('tiefe')).length;
+              const countHigh = enhancedGroups.filter(g => {
+                const r = g.matchReason.toLowerCase();
+                return r.includes('hohe') && (r.includes('→ hohe') || !r.includes('mittlere'));
+              }).length;
+              const countMedium = enhancedGroups.filter(g => {
+                const r = g.matchReason.toLowerCase();
+                return r.includes('mittlere') && !r.includes('→ hohe');
+              }).length;
+              const countLow = enhancedGroups.filter(g => g.matchReason.toLowerCase().includes('tiefe')).length;
               return (
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant={reliabilityFilter === 'all' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('all')} className="gap-1.5">
