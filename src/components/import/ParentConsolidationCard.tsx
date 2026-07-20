@@ -129,7 +129,7 @@ export function ParentConsolidationCard({
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [reliabilityFilter, setReliabilityFilter] = useState<'all' | 'medium_high' | 'high' | 'medium' | 'low'>('medium_high');
+  const [reliabilityFilter, setReliabilityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [editingAhv, setEditingAhv] = useState<Map<string, string>>(new Map());
   const { toast } = useToast();
@@ -147,7 +147,6 @@ export function ParentConsolidationCard({
     if (reliabilityFilter !== 'all') {
       result = result.filter(group => {
         const r = group.matchReason.toLowerCase();
-        if (reliabilityFilter === 'medium_high') return r.includes('hohe') || r.includes('mittlere');
         if (reliabilityFilter === 'high') return r.includes('hohe');
         if (reliabilityFilter === 'medium') return r.includes('mittlere');
         if (reliabilityFilter === 'low') return r.includes('tiefe');
