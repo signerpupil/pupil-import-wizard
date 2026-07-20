@@ -2052,7 +2052,7 @@ function checkParentNameChanges(rows: ParsedRow[]): ValidationError[] {
           row: laterEntry.rowIndex + 2,
           column: nameColumn,
           value: laterEntry.nachname,
-          message: `Möglicher Namenswechsel (${changeLabel}): "${displayVorname} ${earlierEntry.nachname}" (Zeile ${earlierEntry.rowIndex + 2}) → "${displayVorname} ${laterEntry.nachname}" (${laterEntry.label}${sName ? `, Schüler/in: ${sVorname} ${sName}` : ''})\n⚠ Bitte manuell prüfen – automatische Korrektur nicht möglich (mögliche Heirat, Scheidung oder Doppelname).`,
+          message: `Möglicher Namenswechsel (${changeLabel}): Vorname "${displayVorname}", Nachname "${earlierEntry.nachname}" (Zeile ${earlierEntry.rowIndex + 2}) → Nachname "${laterEntry.nachname}" (${laterEntry.label}${sName ? `, Schüler/in: ${sVorname} ${sName}` : ''})\n⚠ Bitte manuell prüfen – automatische Korrektur nicht möglich (mögliche Heirat, Scheidung oder Doppelname).`,
           severity: 'warning',
         });
       }

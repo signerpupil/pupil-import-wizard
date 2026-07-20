@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
+import { normalizeName } from '@/lib/nameUtils';
 
 export interface NameChangeEntry {
   error: ValidationError;
@@ -13,6 +14,7 @@ export interface NameChangeEntry {
   fromName: string;
   fromRow: number;
   toName: string;
+  vorname: string;
   studentName: string;
   fromStudentName: string;
   column: string;
@@ -46,6 +48,72 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
   const dismissEntry = useCallback((entry: NameChangeEntry) => {
     onErrorCorrect(entry.error.row, entry.error.column, entry.error.value, 'manual');
   }, [onErrorCorrect]);
+
+  const PARENT_SLOTS = [
+    { nameCol: 'P_ERZ1_Name', vornameCol: 'P_ERZ1_Vorname', idCol: 'P_ERZ1_ID' },
+    { nameCol: 'P_ERZ2_Name', vornameCol: 'P_ERZ2_Vorname', idCol: 'P_ERZ2_ID' },
+  ];
+
+  const applyChoice = useCallback((entry: NameChangeEntry, choice: 'from' | 'to') => {
+    const chosen = choice === 'from' ? entry.fromName : entry.toName;
+    const other = choice === 'from' ? entry.toName : entry.fromName;
+    const vornameNorm = normalizeName(entry.vorname);
+    const chosenNorm = normalizeName(chosen);
+    const otherNorm = normalizeName(other);
+
+    type Match = { rowIdx: number; nameCol: string; idCol: string; curName: string; curId: string };
+    const matched: Match[] = [];
+    rows.forEach((r, idx) => {
+      for (const s of PARENT_SLOTS) {
+        const v = normalizeName(String(r[s.vornameCol] ?? ''));
+        const n = normalizeName(String(r[s.nameCol] ?? ''));
+        if (!v || !n || !vornameNorm) continue;
+        if (v !== vornameNorm) continue;
+        if (n !== chosenNorm && n !== otherNorm) continue;
+        matched.push({
+          rowIdx: idx,
+          nameCol: s.nameCol,
+          idCol: s.idCol,
+          curName: String(r[s.nameCol] ?? ''),
+          curId: String(r[s.idCol] ?? ''),
+        });
+      }
+    });
+
+    // Determine consolidation ID: prefer an ID already sitting on a "chosen name" row.
+    let targetId = '';
+    for (const m of matched) {
+      if (normalizeName(m.curName) === chosenNorm && m.curId) { targetId = m.curId; break; }
+    }
+    if (!targetId) {
+      for (const m of matched) if (m.curId) { targetId = m.curId; break; }
+    }
+
+    const corrections: { row: number; column: string; value: string }[] = [];
+    let nameChanges = 0;
+    let idChanges = 0;
+    for (const m of matched) {
+      if (m.curName !== chosen) {
+        corrections.push({ row: m.rowIdx + 2, column: m.nameCol, value: chosen });
+        nameChanges++;
+      }
+      if (targetId && m.curId !== targetId) {
+        corrections.push({ row: m.rowIdx + 2, column: m.idCol, value: targetId });
+        idChanges++;
+      }
+    }
+
+    // Ensure the triggering error itself is marked resolved even if the row already matches.
+    if (!corrections.some(c => c.row === entry.error.row && c.column === entry.error.column)) {
+      corrections.push({ row: entry.error.row, column: entry.error.column, value: chosen });
+    }
+
+    onBulkCorrect(corrections, 'bulk');
+    toast({
+      title: 'Namenswechsel angewendet',
+      description: `«${chosen}» in ${matched.length} Elternzeile${matched.length === 1 ? '' : 'n'} übernommen${idChanges > 0 ? `, Eltern-ID auf ${matched.length - (matched.length - idChanges)} Zeilen vereinheitlicht` : ''}.`,
+    });
+  }, [rows, onBulkCorrect, toast]);
 
   const dismissAll = useCallback(() => {
     const corrections = entries.map(e => ({
@@ -110,7 +178,7 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
               const toRow = rows[entry.error.row - 2] ?? {};
               const colPrefix = entry.column.replace(/Name$/, '');
               const vornameCol = `${colPrefix}Vorname`;
-              const sharedVorname = fromRow[vornameCol] ?? toRow[vornameCol];
+              const sharedVorname = entry.vorname || fromRow[vornameCol] || toRow[vornameCol];
               const studentCols = ['S_ID', 'S_AHV', 'K_Name'];
               return (
                 <div
@@ -174,8 +242,7 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
                       <div className="grid grid-cols-2 gap-2">
                         <div className="rounded-md border bg-muted/50 p-2.5 space-y-2 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-foreground">Bisheriger Eintrag</span>
-                            <span className="text-muted-foreground text-[10px]">Zeile {entry.fromRow}</span>
+                            <span className="font-semibold text-foreground">Eintrag auf Zeile {entry.fromRow}</span>
                           </div>
                           <div className="space-y-1 border-t pt-1.5">
                             <div className="flex items-baseline gap-1">
@@ -203,8 +270,7 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
                         </div>
                         <div className="rounded-md border border-pupil-warning/30 bg-pupil-warning/5 p-2.5 space-y-2 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-foreground">Neuer Eintrag</span>
-                            <span className="text-muted-foreground text-[10px]">Zeile {entry.error.row}</span>
+                            <span className="font-semibold text-foreground">Eintrag auf Zeile {entry.error.row}</span>
                           </div>
                           <div className="space-y-1 border-t pt-1.5">
                             <div className="flex items-baseline gap-1">
@@ -237,11 +303,10 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onErrorCorrect(entry.error.row, entry.error.column, entry.fromName, 'manual');
-                            toast({ title: 'Name übernommen', description: `«${entry.fromName}» wurde in Zeile ${entry.error.row} gesetzt.` });
+                            applyChoice(entry, 'from');
                           }}
                           className="gap-1.5 text-xs"
-                          title={`Den Namen aus Zeile ${entry.fromRow} in Zeile ${entry.error.row} übernehmen`}
+                          title={`«${entry.fromName}» als Nachname für alle Zeilen dieser Elternperson übernehmen und Eltern-ID vereinheitlichen`}
                         >
                           <Check className="h-3.5 w-3.5" />
                           «{entry.fromName}» übernehmen
@@ -249,12 +314,12 @@ export function NameChangeCard({ entries, rows, onErrorCorrect, onBulkCorrect }:
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={(e) => { e.stopPropagation(); dismissEntry(entry); }}
+                          onClick={(e) => { e.stopPropagation(); applyChoice(entry, 'to'); }}
                           className="gap-1.5 text-xs"
-                          title={`Den Namen «${entry.toName}» in Zeile ${entry.error.row} beibehalten`}
+                          title={`«${entry.toName}» als Nachname für alle Zeilen dieser Elternperson übernehmen und Eltern-ID vereinheitlichen`}
                         >
                           <Check className="h-3.5 w-3.5" />
-                          «{entry.toName}» beibehalten
+                          «{entry.toName}» übernehmen
                         </Button>
                         <span className="text-xs text-muted-foreground ml-1">
                           ℹ Bei «Ignorieren» bleiben beide Zeilen unverändert im Export.
