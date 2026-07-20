@@ -349,9 +349,15 @@ export function ParentConsolidationCard({
           <CollapsibleContent className="mt-4 space-y-3">
             {/* Reliability filter buttons */}
             {(() => {
-              const countHigh = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('hohe')).length;
-              const countMedium = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('mittlere')).length;
-              const countLow = parentIdInconsistencyGroups.filter(g => g.matchReason.toLowerCase().includes('tiefe')).length;
+              const countHigh = enhancedGroups.filter(g => {
+                const r = g.matchReason.toLowerCase();
+                return r.includes('hohe') && (r.includes('→ hohe') || !r.includes('mittlere'));
+              }).length;
+              const countMedium = enhancedGroups.filter(g => {
+                const r = g.matchReason.toLowerCase();
+                return r.includes('mittlere') && !r.includes('→ hohe');
+              }).length;
+              const countLow = enhancedGroups.filter(g => g.matchReason.toLowerCase().includes('tiefe')).length;
               return (
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant={reliabilityFilter === 'all' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('all')} className="gap-1.5">
