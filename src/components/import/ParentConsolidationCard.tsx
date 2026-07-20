@@ -326,12 +326,6 @@ export function ParentConsolidationCard({
                   <Button size="sm" variant={reliabilityFilter === 'all' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('all')} className="gap-1.5">
                     Alle ({parentIdInconsistencyGroups.length})
                   </Button>
-                  {(countHigh + countMedium) > 0 && (
-                    <Button size="sm" variant={reliabilityFilter === 'medium_high' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('medium_high')}
-                      className={`gap-1.5 ${reliabilityFilter !== 'medium_high' ? 'border-primary/50 text-primary hover:bg-primary/5' : ''}`}>
-                      Mittel + Hoch ({countHigh + countMedium})
-                    </Button>
-                  )}
                   {countHigh > 0 && (
                     <Button size="sm" variant={reliabilityFilter === 'high' ? 'default' : 'outline'} onClick={() => setReliabilityFilter('high')}
                       className={`gap-1.5 ${reliabilityFilter !== 'high' ? 'border-green-500/50 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700'}`}>
