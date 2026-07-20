@@ -447,8 +447,9 @@ function stripDiacritics(s: string): string {
     for (const error of uncorrectedErrors) {
       if (!error.message.includes('Möglicher Namenswechsel')) continue;
       const typeMatch = error.message.match(/Möglicher Namenswechsel \(([^)]+)\)/);
-      const fromMatch = error.message.match(/"([^"]+)" \(Zeile (\d+)\)/);
-      const toMatch = error.message.match(/→ "([^"]+)"/);
+      const vornameMatch = error.message.match(/Vorname "([^"]+)"/);
+      const fromMatch = error.message.match(/Nachname "([^"]+)" \(Zeile (\d+)\)/);
+      const toMatch = error.message.match(/→ Nachname "([^"]+)"/);
       const studentMatch = error.message.match(/Schüler\/in: ([^)]+)/);
       const fromRowData = fromMatch ? rows[parseInt(fromMatch[2]) - 1] : null;
       const fromStudentVorname = fromRowData ? String(fromRowData['S_Vorname'] ?? '') : '';
@@ -460,6 +461,7 @@ function stripDiacritics(s: string): string {
         fromName: fromMatch?.[1] ?? error.value,
         fromRow: fromMatch ? parseInt(fromMatch[2]) : error.row,
         toName: toMatch?.[1] ?? error.value,
+        vorname: vornameMatch?.[1] ?? '',
         studentName: studentMatch?.[1] ?? (getStudentNameForRow(error.row) ?? `Zeile ${error.row}`),
         fromStudentName: fromStudentFull || (fromMatch ? `Zeile ${fromMatch[2]}` : ''),
         column: error.column,
