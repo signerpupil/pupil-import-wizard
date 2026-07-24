@@ -107,7 +107,12 @@ E-Mail-Adresse angeben. Erst danach können Zugangsdaten Migrations-User verschi
 
 6.0 Projektablauf während 3-Monats-Slot
 6.1 Kick-Off mit Schulträgern (Woche 1-2 des Slots)
-Termine Slot 1: 31.08.2026 15-17h, 02.09.2026 14-16h, 03.09.2026 14-16h, 10.09.2026 10-12h.
+Kick-Off Slot 1 findet in Woche 1–2 des Slots statt. Vier Termine zur Auswahl (online via Microsoft Teams):
+- Mo 31.08.2026, 15–17 Uhr – Anmeldung: https://events.teams.microsoft.com/event/28fc5fd6-8851-4bb1-bdfa-a4492a373041@787b883d-1585-44bf-969b-d33c4d6a105e
+- Mi 02.09.2026, 14–16 Uhr – Anmeldung: https://events.teams.microsoft.com/event/28fc5fd6-8851-4bb1-bdfa-a4492a373041@787b883d-1585-44bf-969b-d33c4d6a105e
+- Do 03.09.2026, 14–16 Uhr – Anmeldung: https://events.teams.microsoft.com/event/f0a74784-9a04-4dc0-a813-b79f30b35a25@787b883d-1585-44bf-969b-d33c4d6a105e
+- Do 10.09.2026, 10–12 Uhr – Anmeldung: https://events.teams.microsoft.com/event/2f02a3f2-a56c-4cbd-9e58-0c6e4246753e@787b883d-1585-44bf-969b-d33c4d6a105e
+Bitte für einen Termin anmelden. Der Kick-Off kombiniert auch das Migrations-Webinar (siehe Schritt 6.1). Bei Fragen zum Kick-Off Slot 1 alle vier Termine mit Anmeldelinks als Markdown-Links auflisten.
 
 6.2 Trainerschulung: Schulverwaltung 21.09.2026; Schulalltag 14.10. + 21.10.2026.
 
