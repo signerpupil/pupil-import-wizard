@@ -1,48 +1,37 @@
+
 ## Ziel
+Ein schwebender Chat-Button unten rechts auf allen Seiten, der einen Hilfe-Assistenten öffnet – nur für allgemeine Bedienungsfragen, keine Importdaten.
 
-1. In der Karte „Eltern-ID Konsolidierung" klarer zeigen, dass die IDs in „Aktueller Stand" **Eltern-IDs** sind (nicht Kinder-IDs) — im Header **und** pro Zeile.
-2. Die Filter-Buttons für die Zuverlässigkeit neu aufteilen: getrennte Buttons für **Hohe**, **Mittlere** und **Tiefe** Zuverlässigkeit — kein kombinierter „Mittel + Hoch"-Button mehr. Die zugrunde liegende Prüf-/Kategorisierungslogik bleibt unverändert.
+## Vorgehen
 
-## Datei
+### 1. Backend über Lovable Cloud (Supabase Edge Function)
+- Neue Edge Function `supabase/functions/assistant-chat/index.ts`.
+- Ruft Lovable AI Gateway mit `anthropic/claude-*` (bzw. `google/gemini-3.6-flash` als Default) auf – kein Anthropic-API-Key nötig, `LOVABLE_API_KEY` wird automatisch verwendet.
+- Streaming via `streamText` → `toUIMessageStreamResponse`.
+- System-Prompt: Aus dem HTML-Code des Claude-Assistenten übernommen (bitte senden). Zusatzhinweis: „Antworte nur zu Bedienungsfragen des PUPIL Import Wizard, keine Importdaten verarbeiten."
 
-`src/components/import/ParentConsolidationCard.tsx` (reine UI-Änderung, keine Logikänderung, keine Änderung an `fileParser.ts`).
+### 2. Frontend: Floating Chat Widget
+- Neue Komponente `src/components/assistant/FloatingAssistant.tsx`:
+  - Runder Button unten rechts (fixed), Teal/Cyan-Style passend zum Design-System.
+  - Klick öffnet Popover/Sheet mit Chat-UI (AI Elements: Conversation, Message, PromptInput).
+  - `useChat` von `@ai-sdk/react`, Transport zeigt auf die Edge Function.
+- In `src/App.tsx` global neben `<Routes>` einbinden, damit auf allen Seiten sichtbar.
 
-## Änderungen im Detail
+### 3. Datenschutz-Hinweis
+- Beim ersten Öffnen kurzer Disclaimer: „Dieser Assistent nutzt einen externen KI-Dienst. Bitte keine Personendaten aus Importdateien eingeben."
+- Ergänzung in `DatenschutzDialog.tsx` und im Admin-Bereich (`AdminAISettings.tsx`), dass dieser optionale Hilfe-Assistent extern läuft (Abgrenzung zur lokalen Datenverarbeitung).
 
-### 1. Vergleichsansicht klarer beschriften
+### 4. Ein-/Ausschaltbar
+- Neue Setting im Footer/Admin: Assistent aktivieren/deaktivieren (localStorage), Default: aktiviert.
 
-Im aufgeklappten Detailblock (`Einträge im Vergleich`, Zeilen ~650–732):
+## Offene Punkte
+Bitte den **HTML-Code des Claude-Assistenten** senden, damit ich:
+- den System-Prompt / die Persona übernehmen kann,
+- prüfen kann, ob spezielle Tools/Funktionsaufrufe enthalten sind,
+- ggf. ein bestimmtes Claude-Modell (Sonnet/Haiku/Opus) wählen kann.
 
-- **Karten-Header „Aktueller Stand"** ergänzen um Elternnamen und Erläuterung:
-  - Zeile darunter: `Elternperson: {group.parentName} — Eltern-ID gemäss jeder Kinderzeile`
-- **Zeilenlabel** pro Kind umformulieren:
-  - alt: `Lena Gaertner: SCZID2FEBLIL6S`
-  - neu: `Eltern-ID in Zeile von Lena Gaertner (Z. 10): SCZID2FEBLIL6S`
-  - Referenzzeile analog: `Referenz – Eltern-ID in Zeile von Lena Gaertner (Z. 10): SCZID2FEBLIL6S`
-- Kleine Info-Zeile am oberen Rand der linken Karte:
-  - `Die ID zeigt, welche Eltern-ID aktuell in der jeweiligen Kinderzeile steht.`
-- **Karten-Header „Nach Konsolidierung"** ergänzen um:
-  - Untertitel: `Alle Kinderzeilen von {parentName} erhalten dieselbe Eltern-ID.`
-- Der bereits vorhandene Chip „Einheitliche ID: …" behält seine Position; darüber neu ein Hinweis:
-  - `Neuer Wert in Spalte {group.column} für alle betroffenen Kinderzeilen:`
-- Klarstellendes Label an jedem ID-Chip (`px-1.5 py-0.5 … font-mono`): Prefix-Text „Eltern-ID" links vom Chip nur einmal pro Karte (im Header), damit die Zeilen kompakt bleiben.
-
-### 2. Filter-Buttons für Zuverlässigkeit
-
-Im Button-Block (Zeilen ~320–358):
-
-- **Button „Mittel + Hoch" entfernen.**
-- Übrige Buttons bleiben: `Alle` / `Hohe Zuverlässigkeit` / `Mittlere Zuverlässigkeit` / `Tiefe Zuverlässigkeit`.
-- Default-Filter (`useState`, Zeile 132) von `'medium_high'` auf `'all'` umstellen, damit beim Öffnen alle drei Kategorien sichtbar sind.
-- Filter-Logik in `filteredGroups` (Zeilen 147–156): Zweig `medium_high` entfernen; `all|high|medium|low` bleiben unverändert.
-- Farbliche Kennzeichnung bleibt gleich (Grün / Amber / Rot); jeder Button zeigt weiterhin seine Anzahl.
-
-### 3. Nicht angepasst
-
-- `matchReason`-Strings und Kategorisierung in `src/lib/fileParser.ts` bleiben unverändert (Hohe = AHV, Mittlere = Name+Strasse / Name+Telefon / Name+Elternpaar / Fuzzy, Tiefe = Name+Vorname).
-- Keine Änderungen an `ParentIdInconsistencyGroup`-Typ, keine neuen Felder erforderlich; `group.parentName`, `group.column` und `group.correctId` reichen für die Textausgabe.
-
-## Ergebnis
-
-- „Einträge im Vergleich" macht durch Elternname im Header **und** durch das Präfix „Eltern-ID in Zeile von …" pro Zeile eindeutig sichtbar, dass es sich um die in der jeweiligen Kinderzeile eingetragene Eltern-ID handelt.
-- Die drei Zuverlässigkeitsstufen sind einzeln filterbar; der irreführende Kombi-Button entfällt.
+## Technische Details
+- Modell: `google/gemini-3.6-flash` (Default, kostengünstig) – bei Bedarf auf `anthropic/claude-*` umstellbar über Lovable AI Gateway.
+- Kosten: pro Anfrage aus Workspace-Credits.
+- Keine neuen npm-Packages nötig (`ai`, `@ai-sdk/react` bereits verfügbar bzw. wird via Edge Function `npm:` importiert).
+- Chat-Verlauf: nur in-memory pro Session, keine Persistierung.

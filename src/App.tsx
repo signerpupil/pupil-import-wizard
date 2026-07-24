@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
+import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FloatingAssistant />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
