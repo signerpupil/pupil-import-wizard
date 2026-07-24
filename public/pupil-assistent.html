@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PUPIL@AG Assistent – Prototyp</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a2433;
+    --ink-soft: #6b7280;
+    --paper: #f4f7fb;
+    --card: #ffffff;
+    --line: #dce8f3;
+    --accent: #2b80c0;
+    --accent-hover: #1e6aa3;
+    --accent-soft: #e8f2fa;
+    --accent-ink: #ffffff;
+    --green: #1a7a4a;
+    --green-soft: #e8f5ee;
+    --orange: #d97706;
+    --orange-soft: #fef3c7;
+    --radius: 12px;
+  }
+
+  body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    background: #f4f7fb;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 740px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 12px rgba(28,35,51,0.08);
+  }
+
+  /* ── Header ── */
+  .hd {
+    background: var(--card);
+    color: var(--ink);
+    padding: 18px 24px 16px;
+    border-bottom: 3px solid var(--accent);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .hd-logo {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .hd-logo img {
+    height: 44px;
+    width: auto;
+    display: block;
+  }
+  .hd-body { flex: 1; }
+  .hd-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .hd-title { font-size: 19px; font-weight: 700; color: var(--ink); }
+  .hd-sub {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    line-height: 1.45;
+    max-width: 540px;
+  }
+
+  /* ── Chips ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 24px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+  }
+  .chip {
+    font-size: 12.5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid transparent;
+    padding: 6px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .chip:hover { border-color: var(--accent); background: #d4e8f7; }
+
+  /* ── Messages ── */
+  .messages {
+    padding: 18px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 260px;
+    max-height: 460px;
+    overflow-y: auto;
+    background: var(--card);
+  }
+
+  .msg { display: flex; flex-direction: column; }
+  .msg.user { align-items: flex-end; }
+  .msg.assistant { align-items: flex-start; }
+  .msg.notice { align-items: center; }
+
+  .bubble {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .msg.user .bubble {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-bottom-right-radius: 3px;
+  }
+  .msg.assistant .bubble {
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-bottom-left-radius: 3px;
+  }
+  .msg.notice .bubble {
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 12px;
+    border: none;
+    padding: 0;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  /* source badge under assistant bubble */
+  .source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .source-badge.live {
+    background: var(--green-soft);
+    color: var(--green);
+  }
+  .source-badge.static {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .source-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+  /* typing indicator */
+  .typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 11px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    border-bottom-left-radius: 3px;
+  }
+  .typing span {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+    animation: bounce 1.1s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* search indicator */
+  .searching {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    padding: 8px 14px;
+    background: var(--orange-soft);
+    border: 1px solid #fde68a;
+    border-radius: var(--radius);
+    border-bottom-left-radius: 3px;
+  }
+  .search-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid #fde68a;
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Input row ── */
+  .inputrow {
+    display: flex;
+    gap: 8px;
+    padding: 14px 24px 18px;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+  }
+  .inp {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .inp:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(43,128,192,0.15);
+  }
+  .send-btn {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 10px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .send-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* ── Footer ── */
+  .foot {
+    padding: 10px 24px 16px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    background: var(--card);
+    line-height: 1.5;
+    border-top: 1px solid var(--line);
+  }
+  .foot b { color: var(--ink); }
+  .foot .legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 7px;
+    flex-wrap: wrap;
+  }
+  .foot .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.live { background: var(--green); }
+  .dot.static { background: var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="hd">
+    <div class="hd-logo">
+      <img src="data:image/png;base64,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" alt="pupil by seven education" style="height:44px;width:auto;" />
+    </div>
+    <div class="hd-body">
+      <div class="hd-eyebrow">Prototyp · Projekt Koneksa · Kanton Aargau</div>
+      <div class="hd-title">PUPIL@AG Assistent</div>
+      <div class="hd-sub">Beantwortet Fragen zum Onboarding-Prozess und zu PUPIL – mit Live-Zugriff auf die aktuelle PUPIL-Dokumentation.</div>
+    </div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+  <div class="messages" id="messages"></div>
+
+  <div class="inputrow">
+    <input class="inp" id="inp" placeholder="Frage zum Onboarding oder zu PUPIL stellen…" autocomplete="off" />
+    <button class="send-btn" id="sendBtn">Senden</button>
+  </div>
+
+  <div class="foot">
+    <b>Hinweis:</b> Interner Prototyp. Keine Zugangsdaten oder Passwörter in der Wissensbasis.
+    <div class="legend">
+      <span class="legend-item"><span class="dot live"></span> Live-Abfrage dokumentation.pupil.ch</span>
+      <span class="legend-item"><span class="dot static"></span> Onboarding / Koneksa-Kontext</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+
+  // ─────────────────────────────────────────────
+  // KNOWLEDGE BASE
+  // ─────────────────────────────────────────────
+
+  var KONEKSA_KONTEXT = "[QUELLE: schulen-aargau.ch - Projekt Koneksa]\n" +
+    "Koneksa strebt die digitale Vernetzung der Schulen an (Datenaustausch untereinander und mit " +
+    "dem Kanton). Dafuer erhalten Schultraeger die Basis-Schulverwaltungsloesung PUPIL kostenlos; " +
+    "zudem soll eine einheitliche Bildungsidentitaet eingefuehrt werden. Start des Projekts: 2023. " +
+    "Ab 1. August 2026 tritt das revidierte Volksschulgesetz (VSG) in Kraft und schafft die " +
+    "gesetzliche Grundlage, u.a. die Pflicht zur Nutzung von PUPIL@AG fuer bestimmte Funktionen.\n" +
+    "Etappen: Beschaffung PUPIL (Ausschreibung Sommer 2024, Zuschlag an Pupil AG, Publikation " +
+    "Vergabeentscheid Maerz 2025) -> Ablosung LehrerOffice ab Schuljahr 2028/29 -> gestaffelte " +
+    "Einfuehrung PUPIL@AG an allen Volksschulen (Schuljahr 2026/27 bis Ende Schuljahr 2027/28) -> " +
+    "ab 2027 Realisierung kantonale Bildungsidentitaet sowie Anschluss an Edulog.\n" +
+    "1. August 2026 Inkraftsetzung Rechtsgrundlage; SJ 2026/27-2027/28 gestaffelte Einfuehrung; " +
+    "ab 2027 Bildungsidentitaet/Edulog.";
+
+  var AARGAU_PRODUKT_KONTEXT = "[QUELLE: schulen-aargau.ch - PUPIL@AG Produktuebersicht]\n" +
+    "Basismodul: ersetzt LehrerOffice + LehrerOffice Zusatz vollstaendig, kantonsweit kostenlos, " +
+    "verpflichtend zu nutzen, komplett webbasiert (kein Download, keine eigene Serverinfrastruktur " +
+    "noetig, Software-as-a-Service, Datenspeicherung auf zertifizierten Servern in der Schweiz).\n" +
+    "Hauptbereiche: Schulverwaltung, Schulalltag/Lehrpersonen, Master Data, Adressbuch/Listen, " +
+    "Schulleitung.\n" +
+    "Optionale Module (kostenpflichtig): PUPIL Connect/Elternportal, Raumverwaltung, " +
+    "Tagesstruktur, Fallfuehrung, Musikschule.\n" +
+    "Support: 1st Level = schulinterne Superuser; 2nd Level = BKS (pupil@ag.ch / 062 835 26 03); " +
+    "3rd Level = Pupil AG.\n" +
+    "FAQ: Basismodul kostenlos fuer Schultraeger; LehrerOffice laeuft parallel bis Ende SJ 2027/28.";
+
+  var AARGAU_EINFUEHRUNG_KONTEXT = "[QUELLE: schulen-aargau.ch - Einfuehrung PUPIL@AG]\n" +
+    "Infoveranstaltungen: Slot 1: Do 18.06.2026 16:00-17:30 Uhr; Slot 2: Do 24.09.2026; " +
+    "Slot 3: Do 07.01.2027; Slot 4: Do 08.04.2027; Slot 5: Do 24.06.2027.\n" +
+    "Trainer-Schulungen (Train-the-Trainer, online durch Pupil AG, vorlaeufige Termine):\n" +
+    "Slot 1: Schulverwaltung Mo 21.09.2026 (vm); Schulalltag Mi 14.10.2026 + Mi 21.10.2026 (je nm).\n" +
+    "Slot 2: Schulverwaltung Mo 11.01.2027 (vm); Schulalltag Mi 20.01.2027 + Mi 27.01.2027 (je nm).\n" +
+    "Slot 3: Schulverwaltung Mo 22.03.2027 (vm); Schulalltag Mi 31.03.2027 + Mi 07.04.2027 (je nm).\n" +
+    "Slot 4: Schulverwaltung Mo 21.06.2027 (vm); Schulalltag Mi 23.06.2027 + Mi 30.06.2027 (je nm).\n" +
+    "Slot 5: Schulverwaltung Mo 27.09.2027 (vm); Schulalltag Mi 20.10.2027 + Mi 27.10.2027 (je nm).\n" +
+    "Einfuehrungsrollen: PL ST 40-65h; SV ST 40-65h; Fachspez. 0-65h; Trainer 18-24h; " +
+    "Superuser 12-24h waehrend Einfuehrung + laufend.\n" +
+    "Migration von LehrerOffice: Self-Service, kostenfrei, Termin innerhalb des Slots. " +
+    "Migriert: Stammdaten SuS/EB, Journaleintraege, Foerderplanung, Zeugnisse als PDF.\n" +
+    "Sloteinteilung Slot 1 (01.09.26-30.11.26): Kreisschule Erzbachtal, Kreisschule Leerau, " +
+    "Kreisschule Mellingen-Wohlenschwil, Kreisschule Reitnau-Wiliberg, Kreisschule Rohrdorferberg, " +
+    "Kreisschule Surbtal, Kreisschule Unteres Fricktal, Primarschule Boezberg, " +
+    "Primarschulverband Fischingertal, Schule Aarburg, Schule Birr, Schule Brittnau, " +
+    "Schule Buttwil, Schule Densbueren, Schule Dintikon, Schule Eggenwil, Schule Gipf-Oberfrick, " +
+    "Schule Hausen, Schule Hirschthal, Schule Kallern, Schule Koelliken, Schule Meisterschwanden, " +
+    "Schule Menziken, Schule Muri, Schule Neuenhof, Schule Niederlenz, Schule Niederrohrdorf, " +
+    "Schule Oberkulm, Schule Oberlunkhofen, Schule Oberrohrdorf, Schule Rottenschwil, " +
+    "Schule Ruefenach, Schule Sarmenstorf, Schule Schinznach, Schule Schwaderloch, Schule Stein, " +
+    "Schule Suhr, Schule Untersiggenthal, Schule Waltenschwil.";
+
+
+
+  var WEBINAR_LINKS = "[ANMELDELINKS TRAINER-SCHULUNGEN (Teams-Webinare)]\n" +
+    "Alle Schulungen sind online via Microsoft Teams. Anmeldung ueber den jeweiligen Link:\n\n" +
+    "SCHULVERWALTUNG:\n" +
+    "Slot 1 - Mo 21.09.2026: https://events.teams.microsoft.com/event/48ebb926-b449-4ca2-9e7d-cc5b4d254860@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 2 - Mo 11.01.2027: https://events.teams.microsoft.com/event/ee4824b8-83dd-4439-a3de-d5f407f94594@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 3 - Mo 22.03.2027: https://events.teams.microsoft.com/event/e43976c0-01c6-481e-a28b-e36e42b7a555@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 4 - Mo 21.06.2027: https://events.teams.microsoft.com/event/19cb0bfc-9120-4390-b3ab-74a6a5114d14@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 5 - Mo 27.09.2027: https://events.teams.microsoft.com/event/28edac38-72e8-46fa-9ee0-8c3421fe8509@787b883d-1585-44bf-969b-d33c4d6a105e\n\n" +
+    "SCHULALLTAG (je 2 Teile pro Slot):\n" +
+    "Slot 1 - Teil 1 - Mi 14.10.2026: https://events.teams.microsoft.com/event/b0097ad8-940d-4814-a9a2-c4817bea0971@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 1 - Teil 2 - Mi 21.10.2026: https://events.teams.microsoft.com/event/e3291c01-d6eb-4a70-9f5e-e7a160eb7fc0@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 2 - Teil 1 - Mi 20.01.2027: https://events.teams.microsoft.com/event/a5338eae-926e-45e7-b3f4-ff04c8910262@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 2 - Teil 2 - Mi 27.01.2027: https://events.teams.microsoft.com/event/920d143d-f085-443f-b61f-269607a686f4@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 3 - Teil 1 - Mi 31.03.2027: https://events.teams.microsoft.com/event/fb859e72-146d-4d98-a808-44d14de97390@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 3 - Teil 2 - Mi 07.04.2027: https://events.teams.microsoft.com/event/e1d03112-0972-4d1c-8e17-70397897e3d1@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 4 - Teil 1 - Mi 23.06.2027: https://events.teams.microsoft.com/event/e54e1d1a-35ae-4041-ba26-4e3fafa76b2d@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 4 - Teil 2 - Mi 30.06.2027: https://events.teams.microsoft.com/event/f8efb83c-72bd-4109-8e86-db4cd8a6b806@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 5 - Teil 1 - Mi 20.10.2027: https://events.teams.microsoft.com/event/ab7cdad6-013d-4033-9a7a-ef440989e716@787b883d-1585-44bf-969b-d33c4d6a105e\n" +
+    "Slot 5 - Teil 2 - Mi 27.10.2027: https://events.teams.microsoft.com/event/f4affd58-a742-4088-8c5f-1cff728f9bd0@787b883d-1585-44bf-969b-d33c4d6a105e";
+
+  var ONBOARDING_TEXT = "[ONBOARDING-PROZESS PUPIL@AG - SLOT 1 (01.09.2026-30.11.2026)]\n\n" +
+    "1.0 Vorbereitung des Wechsels zu PUPIL\n" +
+    "1.1 Grundlagen schaffen (ca. 5 Monate vorher, 01.04.-07.04.2026)\n" +
+    "Termin mit PUPIL-Kundenberater buchen (www.pupil.ch/termine); abklaeren welche " +
+    "Schulverwaltungsloesung im Einsatz ist; Einfuehrungsrollen festlegen.\n\n" +
+    "1.2 Wichtige Daten erfassen\n" +
+    "Formular: Projektleitung Schultraeger, offizielle Bezeichnung, Adresse, Schultyp, " +
+    "URL Schulwebseite, Wunsch-PUPIL-URL, Haupttelefon/-email.\n\n" +
+    "2.0 Ressourcenplanung und Vertrag (2.1, ca. 5 Monate vorher, 01.04.-07.04.2026)\n" +
+    "Migration aus LehrerOffice: selbstaendig moeglich. Migration aus Scolaris/CMI: " +
+    "kostenpflichtig, frueh einplanen.\n\n" +
+    "3.0 Einladung Informationsveranstaltung durch BKS (3.1, ca. 4 Monate vorher)\n" +
+    "Offizieller Termin Slot 1: Do 18.06.2026 16:00-17:30 Uhr (online). Bei fehlendem " +
+    "Einladungsmail: Peter Streit / Team, pupil@ag.ch, 062 835 21 00.\n\n" +
+    "4.0 Vorbereitungsarbeiten PUPIL (4.1, ca. 12 Wochen vorher, 09.06.-15.06.2026)\n" +
+    "Setup der Instanz im Format 'ihrewahl.pupil.schule'. Kein sofortiger Login nach " +
+    "Bereitstellung. Erst nach 5.3 koennen Zugangsdaten verschickt werden.\n\n" +
+    "5.0 Vorbereitungsarbeiten Schultraeger\n" +
+    "5.1 Tasks Schultraeger (ca. 4 Wochen vorher, 04.08.-10.08.2026)\n" +
+    "- URL der PUPIL-Instanz bekannt (Voraussetzung SSO)\n" +
+    "- SSO-Anbindung an Microsoft 365 gemaess Anleitung einrichten\n" +
+    "- MFA auf M365 fuer alle PUPIL@AG-Nutzenden einrichten (KEINE MFA fuer Schuelerlizenzen)\n" +
+    "- AHV-Nummern SuS, Eltern, Mitarbeitende pruefen/vervollstaendigen\n" +
+    "- Zugang zum Migrations-User erhalten (setzt 5.3 voraus)\n" +
+    "- Persoenlichen PUPIL-Benutzer erstellen und Login mit M365-SSO testen\n" +
+    "- Zugang PUPIL Cloud bei Bedarf anfragen\n\n" +
+    "5.2 SSO-Werte fuer PUPIL bereitstellen (ca. 3 Wochen vorher, 11.08.-17.08.2026)\n" +
+    "Eingabe: Zertifikat & Geheimnisse, Verzeichnis-ID (Mandant), Anwendungs-ID (Client).\n\n" +
+    "5.3 Migrationsverantwortliche Person (ca. 6 Wochen vorher, 21.07.-27.07.2026)\n" +
+    "E-Mail-Adresse angeben. Erst danach koennen Zugangsdaten Migrations-User verschickt werden.\n\n" +
+    "6.0 Projektablauf waehrend 3-Monats-Slot\n" +
+    "6.1 Kick-Off mit Schultraegern (Woche 1-2 des Slots)\n" +
+    "Termine Slot 1: 31.08.2026 15-17h, 02.09.2026 14-16h, 03.09.2026 14-16h, " +
+    "10.09.2026 10-12h.\n\n" +
+    "6.2 Trainerschulung: Schulverwaltung 21.09.2026; Schulalltag 14.10. + 21.10.2026.\n\n" +
+    "6.3 Tasks Schultraeger (waehrend des Slots)\n" +
+    "- Datenmigration Personalstammdaten (Self-Service bei LehrerOffice)\n" +
+    "- Stammdaten-Migration SuS/Erziehungsberechtigte\n" +
+    "- Migration ueberpruefen (Klassen, Personen, Journaleintraege, Foerderplaner, Zeugnisse)\n" +
+    "- Instanz konfigurieren: Schuleinheiten, Gruppen, Dokumentvorlagen, Berechtigungen\n" +
+    "- Schulinterne Ausbildungen (Train-the-Trainer); eLearnings: pupil.ch/ag-elearning\n\n" +
+    "7.0 Abnahme des Mandanten (7.1)\n" +
+    "Online-Call, spaetestens 2 Monate nach Slot-Ende. Prueft eingefuehrte Bereiche, " +
+    "Migration, Schulungen, Modulzugriffe, Schnittstellen.\n\n" +
+    "WICHTIGE LINKS:\n" +
+    "- eLearning: www.pupil.ch/ag-elearning\n" +
+    "- Schulportal: www.schulen-aargau.ch\n" +
+    "- Dokumentation: dokumentation.pupil.ch\n" +
+    "- Release Notes: release.pupil.ch";
+
+  var STATIC_SYSTEM = "Du bist der 'PUPIL@AG Assistent' – ein Hilfe-Chatbot fuer Projektleitungen " +
+    "und Migrationsverantwortliche im Kanton Aargau (Projekt Koneksa).\n\n" +
+    "Du hast Zugriff auf zwei Wissensquellen:\n" +
+    "A) Statischer Kontext: Koneksa-Projekthintergrund, Produktuebersicht PUPIL@AG, " +
+    "Einfuehrungsdetails und Slot-Zuteilung, Onboarding-Prozess Slot 1.\n" +
+    "B) Live-Dokumentation: Bei Produktfragen (Bedienung, Funktionen, Konfiguration in PUPIL) " +
+    "hast du Suchergebnisse von dokumentation.pupil.ch erhalten – nutze diese primaer.\n\n" +
+    "Regeln:\n" +
+    "- Antworte kurz, konkret und auf Deutsch (Sie-Form).\n" +
+    "- Nenne relevante Onboarding-Schritte (z.B. 'siehe Schritt 5.1').\n" +
+    "- Wenn die Live-Doku eine Antwort liefert, zitiere sinnvoll daraus und erwaehne kurz, " +
+    "dass die Info von dokumentation.pupil.ch stammt.\n" +
+    "- Wenn jemand fragt, wie oder wo man sich fuer eine Schulung anmelden kann, gib den " +
+    "passenden Anmeldelink direkt als klickbare URL an. Formatiere ihn als Markdown-Link: " +
+    "[Jetzt anmelden](URL)\n" +
+    "- Erfinde keine Termine, Preise, Kontaktdaten oder Fakten.\n" +
+    "- Dies ist ein interner Prototyp.\n\n" +
+    "--- KONTEXT KONEKSA ---\n" + KONEKSA_KONTEXT + "\n\n" +
+    "--- PRODUKT KONTEXT ---\n" + AARGAU_PRODUKT_KONTEXT + "\n\n" +
+    "--- EINFUEHRUNG & SLOTS ---\n" + AARGAU_EINFUEHRUNG_KONTEXT + "\n\n" +
+    "--- ANMELDELINKS SCHULUNGEN ---\n" + WEBINAR_LINKS + "\n\n" +
+    "--- ONBOARDING-PROZESS ---\n" + ONBOARDING_TEXT;
+
+  var CLASSIFY_SYSTEM = "Du klassifizierst eine Benutzeranfrage fuer einen PUPIL@AG-Chatbot.\n\n" +
+    "Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Kommentar), das genau " +
+    "zwei Felder hat:\n" +
+    "- needs_live_docs: true wenn die Frage sich auf konkrete Bedienung, Konfiguration oder " +
+    "Funktionen innerhalb der PUPIL-Software bezieht (z.B. 'Wie erstelle ich Gruppen?', " +
+    "'Wo finde ich Absenzen?', 'Wie richte ich Zeugnisse ein?', 'Wie funktioniert der " +
+    "Foerderplaner?'). false fuer Fragen zu Projektablauf, Terminen, Migration, Slots, " +
+    "Koneksa-Kontext oder allgemeinen organisatorischen Fragen.\n" +
+    "- search_query: wenn needs_live_docs=true, ein praeziser englischer oder deutscher " +
+    "Suchbegriff fuer site:dokumentation.pupil.ch (1-4 Woerter). Sonst leerer String.\n\n" +
+    "Beispiele:\n" +
+    "{\"needs_live_docs\":true,\"search_query\":\"dynamische Gruppen erstellen PUPIL\"}\n" +
+    "{\"needs_live_docs\":false,\"search_query\":\"\"}";
+
+  // ─────────────────────────────────────────────
+  // DOM REFS
+  // ─────────────────────────────────────────────
+
+  var chipsEl   = document.getElementById("chips");
+  var msgsEl    = document.getElementById("messages");
+  var inpEl     = document.getElementById("inp");
+  var sendBtnEl = document.getElementById("sendBtn");
+
+  var history = [];
+  var busy = false;
+
+  // ─────────────────────────────────────────────
+  // STARTER CHIPS
+  // ─────────────────────────────────────────────
+
+  var CHIPS = [
+    "Wann muss ich SSO einrichten?",
+    "Wie erstelle ich dynamische Gruppen?",
+    "Was ist das Projekt Koneksa?",
+    "Welche Schulen sind in Slot 1?",
+    "Wie funktionieren Absenzen in PUPIL?",
+    "Wann ist der Kick-Off für Slot 1?"
+  ];
+  CHIPS.forEach(function (q) {
+    var btn = document.createElement("button");
+    btn.className = "chip";
+    btn.textContent = q;
+    btn.addEventListener("click", function () { submit(q); });
+    chipsEl.appendChild(btn);
+  });
+
+  // ─────────────────────────────────────────────
+  // INITIAL NOTICE
+  // ─────────────────────────────────────────────
+
+  addNotice("Prototyp – antwortet auf Basis von Onboarding-Text, Koneksa-Kontext und Live-Doku von dokumentation.pupil.ch.");
+
+  // ─────────────────────────────────────────────
+  // MESSAGE HELPERS
+  // ─────────────────────────────────────────────
+
+  function addNotice(text) {
+    var row = document.createElement("div");
+    row.className = "msg notice";
+    var b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = text;
+    row.appendChild(b);
+    msgsEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function addUserMsg(text) {
+    var row = document.createElement("div");
+    row.className = "msg user";
+    var b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = text;
+    row.appendChild(b);
+    msgsEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function addTyping() {
+    var row = document.createElement("div");
+    row.className = "msg assistant";
+    row.id = "typing-row";
+    var t = document.createElement("div");
+    t.className = "typing";
+    t.innerHTML = "<span></span><span></span><span></span>";
+    row.appendChild(t);
+    msgsEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function addSearching() {
+    var row = document.createElement("div");
+    row.className = "msg assistant";
+    row.id = "searching-row";
+    var s = document.createElement("div");
+    s.className = "searching";
+    s.innerHTML = '<div class="search-spinner"></div>Suche in dokumentation.pupil.ch…';
+    row.appendChild(s);
+    msgsEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function removeEl(id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function renderMarkdown(text) {
+    // Escape HTML first
+    var escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    // Links: [text](url)
+    escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-weight:600;">$1</a>');
+    // Bold: **text**
+    escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    // Italic: *text*
+    escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    // Line breaks
+    escaped = escaped.replace(/\n/g, "<br>");
+    return escaped;
+  }
+
+  function addAssistantMsg(text, sourceType) {
+    var row = document.createElement("div");
+    row.className = "msg assistant";
+    var b = document.createElement("div");
+    b.className = "bubble";
+    b.innerHTML = renderMarkdown(text);
+    row.appendChild(b);
+
+    if (sourceType) {
+      var badge = document.createElement("div");
+      badge.className = "source-badge " + sourceType;
+      if (sourceType === "live") {
+        badge.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 12.5A5.5 5.5 0 118 2.5a5.5 5.5 0 010 11z"/></svg> Live: dokumentation.pupil.ch';
+      } else {
+        badge.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h7v2H2z"/></svg> Onboarding / Koneksa-Kontext';
+      }
+      row.appendChild(badge);
+    }
+
+    msgsEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function setbusy(val) {
+    busy = val;
+    sendBtnEl.disabled = val;
+  }
+
+  // ─────────────────────────────────────────────
+  // API HELPERS
+  // ─────────────────────────────────────────────
+
+  function callClaude(systemPrompt, messages, tools) {
+    var body = {
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: messages
+    };
+    if (tools) body.tools = tools;
+
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); });
+  }
+
+  // ─────────────────────────────────────────────
+  // CLASSIFY: needs live docs?
+  // ─────────────────────────────────────────────
+
+  function classify(question) {
+    return callClaude(CLASSIFY_SYSTEM, [{ role: "user", content: question }])
+      .then(function (data) {
+        var text = "";
+        if (data && data.content) {
+          data.content.forEach(function (b) { if (b.type === "text") text += b.text; });
+        }
+        try {
+          return JSON.parse(text.trim());
+        } catch (e) {
+          return { needs_live_docs: false, search_query: "" };
+        }
+      })
+      .catch(function () {
+        return { needs_live_docs: false, search_query: "" };
+      });
+  }
+
+  // ─────────────────────────────────────────────
+  // LIVE SEARCH via Claude web_search tool
+  // ─────────────────────────────────────────────
+
+  function liveSearch(query) {
+    var searchQuery = query + " site:dokumentation.pupil.ch";
+    return callClaude(
+      "Du bist ein Suchasistent. Suche mit dem web_search-Tool nach der Anfrage und gib " +
+      "die relevantesten gefundenen Informationen als Fliesstext auf Deutsch zurueck. " +
+      "Fasse den Inhalt der Suchergebnisse zusammen – praezise und hilfreich. " +
+      "Wenn nichts Passendes gefunden wurde, antworte nur mit: KEINE_ERGEBNISSE",
+      [{ role: "user", content: searchQuery }],
+      [{ type: "web_search_20250305", name: "web_search" }]
+    ).then(function (data) {
+      var text = "";
+      if (data && data.content) {
+        data.content.forEach(function (b) { if (b.type === "text") text += b.text; });
+      }
+      return text.trim() || "KEINE_ERGEBNISSE";
+    }).catch(function () {
+      return "KEINE_ERGEBNISSE";
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // MAIN SUBMIT FLOW
+  // ─────────────────────────────────────────────
+
+  function submit(question) {
+    var q = (question || inpEl.value || "").trim();
+    if (!q || busy) return;
+    inpEl.value = "";
+    setbusy(true);
+
+    addUserMsg(q);
+    history.push({ role: "user", content: q });
+
+    addTyping();
+
+    classify(q).then(function (cls) {
+      if (!cls.needs_live_docs) {
+        // Static path
+        return callClaude(STATIC_SYSTEM, history).then(function (data) {
+          removeEl("typing-row");
+          var out = extractText(data);
+          addAssistantMsg(out, "static");
+          history.push({ role: "assistant", content: out });
+        });
+      } else {
+        // Live docs path
+        removeEl("typing-row");
+        addSearching();
+
+        return liveSearch(cls.search_query || q).then(function (docsResult) {
+          removeEl("searching-row");
+          addTyping();
+
+          var augmentedSystem = STATIC_SYSTEM;
+          if (docsResult !== "KEINE_ERGEBNISSE") {
+            augmentedSystem += "\n\n--- LIVE-SUCHERGEBNISSE VON dokumentation.pupil.ch ---\n" +
+              "Die folgende Information wurde soeben live von dokumentation.pupil.ch abgerufen. " +
+              "Nutze sie primaer fuer die Antwort:\n" + docsResult;
+          }
+
+          return callClaude(augmentedSystem, history).then(function (data) {
+            removeEl("typing-row");
+            var out = extractText(data);
+            var sourceType = docsResult !== "KEINE_ERGEBNISSE" ? "live" : "static";
+            addAssistantMsg(out, sourceType);
+            history.push({ role: "assistant", content: out });
+          });
+        });
+      }
+    }).catch(function () {
+      removeEl("typing-row");
+      removeEl("searching-row");
+      addAssistantMsg("Fehler beim Abrufen der Antwort. Bitte versuchen Sie es nochmals.", null);
+    }).finally(function () {
+      setbusy(false);
+    });
+  }
+
+  function extractText(data) {
+    var out = "";
+    if (data && data.content) {
+      data.content.forEach(function (b) { if (b.type === "text") out += b.text; });
+    }
+    return out || "Entschuldigung, ich konnte gerade keine Antwort erzeugen.";
+  }
+
+  // ─────────────────────────────────────────────
+  // EVENTS
+  // ─────────────────────────────────────────────
+
+  sendBtnEl.addEventListener("click", function () { submit(inpEl.value); });
+  inpEl.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(inpEl.value); });
+
+})();
+</script>
+</body>
+</html>
