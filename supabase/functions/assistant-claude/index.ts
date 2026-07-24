@@ -112,7 +112,15 @@ Kick-Off Slot 1 findet in Woche 1–2 des Slots statt. Vier Termine zur Auswahl 
 - Mi 02.09.2026, 14–16 Uhr – Anmeldung: https://events.teams.microsoft.com/event/28fc5fd6-8851-4bb1-bdfa-a4492a373041@787b883d-1585-44bf-969b-d33c4d6a105e
 - Do 03.09.2026, 14–16 Uhr – Anmeldung: https://events.teams.microsoft.com/event/f0a74784-9a04-4dc0-a813-b79f30b35a25@787b883d-1585-44bf-969b-d33c4d6a105e
 - Do 10.09.2026, 10–12 Uhr – Anmeldung: https://events.teams.microsoft.com/event/2f02a3f2-a56c-4cbd-9e58-0c6e4246753e@787b883d-1585-44bf-969b-d33c4d6a105e
-Bitte für einen Termin anmelden. Der Kick-Off kombiniert auch das Migrations-Webinar (siehe Schritt 6.1). Bei Fragen zum Kick-Off Slot 1 alle vier Termine mit Anmeldelinks als Markdown-Links auflisten.
+Bitte für einen Termin anmelden. Der Kick-Off kombiniert auch das Migrations-Webinar (siehe Schritt 6.1). Bei Fragen zum Kick-Off Slot 1 die vier Termine IMMER exakt in diesem Markdown-Format ausgeben (keine Tabelle, keine Bullet-Liste, jeder Termin als eigener Absatz mit Leerzeile dazwischen, Wochentag+Datum fett, Gedankenstrich vor dem Link):
+
+**Mo 31.08.2026**, 15–17 Uhr – [Jetzt anmelden](https://events.teams.microsoft.com/event/28fc5fd6-8851-4bb1-bdfa-a4492a373041@787b883d-1585-44bf-969b-d33c4d6a105e)
+
+**Mi 02.09.2026**, 14–16 Uhr – [Jetzt anmelden](https://events.teams.microsoft.com/event/28fc5fd6-8851-4bb1-bdfa-a4492a373041@787b883d-1585-44bf-969b-d33c4d6a105e)
+
+**Do 03.09.2026**, 14–16 Uhr – [Jetzt anmelden](https://events.teams.microsoft.com/event/f0a74784-9a04-4dc0-a813-b79f30b35a25@787b883d-1585-44bf-969b-d33c4d6a105e)
+
+**Do 10.09.2026**, 10–12 Uhr – [Jetzt anmelden](https://events.teams.microsoft.com/event/2f02a3f2-a56c-4cbd-9e58-0c6e4246753e@787b883d-1585-44bf-969b-d33c4d6a105e)
 
 6.2 Trainerschulung: Schulverwaltung 21.09.2026; Schulalltag 14.10. + 21.10.2026.
 
