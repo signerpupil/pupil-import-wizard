@@ -468,6 +468,7 @@
     "hast du Suchergebnisse von dokumentation.pupil.ch erhalten – nutze diese primaer.\n\n" +
     "Regeln:\n" +
     "- Antworte kurz, konkret und auf Deutsch (Sie-Form).\n" +
+    "- Verwende KEINE Markdown-Überschriften (#, ##, ###). Nutze stattdessen **fetten Text** für Zwischentitel.\n" +
     "- Nenne relevante Onboarding-Schritte (z.B. 'siehe Schritt 5.1').\n" +
     "- Wenn die Live-Doku eine Antwort liefert, zitiere sinnvoll daraus und erwaehne kurz, " +
     "dass die Info von dokumentation.pupil.ch stammt.\n" +
@@ -597,6 +598,8 @@
       .replace(/>/g, "&gt;");
     // Links: [text](url)
     escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-weight:600;">$1</a>');
+    // Headings: ###/##/# at line start -> bold block
+    escaped = escaped.replace(/^\s*#{1,6}\s+(.+)$/gm, '<div style="font-weight:700;margin:8px 0 4px;">$1</div>');
     // Bold: **text**
     escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     // Italic: *text*
