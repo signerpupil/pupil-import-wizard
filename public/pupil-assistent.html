@@ -639,9 +639,13 @@
     };
     if (tools) body.tools = tools;
 
-    return fetch("https://api.anthropic.com/v1/messages", {
+    return fetch("https://ruzhoguspxlkwvppoicz.supabase.co/functions/v1/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1emhvZ3VzcHhsa3d2cHBvaWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTkwNTQsImV4cCI6MjA4NDA3NTA1NH0.L_U-mh3v9FxFcPUN1niKuqqJvcg_aKdOtXhkbAh_wJ4",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1emhvZ3VzcHhsa3d2cHBvaWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTkwNTQsImV4cCI6MjA4NDA3NTA1NH0.L_U-mh3v9FxFcPUN1niKuqqJvcg_aKdOtXhkbAh_wJ4"
+      },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json(); });
   }
