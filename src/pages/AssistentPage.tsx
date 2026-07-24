@@ -10,10 +10,12 @@ const PRIVACY_KEY = "pupil-assistent-privacy-ok";
 const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/assistant-claude`;
 
 const QUICK_CHIPS = [
-  "Wann findet die Infoveranstaltung für Slot 1 statt?",
-  "Wie melde ich mich für die Trainer-Schulung Schulverwaltung an?",
-  "Welche Tasks muss der Schulträger 4 Wochen vor Slot-Start erledigen?",
-  "Welche Schulen gehören zu Slot 1?",
+  "Wann muss ich SSO einrichten?",
+  "Wie erstelle ich dynamische Gruppen?",
+  "Was ist das Projekt Koneksa?",
+  "Welche Schulen sind in Slot 1?",
+  "Wie funktionieren Absenzen in PUPIL?",
+  "Wann ist der Kick-Off für Slot 1?",
 ];
 
 type ChatMsg = {
