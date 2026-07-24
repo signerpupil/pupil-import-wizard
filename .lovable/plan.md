@@ -1,54 +1,22 @@
 ## Ziel
-Neue Route `/assistent` mit vollwertigem Claude-basiertem Chat-Assistenten (PUPIL-Branding, Live-Websuche, Markdown, Quell-Badges). Der bestehende schwebende Assistent bleibt parallel bestehen.
+Den finalen Systemprompt „PUPIL@AG Assistent" (Koneksa-Kontext, Slot 1, Anmeldelinks, Regeln) in die bestehende Edge Function `supabase/functions/assistant-claude/index.ts` einsetzen. Frontend und Chip-Fragen bleiben unverändert – nur der Prompt wird ersetzt.
 
-## Voraussetzungen
-- Secret `ANTHROPIC_API_KEY` wird über `add_secret` angefordert (eigener Anthropic-Key).
-- Weiterer Systemprompt/Chips-Text folgt vom User – daher zunächst mit sinnvollen Defaults + zentraler Konstante bauen, sodass Anpassung mit einem File-Edit erledigt ist.
+## Änderungen
+### `supabase/functions/assistant-claude/index.ts`
+- `SYSTEM_PROMPT_STATIC` durch den vom User gelieferten Volltext ersetzen. Enthält:
+  - Rolle + Regeln (Sie-Form, kurz, Onboarding-Schritte referenzieren, keine erfundenen Fakten, Prototyp-Hinweis)
+  - Block „--- KONTEXT KONEKSA ---"
+  - Block „--- PRODUKT KONTEXT ---"
+  - Block „--- EINFÜHRUNG & SLOTS ---"
+  - Block „--- ANMELDELINKS SCHULUNGEN ---" (alle 15 Teams-Links, Markdown-Anweisung „[Jetzt anmelden](URL)")
+  - Block „--- ONBOARDING-PROZESS ---" (Schritte 1.0–7.0 Slot 1)
+  - „WICHTIGE LINKS" (eLearning, Schulportal, Dokumentation, Release Notes)
+- `SYSTEM_PROMPT_LIVE`: bleibt = `SYSTEM_PROMPT_STATIC` + Zusatz „Bei Produktfragen die Suchergebnisse von **dokumentation.pupil.ch** primär nutzen und als Quelle nennen (Info von dokumentation.pupil.ch)."
+- Klassifizierungs-Prompt leicht anpassen: LIVE = Produktfrage zu PUPIL-Bedienung/Funktion/Konfiguration → nutzt Web Search auf `dokumentation.pupil.ch`; STATIC = Koneksa/Slots/Onboarding/Schulungsanmeldung.
+- Optional: Web-Search-Tool auf Domain einschränken via `allowed_domains: ["dokumentation.pupil.ch", "release.pupil.ch", "pupil.ch", "schulen-aargau.ch"]`, damit die Live-Doku auch wirklich von den offiziellen Quellen kommt.
 
-## Backend – neue Edge Function `assistant-claude`
-Datei: `supabase/functions/assistant-claude/index.ts`
-- CORS-Preflight.
-- Erwartet `{ messages: {role, content}[] }`.
-- **Stufe 1 – Klassifizierung**: Call an Claude (`claude-sonnet-4-5-20250929`, max_tokens 20) mit Prompt „Antworte NUR mit LIVE oder STATIC. LIVE wenn aktuelle/externe Infos, Preise, News, Doku-Links, Änderungen nötig sind."
-- **Stufe 2 – Antwort**:
-  - Wenn LIVE → Claude-Call mit `tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }]` und `betas: ["web-search-2025-03-05"]` (Header `anthropic-beta`).
-  - Wenn STATIC → normaler Call, Kontext = eingebauter Onboarding-/Koneksa-Systemprompt.
-- Response JSON: `{ text, source: "live" | "static" }`. Kein Streaming (Web-Search-Tool + Zwei-Stufen macht Streaming komplex; Antworten sind kurz).
-- Modell-ID `claude-sonnet-4-5` (User schrieb „claude-sonnet-4-6" – aktuell existiert keine 4-6; ich verwende Sonnet 4.5 als aktuellste Sonnet-Version und dokumentiere das im Code-Kommentar. User kann ID einfach ersetzen).
+### Frontend
+Keine Änderungen nötig. Die Chip-Beispielfragen kann ich optional an den neuen Kontext anpassen (z.B. „Wann ist die Infoveranstaltung Slot 1?", „Wie melde ich mich für die Trainer-Schulung Schulverwaltung an?", „Welche Tasks muss der Schulträger 4 Wochen vor Slot-Start erledigen?", „Wer gehört zu Slot 1?"). **Frage:** Chips ersetzen oder Import-Wizard-Chips beibehalten? → Standard: ersetzen, da der Assistent jetzt Koneksa/PUPIL@AG-Fokus hat.
 
-## Frontend
-### Neue Seite `src/pages/AssistentPage.tsx` mit Route `/assistent`
-Layout gemäß Branding:
-- Hintergrund `#f4f7fb`, Cards weiß mit `rounded-2xl` und Schatten.
-- Header-Card: Logo (PNG-URL) links, Titel „PUPIL Assistent" + Untertitel.
-- Datenschutzhinweis-Card (dismissible via localStorage-Key `pupil-assistent-privacy-ok`).
-- Chip-Row mit 4 Beispielfragen (Defaults, später leicht ersetzbar):
-  1. „Wie importiere ich Stammdaten SuS und EZB?"
-  2. „Welche Sprachen werden auf BISTA gemappt?"
-  3. „Was bedeutet der Fehler ‚Ungültige AHV'?"
-  4. „Wo finde ich die Regelübersicht?"
-- Chat-Verlauf: User-Bubbles rechts (Primärfarbe `#2b80c0`, weiße Schrift), Assistant-Bubbles links (weiß, dunkler Text).
-- Antwort-Rendering mit **react-markdown** (fett, kursiv, klickbare Links `target="_blank" rel="noreferrer"`).
-- **Quell-Badge** unter jeder Assistant-Nachricht: grün (`bg-emerald-100 text-emerald-800`) „Live-Doku" bei `source:"live"`, blau (`bg-sky-100 text-sky-800`) „Onboarding/Koneksa" bei `source:"static"`.
-- Eingabefeld unten mit Send-Button (Primärfarbe), Enter = senden, Shift+Enter = Zeilenumbruch.
-- Loading-State „denkt nach…" während Fetch.
-- Fehlermeldung als rote Card bei API-Fehler (429/402/500).
-
-### Routing
-- `src/App.tsx`: neue Route `<Route path="/assistent" element={<AssistentPage />} />` innerhalb der bestehenden Router-Struktur.
-- Kein neuer Nav-Eintrag im Footer (User hat nicht angefragt; Zugang via direkter URL bzw. wir können später verlinken).
-
-## Dependencies
-- `react-markdown` installieren (falls nicht vorhanden – prüfen).
-
-## Deliverables
-1. `supabase/functions/assistant-claude/index.ts` (neue Edge Function, Zwei-Stufen-Logik + Web Search Tool)
-2. `src/pages/AssistentPage.tsx` (neue Seite)
-3. Route-Ergänzung in `src/App.tsx`
-4. Ggf. `bun add react-markdown`
-5. Anfrage von Secret `ANTHROPIC_API_KEY` via `add_secret`
-
-## Offene Punkte, die nach Erhalt der User-Details ersetzt werden
-- Exakter Systemprompt (Onboarding/Koneksa-Kontext) → als Konstante `SYSTEM_PROMPT_STATIC` in der Edge Function, ein-File-Edit.
-- Exakte Chip-Beispielfragen → Array `QUICK_CHIPS` in `AssistentPage.tsx`.
-- Falls User definitives Modell `claude-sonnet-4-6` nachliefert → Konstante `CLAUDE_MODEL` ersetzen.
+## Deliverable
+Eine Datei-Änderung an `supabase/functions/assistant-claude/index.ts` (Prompt-Konstanten + `allowed_domains`) und optional Chip-Update in `src/pages/AssistentPage.tsx`.
