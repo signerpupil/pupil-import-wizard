@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Send, Eye, FileText } from 'lucide-react';
+import { BookOpen, Send, Eye, FileText, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Select,
@@ -15,6 +15,8 @@ import { getAnalyticsMode, setAnalyticsMode, type AnalyticsMode } from '@/lib/an
 import { pendingCount, subscribeToQueueChanges, flushPendingToSupabase } from '@/lib/pendingTelemetry';
 import { PendingTelemetryDialog } from '@/components/analytics/PendingTelemetryDialog';
 import { toast } from '@/hooks/use-toast';
+import { isAssistantEnabled, setAssistantEnabled } from '@/components/assistant/FloatingAssistant';
+import { Switch } from '@/components/ui/switch';
 
 export function Footer() {
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ export function Footer() {
   const [count, setCount] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [assistant, setAssistant] = useState(isAssistantEnabled());
 
   useEffect(() => {
     setMode(getAnalyticsMode());
@@ -29,9 +32,12 @@ export function Footer() {
     const unsubQueue = subscribeToQueueChanges(() => setCount(pendingCount()));
     const onModeChange = () => setMode(getAnalyticsMode());
     window.addEventListener('analytics-mode-changed', onModeChange);
+    const onAssist = () => setAssistant(isAssistantEnabled());
+    window.addEventListener('assistant-toggle', onAssist);
     return () => {
       unsubQueue();
       window.removeEventListener('analytics-mode-changed', onModeChange);
+      window.removeEventListener('assistant-toggle', onAssist);
     };
   }, []);
 
@@ -82,6 +88,17 @@ export function Footer() {
                 <FileText className="h-3 w-3" />
                 Regeln pro Import (HTML)
               </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="assistant-toggle" className="text-xs whitespace-nowrap inline-flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" />
+                Hilfe-Assistent
+              </Label>
+              <Switch
+                id="assistant-toggle"
+                checked={assistant}
+                onCheckedChange={(v) => { setAssistantEnabled(v); setAssistant(v); }}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="analytics-mode" className="text-xs whitespace-nowrap">
