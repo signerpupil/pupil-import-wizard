@@ -127,10 +127,17 @@ WICHTIGE LINKS:
 - Dokumentation: dokumentation.pupil.ch
 - Release Notes: release.pupil.ch`;
 
-const SYSTEM_PROMPT_LIVE = `${SYSTEM_PROMPT_STATIC}
+const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
 
+function buildLiveSystemPrompt(liveContext: string): string {
+  return `${SYSTEM_PROMPT_STATIC}
+
+--- LIVE-DOKU RECHERCHE ---
+[Suchergebnisse aus dokumentation.pupil.ch / release.pupil.ch / pupil.ch / schulen-aargau.ch zur aktuellen Frage]
+${liveContext}
 ---
-LIVE-MODUS: Für diese Anfrage darfst du das web_search Tool nutzen. Suche bevorzugt auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Zitiere Quellen als Markdown-Links und weise darauf hin, dass die Info von dokumentation.pupil.ch stammt.`;
+Nutze diese Fundstellen bevorzugt für deine Antwort. Zitiere Quellen als Markdown-Links und weise kurz darauf hin, dass die Info aus der Live-Dokumentation stammt.`;
+}
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -193,30 +200,50 @@ Deno.serve(async (req) => {
       // Klassifizierung schlägt fehl -> weiter mit static
     }
 
-    // Stufe 2: Antwort
+    // Stufe 2: separate Web-Recherche (nur bei LIVE)
+    let liveContext = "";
+    if (source === "live") {
+      try {
+        const research = await anthropic(
+          {
+            model: CLAUDE_MODEL,
+            max_tokens: 800,
+            system: RESEARCH_SYSTEM,
+            messages: [{ role: "user", content: lastUser }],
+            tools: [
+              {
+                type: "web_search_20250305",
+                name: "web_search",
+                max_uses: 3,
+                allowed_domains: [
+                  "dokumentation.pupil.ch",
+                  "release.pupil.ch",
+                  "pupil.ch",
+                  "schulen-aargau.ch",
+                ],
+              },
+            ],
+          },
+          true,
+        );
+        const raw = extractText(research);
+        if (raw && !/^KEINE_TREFFER/i.test(raw)) {
+          liveContext = raw;
+        }
+      } catch (e) {
+        console.error("live research failed:", e instanceof Error ? e.message : e);
+      }
+      if (!liveContext) source = "static"; // Badge korrekt setzen
+    }
+
+    // Stufe 3: finale Antwort (ohne Tools)
     const body: Record<string, unknown> = {
       model: CLAUDE_MODEL,
       max_tokens: 1500,
-      system: source === "live" ? SYSTEM_PROMPT_LIVE : SYSTEM_PROMPT_STATIC,
+      system: liveContext ? buildLiveSystemPrompt(liveContext) : SYSTEM_PROMPT_STATIC,
       messages,
     };
-    if (source === "live") {
-      body.tools = [
-        {
-          type: "web_search_20250305",
-          name: "web_search",
-          max_uses: 3,
-          allowed_domains: [
-            "dokumentation.pupil.ch",
-            "release.pupil.ch",
-            "pupil.ch",
-            "schulen-aargau.ch",
-          ],
-        },
-      ];
-    }
-
-    const answer = await anthropic(body, source === "live");
+    const answer = await anthropic(body, false);
     const text = extractText(answer);
 
     return new Response(JSON.stringify({ text, source }), {
