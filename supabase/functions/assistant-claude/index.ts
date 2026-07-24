@@ -35,6 +35,12 @@ Optionale Module (kostenpflichtig): PUPIL Connect/Elternportal, Raumverwaltung, 
 Support: 1st Level = schulinterne Superuser; 2nd Level = BKS (pupil@ag.ch / 062 835 26 03); 3rd Level = Pupil AG.
 FAQ: Basismodul kostenlos für Schulträger; LehrerOffice läuft parallel bis Ende SJ 2027/28.
 
+--- PUPIL FEATURES: GRUPPEN & CONNECT ---
+[QUELLE: dokumentation.pupil.ch - Gruppen & Connect]
+Dynamische Gruppen: In PUPIL können mehrere Klassen (z.B. zwei Kindergartenklassen) zu einer dynamischen Gruppe zusammengefasst werden. Die gewünschten Lehrpersonen werden der Gruppe als Mitglieder hinzugefügt. Ändert sich die Klassenzusammensetzung (neue/abgehende SuS oder Eltern), wird die Gruppe automatisch aktualisiert.
+Synchronisation nach PUPIL Connect: Damit die Gruppe im Elternportal/Chat sichtbar ist, muss in den Gruppeneinstellungen die Checkbox "Gruppe in Chat anzeigen" aktiviert werden. Neue Eltern werden dann automatisch zur Chatgruppe hinzugefügt.
+Anwendungsfall Kindergarten (zwei Klassen in einer Connect-Gruppe anschreiben): EINE dynamische Gruppe über beide Kindergartenklassen in PUPIL erstellen, die gewünschten Lehrpersonen als Mitglieder hinzufügen und "Gruppe in Chat anzeigen" aktivieren. Die Gruppe erscheint dann in Connect und synchronisiert Änderungen (z.B. neue Eltern) automatisch. Manuell direkt in Connect erstellte Gruppen werden NICHT automatisch mit den Klassen synchronisiert – dynamische Gruppen in PUPIL sind der empfohlene Weg.
+
 --- EINFÜHRUNG & SLOTS ---
 [QUELLE: schulen-aargau.ch - Einführung PUPIL@AG]
 Infoveranstaltungen: Slot 1: Do 18.06.2026 16:00-17:30 Uhr; Slot 2: Do 24.09.2026; Slot 3: Do 07.01.2027; Slot 4: Do 08.04.2027; Slot 5: Do 24.06.2027.
