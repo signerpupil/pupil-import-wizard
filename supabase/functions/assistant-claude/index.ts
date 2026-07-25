@@ -155,8 +155,8 @@ WICHTIGE LINKS:
 - Dokumentation (schriftliche Anleitungen zu allen PUPIL-Produkten; in PUPIL oben via Handbuchsymbol verlinkt): https://dokumentation.pupil.ch
 - Release Notes (Produktentwicklungen, auch als Newsletter/RSS; in PUPIL oben via Lautsprechersymbol verlinkt): https://release.pupil.ch
 - PUPIL Cloud – Passwort: Pupil@AG!2025!
-- Lernumgebung für Lehrpersonen (Checkliste wichtige Funktionen): „PUPIL@AG Lernumgebung" auf schulen-aargau.ch
-- PUPIL@AG Roadmap (bevorstehende und ausgerollte Entwicklungen für AG): verlinkt auf schulen-aargau.ch
+- Lernumgebung für Lehrpersonen (Checkliste wichtige Funktionen): https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome
+- PUPIL@AG Roadmap (bevorstehende und ausgerollte Entwicklungen für AG): https://dokumentation.pupil.ch/article/vwd7iovrqq-pupil-ag-roadmap
 Beim Nennen dieser Links immer als Markdown-Link formatieren.`;
 
 const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
