@@ -145,7 +145,19 @@ WICHTIGE LINKS:
 - eLearning: www.pupil.ch/ag-elearning
 - Schulportal: www.schulen-aargau.ch
 - Dokumentation: dokumentation.pupil.ch
-- Release Notes: release.pupil.ch`;
+- Release Notes: release.pupil.ch
+
+--- WICHTIGE PUPIL-LINKS FÜR SUPERUSER (Kanton Aargau) ---
+[QUELLE: PUPIL AG – Wichtige PUPIL-Links AG Superuser]
+- Login PUPIL-Instanz der Schule: https://namederschule.pupil.schule (Platzhalter „namederschule" durch die eigene Schul-URL ersetzen)
+- eLearning (Video-Tutorials zum Selbststudium): https://www.pupil.ch/ag-elearning
+- Schulportal (Infos zur Einführung, Schulungsunterlagen, Termine – v.a. für Projektverantwortliche): https://www.schulen-aargau.ch
+- Dokumentation (schriftliche Anleitungen zu allen PUPIL-Produkten; in PUPIL oben via Handbuchsymbol verlinkt): https://dokumentation.pupil.ch
+- Release Notes (Produktentwicklungen, auch als Newsletter/RSS; in PUPIL oben via Lautsprechersymbol verlinkt): https://release.pupil.ch
+- PUPIL Cloud – Passwort: Pupil@AG!2025!
+- Lernumgebung für Lehrpersonen (Checkliste wichtige Funktionen): „PUPIL@AG Lernumgebung" auf schulen-aargau.ch
+- PUPIL@AG Roadmap (bevorstehende und ausgerollte Entwicklungen für AG): verlinkt auf schulen-aargau.ch
+Beim Nennen dieser Links immer als Markdown-Link formatieren.`;
 
 const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
 
