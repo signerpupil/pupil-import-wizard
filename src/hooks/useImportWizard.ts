@@ -52,7 +52,7 @@ type Action =
 const initialState: ImportWizardState = {
   currentStep: 0,
   maxVisitedStep: 0,
-  importType: 'schueler',
+  importType: 'stammdaten-lehrpersonen',
   subType: null,
   parseResult: null,
   columnStatuses: [],
