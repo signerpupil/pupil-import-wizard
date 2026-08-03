@@ -1,45 +1,36 @@
 ## Ziel
-Den zweistufigen Flow so umbauen, dass die Live-Doku-Suche ein **separater** Schritt ist (aktuell: `web_search` Tool läuft im selben Antwort-Call wie die finale Antwort). Ergebnis: klar getrennte Verantwortlichkeiten, Suchergebnisse landen explizit als Kontext-Block im System-Prompt von Call 2.
+Den FAQ-Block „Bis wann kann ich LehrerOffice noch nutzen?" vollständig in die Wissensbasis des PUPIL@AG Assistenten aufnehmen.
 
-## Aktueller Stand (verifiziert)
-`supabase/functions/assistant-claude/index.ts`:
-- Stufe 1 Klassifizierung → LIVE / STATIC ✓
-- Stufe 2 Antwort: bei LIVE wird `web_search_20250305` als Tool an denselben Call gehängt → Modell entscheidet selbst über Suche, Ergebnisse fliessen intern.
-- Badge grün (`emerald`) / blau (`sky`) in `AssistentPage.tsx` ✓
-- Markdown-Rendering via `react-markdown` ✓
+## Ist-Zustand (geprüft)
+In beiden System-Prompts (`supabase/functions/assistant-claude/index.ts`, `public/pupil-assistent.html`) steht bereits:
+- Ablösung LehrerOffice ab Schuljahr 2028/29
+- Gestaffelte Einführung 2026/27 bis Ende 2027/28
+- „LehrerOffice läuft parallel bis Ende SJ 2027/28"
 
-## Änderungen in `supabase/functions/assistant-claude/index.ts`
+Nicht enthalten:
+- LehrerOffice wird von CMI weiterbetrieben, aber nicht mehr weiterentwickelt
+- Kanton finanziert die Nutzung bis Ende Schuljahr 2027/28
+- Neue Lösung ist verpflichtend für alle Schulen
+- Ab Schuljahr 2028/29 finanziert der Kanton nur noch die neue Schulverwaltungslösung
 
-Neuer Ablauf bei `source === "live"`:
+## Änderung
+Neuer FAQ-Eintrag in beiden Prompts, direkt beim bestehenden LehrerOffice-Satz:
 
-1. **Call 1 – Klassifizierung** (unverändert, `max_tokens: 5`, LIVE/STATIC).
-2. **Call 2 – Web-Recherche** (nur wenn LIVE):
-   - Eigener Anthropic-Request mit `web_search_20250305` Tool, beschränkt auf `dokumentation.pupil.ch`, `release.pupil.ch`, `pupil.ch`, `schulen-aargau.ch`.
-   - System-Prompt: „Du bist ein Recherche-Agent. Suche in der Live-Doku nach relevanten Passagen zur folgenden Frage. Antworte in strukturierten Bullet-Points mit Quelle (Markdown-Link). Keine Interpretation, nur Fundstellen."
-   - User-Message: die letzte Nutzerfrage.
-   - `max_tokens: 800`, `max_uses: 3`.
-   - Rückgabe extrahieren → String `liveContext`.
-   - Fehler/Leerergebnis → Fallback auf statischen Prompt (kein Abbruch, `source` bleibt `live` wenn Kontext ≠ leer, sonst `static`).
-3. **Call 3 – Antwort generieren** (immer):
-   - Kein Tool mehr angehängt.
-   - System-Prompt = `SYSTEM_PROMPT_STATIC` + bei LIVE zusätzlich Block:
-     ```
-     --- LIVE-DOKU RECHERCHE ---
-     [Suchergebnisse von dokumentation.pupil.ch für die aktuelle Frage]
-     {liveContext}
-     ---
-     Nutze diese Fundstellen bevorzugt. Zitiere Quellen als Markdown-Links.
-     ```
-   - Volle `messages`-History.
-   - Response-Text extrahieren.
+```
+FAQ „Bis wann kann ich LehrerOffice noch nutzen?":
+- LehrerOffice wird von der Firma CMI weiterhin betrieben, aber nicht mehr weiterentwickelt.
+- Die Nutzung wird vom Kanton bis Ende Schuljahr 2027/28 wie bisher finanziert.
+- In den Schuljahren 2026/27 und 2027/28 erfolgt die gestaffelte Einführung der neuen kantonalen
+  Schulverwaltungslösung, welche LehrerOffice ersetzt und von allen Schulen verpflichtend
+  genutzt werden muss.
+- Ab Schuljahr 2028/29 finanziert der Kanton nur noch die Nutzung der neuen Schulverwaltungslösung.
+```
 
-Response-JSON unverändert: `{ text, source }` (Badge bleibt kompatibel — grün wenn Recherche etwas geliefert hat, blau sonst).
+Im HTML-Widget als ASCII-Variante (ohne Umlaute) analog zum bestehenden Stil.
 
-## Nicht angepasst
-- Frontend `AssistentPage.tsx`: Markdown + Badge-Farben sind bereits so gefordert, keine Änderung nötig.
-- Quick-Chips, Persona, Anmeldelinks bleiben.
+## Technisch
+- `supabase/functions/assistant-claude/index.ts`: Block nach Zeile 36 einfügen, Function neu deployen.
+- `public/pupil-assistent.html`: Block im FAQ-Teil des Prompt-Strings ergänzen.
 
-## Test nach Deploy
-1. „Wie erstelle ich dynamische Gruppen?" → sollte LIVE mit grünem Badge + Markdown-Links auf dokumentation.pupil.ch.
-2. „Was ist Projekt Koneksa?" → STATIC, blauer Badge, ohne Web-Aufruf.
-3. Edge-Function-Logs prüfen: bei LIVE zwei Anthropic-Calls (Recherche + Antwort) plus Klassifizierung = 3 Calls.
+## Test
+Frage „Bis wann kann ich LehrerOffice noch nutzen?" in beiden Oberflächen stellen – erwartet werden alle vier Punkte.
