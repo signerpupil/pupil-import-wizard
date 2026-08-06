@@ -34,6 +34,11 @@ Hauptbereiche: Schulverwaltung, Schulalltag/Lehrpersonen, Master Data, Adressbuc
 Optionale Module (kostenpflichtig): PUPIL Connect/Elternportal, Raumverwaltung, Tagesstruktur, Fallführung, Musikschule.
 Support: 1st Level = schulinterne Superuser; 2nd Level = BKS (pupil@ag.ch / 062 835 26 03); 3rd Level = Pupil AG.
 FAQ: Basismodul kostenlos für Schulträger; LehrerOffice läuft parallel bis Ende SJ 2027/28.
+FAQ "Bis wann kann ich LehrerOffice noch nutzen?":
+- LehrerOffice wird von der Firma CMI zwar weiterhin betrieben, aber nicht mehr weiterentwickelt.
+- Die Nutzung wird vom Kanton bis Ende Schuljahr 2027/28 wie bisher finanziert.
+- In den Schuljahren 2026/27 und 2027/28 erfolgt die gestaffelte Einführung der neuen kantonalen Schulverwaltungslösung, welche LehrerOffice ersetzt und von allen Schulen verpflichtend genutzt werden muss.
+- Ab Schuljahr 2028/29 finanziert der Kanton nur noch die Nutzung der neuen Schulverwaltungslösung.
 
 --- PUPIL FEATURES: GRUPPEN & CONNECT ---
 [QUELLE: dokumentation.pupil.ch - Gruppen & Connect]
