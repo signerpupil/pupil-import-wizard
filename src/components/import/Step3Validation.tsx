@@ -1622,13 +1622,16 @@ function stripDiacritics(s: string): string {
                                   .map(item => (
                                     <button
                                       key={item}
-                                      className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                      className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center justify-between gap-2"
                                       onClick={() => {
                                         setStepEditValue(item);
                                         setNationalitySearch(null);
                                       }}
                                     >
-                                      {item}
+                                      <span>{item}</span>
+                                      {!isNatCol && BISTA_LANGUAGE_CODES[item] && (
+                                        <span className="text-xs text-muted-foreground font-mono">{BISTA_LANGUAGE_CODES[item]}</span>
+                                      )}
                                     </button>
                                   ))}
                               </div>
