@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { VALID_BISTA_LANGUAGES, LANGUAGE_AUTO_CORRECTIONS, VALID_NATIONALITIES, NATIONALITY_AUTO_CORRECTIONS } from './fileParser';
+import { VALID_BISTA_LANGUAGES, LANGUAGE_AUTO_CORRECTIONS, VALID_NATIONALITIES, NATIONALITY_AUTO_CORRECTIONS, BISTA_LANGUAGE_CODES } from './fileParser';
 
 export async function exportMappingsToExcel() {
   const workbook = new ExcelJS.Workbook();
@@ -11,11 +11,12 @@ export async function exportMappingsToExcel() {
   const langSheet = workbook.addWorksheet('BISTA Sprachen (gültig)');
   langSheet.columns = [
     { header: '#', key: 'nr', width: 6 },
+    { header: 'Code', key: 'code', width: 10 },
     { header: 'Gültige BISTA-Sprache', key: 'sprache', width: 45 },
   ];
   const sortedLangs = [...VALID_BISTA_LANGUAGES].sort((a, b) => a.localeCompare(b, 'de'));
   sortedLangs.forEach((lang, i) => {
-    langSheet.addRow({ nr: i + 1, sprache: lang });
+    langSheet.addRow({ nr: i + 1, code: BISTA_LANGUAGE_CODES[lang] ?? '', sprache: lang });
   });
   styleHeader(langSheet);
 
@@ -25,11 +26,12 @@ export async function exportMappingsToExcel() {
     { header: '#', key: 'nr', width: 6 },
     { header: 'Eingabe (wird erkannt)', key: 'eingabe', width: 40 },
     { header: 'Korrektur → BISTA-Wert', key: 'ziel', width: 50 },
+    { header: 'Code', key: 'code', width: 10 },
   ];
   const sortedLangMappings = Object.entries(LANGUAGE_AUTO_CORRECTIONS)
     .sort((a, b) => a[1].localeCompare(b[1], 'de') || a[0].localeCompare(b[0], 'de'));
   sortedLangMappings.forEach(([input, target], i) => {
-    langMapSheet.addRow({ nr: i + 1, eingabe: input, ziel: target });
+    langMapSheet.addRow({ nr: i + 1, eingabe: input, ziel: target, code: BISTA_LANGUAGE_CODES[target] ?? '' });
   });
   styleHeader(langMapSheet);
 
