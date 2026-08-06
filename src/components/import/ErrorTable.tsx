@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
+import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES, BISTA_LANGUAGE_CODES } from '@/lib/fileParser';
 import type { ValidationError } from '@/types/importTypes';
 import { ErrorExplanation } from './ErrorExplanation';
 
@@ -247,7 +247,10 @@ export function ErrorTable({
                                                 setLanguageDropdownCell(null);
                                               }}
                                             >
-                                              {lang}
+                                              <span className="flex-1">{lang}</span>
+                                              {BISTA_LANGUAGE_CODES[lang] && (
+                                                <span className="text-xs text-muted-foreground font-mono">{BISTA_LANGUAGE_CODES[lang]}</span>
+                                              )}
                                             </CommandItem>
                                           ))}
                                         </CommandGroup>

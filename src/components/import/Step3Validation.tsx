@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
-import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
+import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES, BISTA_LANGUAGE_CODES } from '@/lib/fileParser';
 import { useValidationWorker } from '@/hooks/useValidationWorker';
 import { 
   applyLocalCorrection,
@@ -1622,13 +1622,16 @@ function stripDiacritics(s: string): string {
                                   .map(item => (
                                     <button
                                       key={item}
-                                      className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                      className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center justify-between gap-2"
                                       onClick={() => {
                                         setStepEditValue(item);
                                         setNationalitySearch(null);
                                       }}
                                     >
-                                      {item}
+                                      <span>{item}</span>
+                                      {!isNatCol && BISTA_LANGUAGE_CODES[item] && (
+                                        <span className="text-xs text-muted-foreground font-mono">{BISTA_LANGUAGE_CODES[item]}</span>
+                                      )}
                                     </button>
                                   ))}
                               </div>

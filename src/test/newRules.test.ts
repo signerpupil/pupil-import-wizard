@@ -179,12 +179,12 @@ describe('Student is parent detection', () => {
 
 describe('Extended language auto-corrections', () => {
   const newMappings = [
-    'Somalisch', 'Eritreisch', 'Tamilisch', 'Georgisch', 'Berberisch', 'Khmer',
+    'Somalisch', 'Eritreisch', 'Georgisch', 'Berberisch',
     // Phase 3
-    'Romani', 'Romanes', 'Telugu', 'Kannada', 'Gujarati', 'Marathi',
-    'Kinyarwanda', 'Kirundi', 'Lingala', 'Bambara', 'Fulfulde', 'Fula',
-    'Twi', 'Akan', 'Somali', 'Lao', 'Malaiisch', 'Malay',
-    'Katalanisch', 'Baskisch', 'Irisch', 'Gälisch',
+    'Romanes', 'Telugu', 'Kannada', 'Gujarati', 'Marathi',
+    'Kinyarwanda', 'Kirundi', 'Bambara', 'Fulfulde', 'Fula',
+    'Twi', 'Akan', 'Lao', 'Malaiisch', 'Malay',
+    'Irisch', 'Gälisch',
     'Arabish', 'Türkish', 'Portugisisch', 'Albanish', 'Kroatish', 'Serbish',
     'Bosniakisch', 'Mazedonish',
     // Phase 4: Weltweite Sprachen
@@ -197,10 +197,10 @@ describe('Extended language auto-corrections', () => {
     'Javanisch', 'Sundanesisch', 'Cebuano', 'Ilocano', 'Tetum',
     'Aserbaidschanisch', 'Tadschikisch', 'Turkmenisch', 'Zazaki',
     'Kirgisisch', 'Kasachisch', 'Tschetschenisch', 'Ossetisch', 'Tatarisch',
-    'Walisisch', 'Bretonisch', 'Okzitanisch', 'Maltesisch', 'Luxemburgisch',
+    'Okzitanisch', 'Maltesisch', 'Luxemburgisch',
     'Samisch', 'Färöisch', 'Grönländisch',
     'Weissrussisch', 'Belarussisch', 'Moldawisch',
-    'Sorbisch', 'Kaschubisch',
+    'Kaschubisch',
     'Kapverdisch', 'Quechua', 'Guarani', 'Gebärdensprache',
     'Turkisch', 'Franzoesisch', 'Spannisch',
   ];
@@ -211,32 +211,32 @@ describe('Extended language auto-corrections', () => {
     });
   }
 
-  it('maps Somalisch → Afrikanische Sprachen', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Somalisch']).toBe('Afrikanische Sprachen');
+  it('maps Somalisch → Somali', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Somalisch']).toBe('Somali');
   });
 
-  it('maps Zulu → Afrikanische Sprachen', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Zulu']).toBe('Afrikanische Sprachen');
+  it('maps Zulu → Andere afrikanische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Zulu']).toBe('Andere afrikanische Sprachen');
   });
 
   it('maps Hakka → Chinesisch', () => {
     expect(LANGUAGE_AUTO_CORRECTIONS['Hakka']).toBe('Chinesisch');
   });
 
-  it('maps Hmong → Ostasiatische Sprachen', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Hmong']).toBe('Ostasiatische Sprachen');
+  it('maps Hmong → Andere ostasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Hmong']).toBe('Andere ostasiatische Sprachen');
   });
 
-  it('maps Javanisch → Übrige süd- und südostasiatische Sprachen', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Javanisch']).toBe('Übrige süd- und südostasiatische Sprachen');
+  it('maps Javanisch → Andere ostasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Javanisch']).toBe('Andere ostasiatische Sprachen');
   });
 
-  it('maps Tschetschenisch → Übrige westasiatische Sprachen', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Tschetschenisch']).toBe('Übrige westasiatische Sprachen');
+  it('maps Tschetschenisch → Andere westasiatische Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Tschetschenisch']).toBe('Andere westasiatische Sprachen');
   });
 
-  it('maps Quechua → nicht definiert', () => {
-    expect(LANGUAGE_AUTO_CORRECTIONS['Quechua']).toBe('nicht definiert');
+  it('maps Quechua → Andere Sprachen', () => {
+    expect(LANGUAGE_AUTO_CORRECTIONS['Quechua']).toBe('Andere Sprachen (Pidginsprachen, Kreolsprachen, Gebärdensprachen …)');
   });
 
   it('produces warnings for new language mappings', () => {
@@ -244,7 +244,7 @@ describe('Extended language auto-corrections', () => {
     const errors = validateData([row], baseCols);
     const langErrors = errors.filter(e => e.column === 'S_Muttersprache');
     expect(langErrors.length).toBe(1);
-    expect(langErrors[0].correctedValue).toBe('Afrikanische Sprachen');
+    expect(langErrors[0].correctedValue).toBe('Somali');
   });
 });
 
