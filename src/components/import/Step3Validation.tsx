@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import type { ValidationError, ParsedRow } from '@/types/importTypes';
-import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES } from '@/lib/fileParser';
+import { VALID_BISTA_LANGUAGES, VALID_NATIONALITIES, BISTA_LANGUAGE_CODES } from '@/lib/fileParser';
 import { useValidationWorker } from '@/hooks/useValidationWorker';
 import { 
   applyLocalCorrection,
