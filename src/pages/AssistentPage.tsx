@@ -21,7 +21,7 @@ const QUICK_CHIPS = [
 type ChatMsg = {
   role: "user" | "assistant";
   content: string;
-  source?: "live" | "static";
+  source?: "live" | "static" | "faq";
 };
 
 export default function AssistentPage() {
@@ -164,7 +164,11 @@ export default function AssistentPage() {
                     </ReactMarkdown>
                     {m.source && (
                       <div className="mt-2 not-prose">
-                        {m.source === "live" ? (
+                        {m.source === "faq" ? (
+                          <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
+                            FAQ
+                          </span>
+                        ) : m.source === "live" ? (
                           <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                             Live-Doku
                           </span>

@@ -1,4 +1,5 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { buildFaqBlock, loadActiveFaqs } from '../_shared/faqs.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,6 +16,22 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
+
+    // Gepflegte FAQs serverseitig an den vom Widget gesendeten System-Prompt anhängen
+    try {
+      const faqBlock = buildFaqBlock(await loadActiveFaqs());
+      if (faqBlock) {
+        if (typeof body.system === 'string') {
+          body.system = body.system + faqBlock;
+        } else if (Array.isArray(body.system)) {
+          body.system = [...body.system, { type: 'text', text: faqBlock }];
+        } else {
+          body.system = faqBlock;
+        }
+      }
+    } catch (e) {
+      console.error('faq injection failed', e instanceof Error ? e.message : e);
+    }
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

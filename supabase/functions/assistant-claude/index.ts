@@ -2,6 +2,7 @@
 // Modell laut User: "claude-sonnet-4-6" -> aktuell existiert kein 4-6 Release;
 // deshalb aktuellste Sonnet-Version. Bei Bedarf einfach CLAUDE_MODEL ändern.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { buildFaqBlock, faqLikelyMatches, loadActiveFaqs } from "../_shared/faqs.ts";
 
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -221,8 +222,14 @@ Deno.serve(async (req) => {
 
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
+    // Gepflegte FAQs laden (höchste Priorität)
+    const faqs = await loadActiveFaqs();
+    const faqBlock = buildFaqBlock(faqs);
+    const faqHit = faqs.length > 0 && faqLikelyMatches(faqs, lastUser);
+
     // Stufe 1: Klassifizierung
     let source: "live" | "static" = "static";
+    if (!faqHit) {
     try {
       const cls = await anthropic({
         model: CLAUDE_MODEL,
@@ -235,6 +242,7 @@ Deno.serve(async (req) => {
       if (verdict.includes("LIVE")) source = "live";
     } catch (_) {
       // Klassifizierung schlägt fehl -> weiter mit static
+    }
     }
 
     // Stufe 2: separate Web-Recherche (nur bei LIVE)
@@ -274,16 +282,17 @@ Deno.serve(async (req) => {
     }
 
     // Stufe 3: finale Antwort (ohne Tools)
+    const baseSystem = SYSTEM_PROMPT_STATIC + faqBlock;
     const body: Record<string, unknown> = {
       model: CLAUDE_MODEL,
       max_tokens: 1500,
-      system: liveContext ? buildLiveSystemPrompt(liveContext) : SYSTEM_PROMPT_STATIC,
+      system: liveContext ? buildLiveSystemPrompt(liveContext) + faqBlock : baseSystem,
       messages,
     };
     const answer = await anthropic(body, false);
     const text = extractText(answer);
 
-    return new Response(JSON.stringify({ text, source }), {
+    return new Response(JSON.stringify({ text, source: faqHit ? "faq" : source }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (err) {
