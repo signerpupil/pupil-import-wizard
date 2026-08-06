@@ -475,8 +475,8 @@ export default function Documentation() {
                     </p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li>
-                        <strong>BISTA-Sprachen:</strong> S_Muttersprache und S_Umgangssprache werden gegen die 49 gültigen BISTA-Codes geprüft.
-                        Bekannte Nicht-BISTA-Sprachen (z.B. «Tigrinya» → «Afrikanische Sprachen», «Farsi» → «Westasiatische Sprachen») werden automatisch korrigiert.
+                        <strong>BISTA-Sprachen:</strong> S_Muttersprache und S_Umgangssprache werden gegen die offizielle BISTA-Codeliste (91 Werte, z.B. 1101 Schweizerdeutsch, 410 Tigrinya, 4313 Dari) geprüft.
+                        Nicht gelistete Sprachen (z.B. «Zulu» → «Andere afrikanische Sprachen», «Mundart» → «Schweizerdeutsch») werden automatisch korrigiert.
                         Tippfehler werden per Präfix-Matching erkannt.
                       </li>
                       <li>
