@@ -42,7 +42,10 @@ export function buildFaqBlock(faqs: FaqRow[]): string {
 Diese Frage/Antwort-Paare wurden von der Projektleitung selbst erfasst. Deckt sich die Nutzerfrage inhaltlich mit einer dieser FAQs (auch bei anderer Formulierung oder passenden Stichwörtern), verwende diese Antwort inhaltlich unverändert – sie hat Vorrang vor Live-Suche und statischem Kontext. Formuliere sprachlich sauber aus, erfinde aber keine zusätzlichen Fakten und lasse keine Links weg.
 
 ${entries}
---- ENDE GEPFLEGTE FAQ ---`;
+--- ENDE GEPFLEGTE FAQ ---
+
+WICHTIGE REGEL BEI INDIVIDUELLEN ANLIEGEN:
+Betrifft eine Frage den individuellen Projektstatus einer einzelnen Schule (z. B. «Wann findet unsere Migration statt?», «Sind unsere Ressourcen schon gebucht?») oder handelt es sich um einen technischen Supportfall (z. B. Fehlermeldungen, doppelte Registrierungen), rate nicht und konstruiere keine Antwort aus dem allgemeinen Kontext. Sage klar, dass dies eine individuelle Rückfrage ist, die direkt an die PUPIL-Projektleitung gerichtet werden muss.`;
 }
 
 // Grobe Vorprüfung, ob eine FAQ zur Frage passt (Stichwort-/Wortüberlappung).
