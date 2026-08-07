@@ -27,6 +27,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -36,9 +37,19 @@ jobs:
           node-version: lts/*
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci || npm install --no-audit --no-fund
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
       - name: Build
-        run: npm run build
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 2
+          retry_wait_seconds: 10
+          command: npm run build
         env:
           GITHUB_PAGES: 'true'
       - name: Setup Pages
