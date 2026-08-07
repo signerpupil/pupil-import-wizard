@@ -1,0 +1,92 @@
+# Startet Jobs automatisch neu, wenn sie an GitHub-Infrastruktur scheitern
+# (z. B. "The job was not acquired by Runner of type hosted" oder Internal server error).
+# Echte Test-/Build-Fehler werden NICHT neu gestartet.
+name: Auto Re-run bei Runner-Fehlern
+
+on:
+  workflow_run:
+    workflows: ['Tests & Report', 'Deploy static content to Pages']
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  rerun:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fehlerursache analysieren und ggf. neu starten
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          MAX_ATTEMPTS=3
+
+          echo "## $WF_NAME – Fehlgeschlagen" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: [$RUN_ID]($RUN_URL) – Versuch $ATTEMPT" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Alle fehlgeschlagenen Jobs des Runs holen
+          jobs_json=$(gh api "repos/$REPO/actions/runs/$RUN_ID/attempts/$ATTEMPT/jobs?per_page=100")
+
+          # Infrastruktur-Fehler erkennen:
+          #  a) Job hat 0 abgeschlossene Steps -> Runner hat den Job nie angenommen
+          #  b) Fehlermeldung enthält typische Infra-Texte
+          infra=$(echo "$jobs_json" | jq '[
+            .jobs[]
+            | select(.conclusion == "failure")
+            | select(
+                ([.steps[]? | select(.conclusion == "failure" or .conclusion == "success")] | length) == 0
+                or ((.name + " " + (.steps // [] | tostring))
+                    | test("not acquired by Runner|Internal server error|lost communication with the server|runner has received a shutdown signal"; "i"))
+              )
+          ] | length')
+
+          failed_total=$(echo "$jobs_json" | jq '[.jobs[] | select(.conclusion == "failure")] | length')
+
+          echo "Fehlgeschlagene Jobs: $failed_total, davon Infrastruktur-bedingt: $infra"
+
+          if [ "$infra" -eq 0 ]; then
+            {
+              echo "Kein Runner-/Infrastrukturfehler erkannt – das sind echte Test- oder Build-Fehler."
+              echo ""
+              echo "Kein automatischer Neustart. Bitte den Fehler im Log prüfen:"
+              echo ""
+              echo "[Logs und Re-run öffnen]($RUN_URL)"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+            {
+              echo "Runner-Fehler erkannt, aber es wurden bereits $ATTEMPT Versuche unternommen."
+              echo ""
+              echo "Bitte manuell neu starten (Button **Re-run jobs** oben rechts):"
+              echo ""
+              echo "[Run öffnen und neu starten]($RUN_URL)"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "Runner-Fehler erkannt – starte fehlgeschlagene Jobs neu (Versuch $((ATTEMPT + 1)) von $MAX_ATTEMPTS)."
+          if gh run rerun "$RUN_ID" --failed --repo "$REPO"; then
+            {
+              echo "GitHub-Runner-Fehler erkannt – die fehlgeschlagenen Jobs wurden **automatisch neu gestartet**."
+              echo ""
+              echo "[Neuen Versuch verfolgen]($RUN_URL)"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "Automatischer Neustart nicht möglich."
+              echo ""
+              echo "[Bitte hier manuell auf **Re-run jobs** klicken]($RUN_URL)"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
