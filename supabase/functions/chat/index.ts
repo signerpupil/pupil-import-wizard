@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { buildFaqBlock, loadActiveFaqs } from '../_shared/faqs.ts';
+import { WIZARD_HELP_BLOCK } from '../_shared/wizardHelp.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,7 +20,7 @@ Deno.serve(async (req) => {
 
     // Gepflegte FAQs serverseitig an den vom Widget gesendeten System-Prompt anhängen
     try {
-      const faqBlock = buildFaqBlock(await loadActiveFaqs());
+      const faqBlock = WIZARD_HELP_BLOCK + buildFaqBlock(await loadActiveFaqs());
       if (faqBlock) {
         if (typeof body.system === 'string') {
           body.system = body.system + faqBlock;
