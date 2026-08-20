@@ -26,6 +26,8 @@ import { checkColumnStatus, validateData } from '@/lib/fileParser';
 import { useCorrectionMemory } from '@/hooks/useCorrectionMemory';
 import { useToast } from '@/hooks/use-toast';
 import { useImportWizard } from '@/hooks/useImportWizard';
+import { saveClassHandoff } from '@/lib/importHandoff';
+import { extractClassesFromStammdaten } from '@/lib/lpSourceParsing';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
@@ -316,6 +318,13 @@ export default function Index() {
       lastFlushedStep.current = state.currentStep;
     }
   }, [state.currentStep, flushManualCorrectionsTelemetry]);
+
+  // Klassenliste für die LP-Klassenzuweisung lokal zwischenspeichern
+  useEffect(() => {
+    if (currentStep !== 4 || importType !== 'schueler' || correctedRows.length === 0) return;
+    const classes = extractClassesFromStammdaten(correctedRows);
+    void saveClassHandoff(classes, parseResult?.fileName ?? 'Stammdaten SuS und EZB');
+  }, [currentStep, importType, correctedRows, parseResult]);
 
   const handleReset = () => {
     flushManualCorrectionsTelemetry();
