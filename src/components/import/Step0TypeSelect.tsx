@@ -304,6 +304,30 @@ export function Step0TypeSelect({
         title="E-Learnings für den Kanton Aargau"
         url="https://www.pupil.ch/ag-elearning"
       />
+      <IframeDialog
+        open={openDialog === 'schulungsunterlagen'}
+        onOpenChange={(open) => setOpenDialog(open ? 'schulungsunterlagen' : null)}
+        title="Schulungsunterlagen"
+        url="https://cloud.pupil.school/s/QN4W4qLSdiJnwQC/authenticate/showshare"
+      />
+      <IframeDialog
+        open={openDialog === 'lernumgebung'}
+        onOpenChange={(open) => setOpenDialog(open ? 'lernumgebung' : null)}
+        title="Lernumgebung für Lehrpersonen"
+        url="https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome"
+      />
+      <IframeDialog
+        open={openDialog === 'schulportal'}
+        onOpenChange={(open) => setOpenDialog(open ? 'schulportal' : null)}
+        title="Schulportal Kanton Aargau"
+        url="https://www.schulen-aargau.ch/regelschule/schulorganisation/planung-ressourcen/pupil"
+      />
+      <IframeDialog
+        open={openDialog === 'roadmap'}
+        onOpenChange={(open) => setOpenDialog(open ? 'roadmap' : null)}
+        title="PUPIL@AG - Roadmap"
+        url="https://dokumentation.pupil.ch/article/vwd7iovrqq-pupil-ag-roadmap"
+      />
 
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
