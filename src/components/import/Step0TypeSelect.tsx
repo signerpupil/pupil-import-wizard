@@ -129,6 +129,19 @@ export function Step0TypeSelect({
               );
             })}
         </div>
+
+        {/* CTA Button */}
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={onNext}
+            disabled={!canProceed}
+            size="lg"
+            className="px-8 text-base shadow-md hover:shadow-lg transition-all"
+          >
+            Weiter
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Pupil Instanz einrichten */}
@@ -412,19 +425,6 @@ export function Step0TypeSelect({
           Alle Daten werden ausschliesslich lokal in Ihrem Browser verarbeitet – nichts wird auf einem Server gespeichert.
         </AlertDescription>
       </Alert>
-
-      {/* CTA Button */}
-      <div className="flex justify-center pt-2">
-        <Button 
-          onClick={onNext} 
-          disabled={!canProceed} 
-          size="lg"
-          className="px-8 text-base shadow-md hover:shadow-lg transition-all"
-        >
-          Weiter
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
-      </div>
     </div>
   );
 }
