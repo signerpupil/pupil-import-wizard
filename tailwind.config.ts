@@ -68,6 +68,8 @@ export default {
           "warning-foreground": "hsl(var(--pupil-warning-foreground))",
           learning: "hsl(var(--pupil-learning))",
           "learning-foreground": "hsl(var(--pupil-learning-foreground))",
+          resources: "hsl(var(--pupil-resources))",
+          "resources-foreground": "hsl(var(--pupil-resources-foreground))",
         },
       },
       borderRadius: {
