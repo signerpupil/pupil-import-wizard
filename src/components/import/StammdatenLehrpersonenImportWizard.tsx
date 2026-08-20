@@ -17,6 +17,8 @@ import {
   BERUF_FIXED_VALUE,
 } from '@/lib/stammdatenLehrpersonenExport';
 import { computeEmailFill, type EmailConflict } from '@/lib/lehrpersonenEmailFill';
+import { saveTeacherHandoff } from '@/lib/importHandoff';
+import type { PupilPerson } from '@/types/importTypes';
 
 const wizardSteps: WizardStep[] = [
   { label: 'Datei hochladen', description: 'CSV oder Excel' },
