@@ -81,21 +81,21 @@ export function Step0TypeSelect({
   return (
     <div className="space-y-8">
       {/* Hero section */}
-      <div className="text-center space-y-3">
+      <div className="space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
           <Sparkles className="h-3.5 w-3.5" />
-          Willkommen im Import Wizard
+          Import-Typ und Modus auswählen
         </div>
-        <h2 className="text-3xl font-bold text-foreground tracking-tight">
-          Was möchten Sie importieren?
-        </h2>
-        <p className="text-muted-foreground max-w-lg mx-auto">
-          Wählen Sie den passenden Import-Typ für Ihre Daten aus LehrerOffice.
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">
+          Migration LehrerOffice - Import in Pupil
+        </h1>
+        <p className="text-muted-foreground max-w-2xl">
+          Was möchten Sie importieren? Wählen Sie den passenden Import-Typ für Ihre Daten aus LehrerOffice.
         </p>
       </div>
 
       {/* Import Type Selection */}
-      <div className="space-y-4">
+      <div className="space-y-4 p-6 rounded-xl border border-primary/10 bg-primary/[0.02]">
         <h3 className="text-xl font-semibold text-foreground">Import Wizard</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
@@ -137,7 +137,7 @@ export function Step0TypeSelect({
       </div>
 
       {/* Pupil Instanz einrichten */}
-      <div className="space-y-4">
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-teal/20 bg-pupil-teal/[0.04]">
         <h3 className="text-xl font-semibold text-foreground">Pupil Instanz einrichten</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card
@@ -173,15 +173,15 @@ export function Step0TypeSelect({
       </div>
 
       {/* E-Learnings für den Kanton Aargau */}
-      <div className="space-y-4">
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-learning/30 bg-pupil-learning/[0.06]">
         <h3 className="text-xl font-semibold text-foreground">E-Learnings für den Kanton Aargau</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-learning/40 bg-pupil-learning/[0.08] hover:border-pupil-learning"
             onClick={() => setOpenDialog('elearning')}
           >
             <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-learning text-pupil-learning-foreground shadow-md">
                 <BookOpen className="h-7 w-7" />
               </div>
               <CardTitle className="text-lg">PUPIL E-Learning Aargau</CardTitle>
