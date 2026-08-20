@@ -48,6 +48,8 @@
     --pupil-success-foreground: 0 0% 100%;
     --pupil-warning: 38 92% 50%;
     --pupil-warning-foreground: 0 0% 100%;
+    --pupil-learning: 36 90% 55%;
+    --pupil-learning-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
