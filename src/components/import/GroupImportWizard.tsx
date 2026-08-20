@@ -6,6 +6,7 @@ import { GroupStep3Export } from './groups/GroupStep3Export';
 import type { GroupData, StudentGroupAssignment } from '@/types/importTypes';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FolderOpen } from 'lucide-react';
+import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
 
 export interface SubjectMapping {
   fachname: string;
@@ -35,7 +36,7 @@ export function GroupImportWizard({ onReset }: GroupImportWizardProps) {
   const [groups, setGroups] = useState<GroupData[]>([]);
   const [assignments, setAssignments] = useState<StudentGroupAssignment[]>([]);
   const [subjectMap, setSubjectMap] = useState<SubjectMapping[]>([]);
-  const [pupilSubjects, setPupilSubjects] = useState<PupilSubject[]>([]);
+  const [pupilSubjects, setPupilSubjects] = useState<PupilSubject[]>(defaultPupilSubjects);
 
   const handleNext = useCallback(() => {
     const nextStep = Math.min(currentStep + 1, 2);

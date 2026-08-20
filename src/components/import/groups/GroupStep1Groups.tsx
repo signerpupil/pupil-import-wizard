@@ -10,6 +10,7 @@ import { SearchableSelect } from '../lp-zuweisung/SearchableSelect';
 import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
+import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
@@ -210,6 +211,10 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
   const handleParsePupilSubjects = () => {
     const parsed = parsePupilSubjects(pupilPasteText);
     onPupilSubjectsChange(parsed);
+  };
+
+  const handleUseDefaultPupilSubjects = () => {
+    onPupilSubjectsChange(defaultPupilSubjects);
   };
 
   const handleRemoveGroup = (index: number) => {
