@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, UserCog, Download, Info, AlertTriangle } from 'lucide-react';
 import { WizardProgress, type WizardStep } from '@/components/import/WizardProgress';
 import { Step1FileUpload } from '@/components/import/Step1FileUpload';
@@ -116,6 +116,23 @@ export function StammdatenLehrpersonenImportWizard({ onReset }: Props) {
         .filter(c => c.header !== '')
     : [];
   const previewDataRows = preview ? preview.data.slice(0, 10) : [];
+
+  // Bereinigte LP-Daten lokal zwischenspeichern, damit die LP-Klassenzuweisung
+  // sie ohne erneuten Upload verwenden kann (LID = PUPIL-Schlüssel).
+  useEffect(() => {
+    if (currentStep !== 1 || !preview) return;
+    const persons: PupilPerson[] = [];
+    const seen = new Set<string>();
+    for (const row of preview.data) {
+      const schluessel = (row[4] ?? '').trim();
+      const nachname = (row[6] ?? '').trim();
+      if (!schluessel || !nachname || seen.has(schluessel)) continue;
+      seen.add(schluessel);
+      persons.push({ schluessel, nachname, vorname: (row[7] ?? '').trim() });
+    }
+    void saveTeacherHandoff(persons, parseResult?.fileName ?? 'Stammdaten Lehrpersonen');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, parseResult]);
 
   return (
     <div className="space-y-8">
