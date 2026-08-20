@@ -141,13 +141,27 @@ function parsePupilSubjects(text: string): PupilSubject[] {
 
   const subjects: PupilSubject[] = [];
 
-  for (const line of lines) {
-    const cols = line.split('\t').map(c => c.trim());
-    const name = cols[0] || '';
-    const schluessel = cols.length > 1 ? cols[1] : '';
+  // Header-basierte Spaltenerkennung (robust gegenüber neuen Spalten wie "Ordnung")
+  let nameIdx = 0;
+  let keyIdx = 1;
+  let startIdx = 0;
+  const headerCols = lines[0].split('\t').map(c => c.trim().toLowerCase());
+  const foundName = headerCols.findIndex(c => c === 'fachname' || c === 'fach' || c === 'name' || c === 'bezeichnung');
+  if (foundName >= 0) {
+    nameIdx = foundName;
+    const foundKey = headerCols.findIndex(c => c.includes('schlüssel') || c.includes('schluessel'));
+    keyIdx = foundKey >= 0 ? foundKey : foundName + 1;
+    startIdx = 1;
+  }
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = lines[i].split('\t').map(c => c.trim());
+    const name = cols[nameIdx] || '';
+    const schluessel = cols.length > keyIdx ? cols[keyIdx] : '';
 
     if (!name) continue;
-    if (name.toLowerCase() === 'fach' || name.toLowerCase() === 'name' || name.toLowerCase() === 'bezeichnung') continue;
+    const lower = name.toLowerCase();
+    if (lower === 'fach' || lower === 'fachname' || lower === 'name' || lower === 'bezeichnung' || lower === 'ordnung') continue;
 
     subjects.push({ name, schluessel });
   }
