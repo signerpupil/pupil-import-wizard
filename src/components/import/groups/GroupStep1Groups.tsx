@@ -464,6 +464,36 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             onChange={(e) => setPasteText(e.target.value)}
             className="font-mono text-xs"
           />
+
+          <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start gap-2 text-sm font-medium text-primary hover:bg-primary/5 px-3 py-2 h-auto">
+                <BookOpen className="h-4 w-4" />
+                Anleitung: Gruppen aus LehrerOffice kopieren
+                {guideOpen ? <ChevronDown className="h-4 w-4 ml-auto" /> : <ChevronRight className="h-4 w-4 ml-auto" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-4 space-y-3 pt-2">
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <p>1. Im linken Menü <strong className="text-foreground">Gruppen</strong> auswählen.</p>
+                <p>2. Registerkarte <strong className="text-foreground">Bearbeiten</strong> wählen.</p>
+                <p>3. <strong className="text-foreground">Tabelle kopieren</strong> anklicken.</p>
+                <p>4. Die kopierte Tabelle oben in das Textfeld mit <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono">Ctrl+V</kbd> einfügen.</p>
+              </div>
+              <div className="relative group w-fit">
+                <img
+                  src={gruppenAnleitungAsset.url}
+                  alt="LehrerOffice: Gruppen > Bearbeiten > Tabelle kopieren"
+                  className="max-h-[300px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
+                  onClick={() => setLightboxOpen(true)}
+                />
+                <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-xs px-2 py-1 rounded border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  🔍 Klicken zum Vergrössern
+                </span>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <Button onClick={handleParse} disabled={!pasteText.trim()} className="shadow-sm">
             Gruppen erkennen
           </Button>
