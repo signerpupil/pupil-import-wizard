@@ -225,29 +225,15 @@ export function LPStep2Teachers({
 
     try {
       const result = await parseFile(file);
-      const headers = result.headers.map(h => h.toLowerCase().trim());
+      const parsedPersons = extractPersons(result.headers, result.rows);
 
-      const nachnameIdx = headers.findIndex(h => h.includes('nachname') || h === 'name');
-      const vornameIdx = headers.findIndex(h => h.includes('vorname'));
-      const schluesselIdx = headers.findIndex(h => h.includes('schlüssel') || h.includes('schluessel') || h === 'schluessel');
-
-      if (nachnameIdx === -1 || vornameIdx === -1 || schluesselIdx === -1) {
-        setError('Spalten "Nachname", "Vorname" und "Schlüssel" nicht gefunden. Bitte prüfen Sie die Datei.');
+      if (!parsedPersons) {
+        setError(
+          'Spalten nicht gefunden. Akzeptiert werden der PUPIL-Personenexport ("Nachname", "Vorname", "Schlüssel") oder die bereinigte Datei aus "Stammdaten Lehrpersonen" ("Name", "Vorname", "LID").',
+        );
         setIsLoading(false);
         return;
       }
-
-      const parsedPersons: PupilPerson[] = result.rows
-        .filter(row => {
-          const nachname = String(row[result.headers[nachnameIdx]] || '').trim();
-          const schluessel = String(row[result.headers[schluesselIdx]] || '').trim();
-          return nachname && schluessel;
-        })
-        .map(row => ({
-          nachname: String(row[result.headers[nachnameIdx]] || '').trim(),
-          vorname: String(row[result.headers[vornameIdx]] || '').trim(),
-          schluessel: String(row[result.headers[schluesselIdx]] || '').trim(),
-        }));
 
       onPersonsChange(parsedPersons);
     } catch (err) {
@@ -266,30 +252,15 @@ export function LPStep2Teachers({
 
     try {
       const result = await parseFile(file);
-      const headers = result.headers.map(h => h.toLowerCase().trim());
+      const parsed = extractClasses(result.headers, result.rows);
 
-      const klassennameIdx = headers.findIndex(h => h.includes('klassenname') || h === 'klassenname');
-
-      if (klassennameIdx === -1) {
-        setClassFileError('Spalte "Klassenname" nicht gefunden. Bitte prüfen Sie die Datei.');
+      if (!parsed) {
+        setClassFileError(
+          'Spalte nicht gefunden. Akzeptiert werden der PUPIL-Klassenexport ("Klassenname") oder die bereinigte Datei aus "Stammdaten SuS und EZB" ("K_Name" und "K_Schulhaus_Name").',
+        );
         setClassFileLoading(false);
         return;
       }
-
-      const klpIdx = headers.findIndex(h => h.includes('klassenlehrpersonen'));
-
-      const parsed: PupilClass[] = result.rows
-        .filter(row => {
-          const name = String(row[result.headers[klassennameIdx]] || '').trim();
-          return name.length > 0;
-        })
-        .map(row => {
-          const klpRaw = klpIdx !== -1 ? String(row[result.headers[klpIdx]] || '').trim() : '';
-          return {
-            klassenname: String(row[result.headers[klassennameIdx]] || '').trim(),
-            klassenlehrpersonen: klpRaw ? klpRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-          };
-        });
 
       onPupilClassesChange(parsed);
     } catch (err) {
