@@ -180,6 +180,8 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
   const [subjectFilter, setSubjectFilter] = useState('');
   const [pupilPasteText, setPupilPasteText] = useState('');
   const [pupilFilter, setPupilFilter] = useState('');
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleParse = () => {
     const result = parseGroupData(pasteText);
