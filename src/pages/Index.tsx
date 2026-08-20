@@ -85,7 +85,7 @@ export default function Index() {
 
   const getStepTitle = () => {
     const stepTitles = [
-      '',
+      ' ',
       'Datei hochladen',
       'Spalten prüfen',
       'Daten validieren',
