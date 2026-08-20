@@ -203,7 +203,7 @@ export function Step0TypeSelect({
         open={openDialog === 'roles'}
         onOpenChange={(open) => setOpenDialog(open ? 'roles' : null)}
         title="Übersicht Rollen- & Zugriffsrechte"
-        url="https://role-overview-ace.lovable.app"
+        url="https://rollen-zugriffe.lovable.app"
       />
       <IframeDialog
         open={openDialog === 'elearning'}
