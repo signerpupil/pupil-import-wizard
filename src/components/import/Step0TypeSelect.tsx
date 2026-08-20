@@ -95,61 +95,122 @@ export function Step0TypeSelect({
       </div>
 
       {/* Import Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-        {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
-          .map(t => importConfigs.find(c => c.type === t))
-          .filter((c): c is NonNullable<typeof c> => !!c)
-          .map((config) => {
-            const Icon = iconMap[config.icon as keyof typeof iconMap];
-            const isSelected = selectedType === config.type;
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground">Import Wizard</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
+            .map(t => importConfigs.find(c => c.type === t))
+            .filter((c): c is NonNullable<typeof c> => !!c)
+            .map((config) => {
+              const Icon = iconMap[config.icon as keyof typeof iconMap];
+              const isSelected = selectedType === config.type;
 
-            return (
-              <Card
-                key={config.type}
-                className={cn(
-                  'cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group',
-                  isSelected
-                    ? 'ring-2 ring-primary shadow-lg bg-primary/[0.03]'
-                    : 'hover:border-primary/30'
-                )}
-                onClick={() => onSelectType(config.type)}
-              >
-                <CardHeader className="pb-3">
-                  <div
-                    className={cn(
-                      'w-14 h-14 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                      isSelected
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
-                    )}
-                  >
-                    <Icon className="h-7 w-7" />
-                  </div>
-                  <CardTitle className="text-lg">{config.name}</CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">{config.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            );
-          })}
-
-        {/* Tutorial tile */}
-        <Card
-          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
-          onClick={() => setTutorialOpen(true)}
-        >
-          <CardHeader className="pb-3">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
-              <PlayCircle className="h-7 w-7" />
-            </div>
-            <CardTitle className="text-lg">Interaktives Tutorial</CardTitle>
-            <CardDescription className="text-sm leading-relaxed">
-              Klickbares Tutorial zur Schulverwaltung – öffnet sich direkt hier im Fenster.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+              return (
+                <Card
+                  key={config.type}
+                  className={cn(
+                    'cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group',
+                    isSelected
+                      ? 'ring-2 ring-primary shadow-lg bg-primary/[0.03]'
+                      : 'hover:border-primary/30'
+                  )}
+                  onClick={() => onSelectType(config.type)}
+                >
+                  <CardHeader className="pb-3">
+                    <div
+                      className={cn(
+                        'w-14 h-14 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                        isSelected
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                      )}
+                    >
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <CardTitle className="text-lg">{config.name}</CardTitle>
+                    <CardDescription className="text-sm leading-relaxed">{config.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+        </div>
       </div>
 
-      <TutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
+      {/* Pupil Instanz einrichten */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground">Pupil Instanz einrichten</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            onClick={() => setOpenDialog('tutorial')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
+                <PlayCircle className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">Interaktives Tutorial</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Klickbares Tutorial zur Schulverwaltung – öffnet sich direkt hier im Fenster.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            onClick={() => setOpenDialog('roles')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
+                <Shield className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">Übersicht Rollen- & Zugriffsrechte</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Übersicht aller Rollen und Berechtigungen in PUPIL.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+
+      {/* E-Learnings für den Kanton Aargau */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground">E-Learnings für den Kanton Aargau</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            onClick={() => setOpenDialog('elearning')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
+                <BookOpen className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">PUPIL E-Learning Aargau</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                E-Learnings und Schulungsinhalte für den Kanton Aargau.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+
+      <IframeDialog
+        open={openDialog === 'tutorial'}
+        onOpenChange={(open) => setOpenDialog(open ? 'tutorial' : null)}
+        title="Interaktives Tutorial – Schulverwaltung"
+        url="https://tutorial-schulverwaltung.lovable.app"
+      />
+      <IframeDialog
+        open={openDialog === 'roles'}
+        onOpenChange={(open) => setOpenDialog(open ? 'roles' : null)}
+        title="Übersicht Rollen- & Zugriffsrechte"
+        url="https://role-overview-ace.lovable.app"
+      />
+      <IframeDialog
+        open={openDialog === 'elearning'}
+        onOpenChange={(open) => setOpenDialog(open ? 'elearning' : null)}
+        title="E-Learnings für den Kanton Aargau"
+        url="https://www.pupil.ch/ag-elearning"
+      />
 
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
