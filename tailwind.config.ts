@@ -66,6 +66,8 @@ export default {
           "success-foreground": "hsl(var(--pupil-success-foreground))",
           warning: "hsl(var(--pupil-warning))",
           "warning-foreground": "hsl(var(--pupil-warning-foreground))",
+          learning: "hsl(var(--pupil-learning))",
+          "learning-foreground": "hsl(var(--pupil-learning-foreground))",
         },
       },
       borderRadius: {
