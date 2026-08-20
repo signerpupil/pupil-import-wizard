@@ -6,11 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { SearchableSelect } from '../lp-zuweisung/SearchableSelect';
-import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School, ChevronDown, ChevronRight } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
 import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
+import gruppenAnleitungImg from '@/assets/gruppen-anleitung-lo.png';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
@@ -177,6 +180,8 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
   const [subjectFilter, setSubjectFilter] = useState('');
   const [pupilPasteText, setPupilPasteText] = useState('');
   const [pupilFilter, setPupilFilter] = useState('');
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const handleParse = () => {
     const result = parseGroupData(pasteText);
@@ -459,6 +464,36 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             onChange={(e) => setPasteText(e.target.value)}
             className="font-mono text-xs"
           />
+
+          <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start gap-2 text-sm font-medium text-primary hover:bg-primary/5 px-3 py-2 h-auto">
+                <BookOpen className="h-4 w-4" />
+                Anleitung: Gruppen aus LehrerOffice kopieren
+                {guideOpen ? <ChevronDown className="h-4 w-4 ml-auto" /> : <ChevronRight className="h-4 w-4 ml-auto" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-4 space-y-3 pt-2">
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <p>1. Im linken Menü <strong className="text-foreground">Gruppen</strong> auswählen.</p>
+                <p>2. Registerkarte <strong className="text-foreground">Bearbeiten</strong> wählen.</p>
+                <p>3. <strong className="text-foreground">Tabelle kopieren</strong> anklicken.</p>
+                <p>4. Die kopierte Tabelle oben in das Textfeld mit <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono">Ctrl+V</kbd> einfügen.</p>
+              </div>
+              <div className="relative group w-fit">
+                <img
+                  src={gruppenAnleitungImg}
+                  alt="LehrerOffice: Gruppen > Bearbeiten > Tabelle kopieren"
+                  className="max-h-[300px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
+                  onClick={() => setLightboxOpen(true)}
+                />
+                <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-xs px-2 py-1 rounded border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  🔍 Klicken zum Vergrössern
+                </span>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <Button onClick={handleParse} disabled={!pasteText.trim()} className="shadow-sm">
             Gruppen erkennen
           </Button>
@@ -624,6 +659,16 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
         </Card>
 
       )}
+
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
+          <img
+            src={gruppenAnleitungImg}
+            alt="LehrerOffice: Gruppen > Bearbeiten > Tabelle kopieren"
+            className="w-full h-auto rounded"
+          />
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onBack} className="shadow-sm">
