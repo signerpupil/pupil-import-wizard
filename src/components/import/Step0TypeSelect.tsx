@@ -83,16 +83,9 @@ export function Step0TypeSelect({
     <div className="space-y-8">
       {/* Hero section */}
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-          <Sparkles className="h-3.5 w-3.5" />
-          Import-Typ und Modus auswählen
-        </div>
         <h1 className="text-3xl font-bold text-foreground tracking-tight">
           PUPIL@AG – Schritt für Schritt
         </h1>
-        <p className="text-muted-foreground max-w-2xl">
-          Was möchten Sie importieren? Wählen Sie den passenden Import-Typ für Ihre Daten aus LehrerOffice.
-        </p>
       </div>
 
       {/* Import Type Selection */}
