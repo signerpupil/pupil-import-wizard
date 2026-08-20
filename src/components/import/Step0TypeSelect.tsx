@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import type { ImportType, FoerderplanerSubType } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
 import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { CorrectionRulesUpload } from './CorrectionRulesUpload';
+import { TutorialDialog } from './TutorialDialog';
 
 interface Step0TypeSelectProps {
   selectedType: ImportType | null;
@@ -60,6 +61,7 @@ export function Step0TypeSelect({
   loadedCorrectionRules,
 }: Step0TypeSelectProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
@@ -93,7 +95,7 @@ export function Step0TypeSelect({
       </div>
 
       {/* Import Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
         {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
           .map(t => importConfigs.find(c => c.type === t))
           .filter((c): c is NonNullable<typeof c> => !!c)
@@ -129,7 +131,25 @@ export function Step0TypeSelect({
               </Card>
             );
           })}
+
+        {/* Tutorial tile */}
+        <Card
+          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+          onClick={() => setTutorialOpen(true)}
+        >
+          <CardHeader className="pb-3">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
+              <PlayCircle className="h-7 w-7" />
+            </div>
+            <CardTitle className="text-lg">Interaktives Tutorial</CardTitle>
+            <CardDescription className="text-sm leading-relaxed">
+              Klickbares Tutorial zur Schulverwaltung – öffnet sich direkt hier im Fenster.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
+
+      <TutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
 
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
