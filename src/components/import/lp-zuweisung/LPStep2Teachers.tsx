@@ -4,9 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2, Database } from 'lucide-react';
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
+import { extractPersons, extractClasses } from '@/lib/lpSourceParsing';
+import {
+  getTeacherHandoff,
+  getClassHandoff,
+  type TeacherHandoff,
+  type ClassHandoff,
+} from '@/lib/importHandoff';
 import { PUPILInstructionGuide } from './PUPILInstructionGuide';
 import { PUPILClassesInstructionGuide } from './PUPILClassesInstructionGuide';
 import { SearchableSelect } from './SearchableSelect';
@@ -40,6 +47,17 @@ export function LPStep2Teachers({
   const [classFileError, setClassFileError] = useState<string | null>(null);
   const [manualOverrides, setManualOverrides] = useState<Map<string, string>>(new Map());
   const [manualClassOverrides, setManualClassOverrides] = useState<Map<string, string>>(new Map());
+  const [teacherHandoff, setTeacherHandoff] = useState<TeacherHandoff | null>(null);
+  const [classHandoff, setClassHandoff] = useState<ClassHandoff | null>(null);
+  const [showPersonUpload, setShowPersonUpload] = useState(false);
+  const [showClassUpload, setShowClassUpload] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getTeacherHandoff().then(h => { if (active) setTeacherHandoff(h); });
+    void getClassHandoff().then(h => { if (active) setClassHandoff(h); });
+    return () => { active = false; };
+  }, []);
 
   const uniqueTeacherNames = useMemo(() => {
     const names = new Set<string>();
@@ -207,29 +225,15 @@ export function LPStep2Teachers({
 
     try {
       const result = await parseFile(file);
-      const headers = result.headers.map(h => h.toLowerCase().trim());
+      const parsedPersons = extractPersons(result.headers, result.rows);
 
-      const nachnameIdx = headers.findIndex(h => h.includes('nachname') || h === 'name');
-      const vornameIdx = headers.findIndex(h => h.includes('vorname'));
-      const schluesselIdx = headers.findIndex(h => h.includes('schlüssel') || h.includes('schluessel') || h === 'schluessel');
-
-      if (nachnameIdx === -1 || vornameIdx === -1 || schluesselIdx === -1) {
-        setError('Spalten "Nachname", "Vorname" und "Schlüssel" nicht gefunden. Bitte prüfen Sie die Datei.');
+      if (!parsedPersons) {
+        setError(
+          'Spalten nicht gefunden. Akzeptiert werden der PUPIL-Personenexport ("Nachname", "Vorname", "Schlüssel") oder die bereinigte Datei aus "Stammdaten Lehrpersonen" ("Name", "Vorname", "LID").',
+        );
         setIsLoading(false);
         return;
       }
-
-      const parsedPersons: PupilPerson[] = result.rows
-        .filter(row => {
-          const nachname = String(row[result.headers[nachnameIdx]] || '').trim();
-          const schluessel = String(row[result.headers[schluesselIdx]] || '').trim();
-          return nachname && schluessel;
-        })
-        .map(row => ({
-          nachname: String(row[result.headers[nachnameIdx]] || '').trim(),
-          vorname: String(row[result.headers[vornameIdx]] || '').trim(),
-          schluessel: String(row[result.headers[schluesselIdx]] || '').trim(),
-        }));
 
       onPersonsChange(parsedPersons);
     } catch (err) {
@@ -248,30 +252,15 @@ export function LPStep2Teachers({
 
     try {
       const result = await parseFile(file);
-      const headers = result.headers.map(h => h.toLowerCase().trim());
+      const parsed = extractClasses(result.headers, result.rows);
 
-      const klassennameIdx = headers.findIndex(h => h.includes('klassenname') || h === 'klassenname');
-
-      if (klassennameIdx === -1) {
-        setClassFileError('Spalte "Klassenname" nicht gefunden. Bitte prüfen Sie die Datei.');
+      if (!parsed) {
+        setClassFileError(
+          'Spalte nicht gefunden. Akzeptiert werden der PUPIL-Klassenexport ("Klassenname") oder die bereinigte Datei aus "Stammdaten SuS und EZB" ("K_Name" und "K_Schulhaus_Name").',
+        );
         setClassFileLoading(false);
         return;
       }
-
-      const klpIdx = headers.findIndex(h => h.includes('klassenlehrpersonen'));
-
-      const parsed: PupilClass[] = result.rows
-        .filter(row => {
-          const name = String(row[result.headers[klassennameIdx]] || '').trim();
-          return name.length > 0;
-        })
-        .map(row => {
-          const klpRaw = klpIdx !== -1 ? String(row[result.headers[klpIdx]] || '').trim() : '';
-          return {
-            klassenname: String(row[result.headers[klassennameIdx]] || '').trim(),
-            klassenlehrpersonen: klpRaw ? klpRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-          };
-        });
 
       onPupilClassesChange(parsed);
     } catch (err) {
@@ -320,8 +309,8 @@ export function LPStep2Teachers({
               <Upload className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base">Personen-PUPIL Datei hochladen</CardTitle>
-              <CardDescription>Excel/CSV mit Nachname, Vorname, Schlüssel</CardDescription>
+              <CardTitle className="text-base">Lehrpersonen (PUPIL-Schlüssel)</CardTitle>
+              <CardDescription>Aus dem Stammdaten-Import übernehmen oder Datei hochladen</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -329,6 +318,33 @@ export function LPStep2Teachers({
           <p className="text-sm text-muted-foreground">
             Die LP-Namen aus Schritt 1 werden automatisch mit den PUPIL-Schlüsseln abgeglichen.
           </p>
+
+          {teacherHandoff && persons.length === 0 && !showPersonUpload && (
+            <div className="border rounded-xl p-4 bg-primary/[0.04] space-y-3">
+              <div className="flex items-start gap-3">
+                <Database className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium">
+                    {teacherHandoff.persons.length} Lehrpersonen aus Ihrem Import „Stammdaten Lehrpersonen“ verfügbar
+                  </p>
+                  <p className="text-muted-foreground">
+                    Quelle: {teacherHandoff.source} · {teacherHandoff.savedAt.toLocaleDateString('de-CH')} · nur lokal in Ihrem Browser gespeichert
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button size="sm" onClick={() => onPersonsChange(teacherHandoff.persons)}>
+                  Lehrpersonen übernehmen
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowPersonUpload(true)}>
+                  Stattdessen Datei hochladen
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(!teacherHandoff || persons.length > 0 || showPersonUpload) && (
+          <>
           <PUPILInstructionGuide />
           <div className="flex items-center gap-4">
             <input
@@ -350,6 +366,8 @@ export function LPStep2Teachers({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          </>
+          )}
         </CardContent>
       </Card>
 
@@ -361,8 +379,8 @@ export function LPStep2Teachers({
               <School className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base">PUPIL-Klassen Datei hochladen</CardTitle>
-              <CardDescription>Excel mit Klassenname (PUPIL-Export Klassen)</CardDescription>
+              <CardTitle className="text-base">PUPIL-Klassen</CardTitle>
+              <CardDescription>Aus dem SuS-Import übernehmen oder Datei hochladen</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -370,6 +388,32 @@ export function LPStep2Teachers({
           <p className="text-sm text-muted-foreground">
             Die LO-Klassennamen werden mit den vollständigen PUPIL-Klassennamen abgeglichen (z.B. "KG 1 Br a" → "KG 1 Br a Primarschule Brunegg").
           </p>
+          {classHandoff && pupilClasses.length === 0 && !showClassUpload && (
+            <div className="border rounded-xl p-4 bg-primary/[0.04] space-y-3">
+              <div className="flex items-start gap-3">
+                <Database className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium">
+                    {classHandoff.classes.length} Klassen aus Ihrem Import „Stammdaten SuS und EZB“ verfügbar
+                  </p>
+                  <p className="text-muted-foreground">
+                    Quelle: {classHandoff.source} · {classHandoff.savedAt.toLocaleDateString('de-CH')} · Klassenname = K_Name + Schulhaus
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button size="sm" onClick={() => onPupilClassesChange(classHandoff.classes)}>
+                  Klassen übernehmen
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowClassUpload(true)}>
+                  Stattdessen Datei hochladen
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(!classHandoff || pupilClasses.length > 0 || showClassUpload) && (
+          <>
           <PUPILClassesInstructionGuide />
           <div className="flex items-center gap-4">
             <input
@@ -390,6 +434,8 @@ export function LPStep2Teachers({
             <Alert variant="destructive">
               <AlertDescription>{classFileError}</AlertDescription>
             </Alert>
+          )}
+          </>
           )}
           {pupilClasses.length > 0 && classMatchResults.length > 0 && (
             <div className="flex gap-3 pt-2">
