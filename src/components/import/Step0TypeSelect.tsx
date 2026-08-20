@@ -202,6 +202,90 @@ export function Step0TypeSelect({
         </div>
       </div>
 
+      {/* Weitere Ressourcen & Schulung */}
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-resources/30 bg-pupil-resources/[0.06]">
+        <h3 className="text-xl font-semibold text-foreground">Weitere Ressourcen & Schulung</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            onClick={() => setOpenDialog('schulungsunterlagen')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
+                <FolderOpen className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">Schulungsunterlagen</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Zentrale Unterlagen und Materialien für PUPIL@AG.
+              </CardDescription>
+              <div className="mt-3 pt-3 border-t border-pupil-resources/10">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSchulungsPassword((prev) => !prev);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-pupil-resources hover:underline"
+                >
+                  {showSchulungsPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showSchulungsPassword ? 'Passwort ausblenden' : 'Passwort anzeigen'}
+                </button>
+                {showSchulungsPassword && (
+                  <p className="mt-1.5 text-sm font-mono bg-pupil-resources/10 text-pupil-resources rounded px-2 py-1 inline-block">
+                    Pupil@AG!2025!
+                  </p>
+                )}
+              </div>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            onClick={() => setOpenDialog('lernumgebung')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
+                <GraduationCap className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">Lernumgebung für Lehrpersonen</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Interaktive Lernumgebung und Übungsinhalte für Lehrpersonen.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            onClick={() => setOpenDialog('schulportal')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
+                <School className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">Schulportal Kanton Aargau</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Offizielle Informationen des Kantons Aargau zu PUPIL.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            onClick={() => setOpenDialog('roadmap')}
+          >
+            <CardHeader className="pb-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
+                <Map className="h-7 w-7" />
+              </div>
+              <CardTitle className="text-lg">PUPIL@AG - Roadmap</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Aktuelle Roadmap und Planung für das Projekt PUPIL@AG.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+
       <IframeDialog
         open={openDialog === 'tutorial'}
         onOpenChange={(open) => setOpenDialog(open ? 'tutorial' : null)}
