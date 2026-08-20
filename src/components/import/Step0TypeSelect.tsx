@@ -61,7 +61,7 @@ export function Step0TypeSelect({
   loadedCorrectionRules,
 }: Step0TypeSelectProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
-  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | null>(null);
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
