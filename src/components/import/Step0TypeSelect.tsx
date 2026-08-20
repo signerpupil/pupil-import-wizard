@@ -98,6 +98,7 @@ export function Step0TypeSelect({
       {/* Import Type Selection */}
       <div className="space-y-4 p-6 rounded-xl border border-primary/10 bg-primary/[0.02]">
         <h3 className="text-xl font-semibold text-foreground">Import Wizard</h3>
+        <StepHelpCard step={0} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
             .map(t => importConfigs.find(c => c.type === t))
