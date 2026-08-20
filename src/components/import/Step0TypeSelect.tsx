@@ -12,6 +12,7 @@ import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/c
 import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { CorrectionRulesUpload } from './CorrectionRulesUpload';
 import { IframeDialog } from './IframeDialog';
+import { StepHelpCard } from './StepHelpCard';
 
 interface Step0TypeSelectProps {
   selectedType: ImportType | null;
