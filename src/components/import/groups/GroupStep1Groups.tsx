@@ -13,7 +13,7 @@ import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCi
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
 import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
-import gruppenAnleitungAsset from '@/assets/gruppen-anleitung-lo.png.asset.json';
+import gruppenAnleitungImg from '@/assets/gruppen-anleitung-lo.png';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
