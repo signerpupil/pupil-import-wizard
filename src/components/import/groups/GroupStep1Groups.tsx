@@ -482,7 +482,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
               </div>
               <div className="relative group w-fit">
                 <img
-                  src={gruppenAnleitungAsset.url}
+                  src={gruppenAnleitungImg}
                   alt="LehrerOffice: Gruppen > Bearbeiten > Tabelle kopieren"
                   className="max-h-[300px] object-contain cursor-pointer rounded-lg border hover:shadow-md transition-shadow"
                   onClick={() => setLightboxOpen(true)}
@@ -663,7 +663,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
           <img
-            src={gruppenAnleitungAsset.url}
+            src={gruppenAnleitungImg}
             alt="LehrerOffice: Gruppen > Bearbeiten > Tabelle kopieren"
             className="w-full h-auto rounded"
           />
