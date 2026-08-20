@@ -387,21 +387,23 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
               Bei Bedarf können Sie eine eigene Liste einfügen und ersetzen.
             </AlertDescription>
           </Alert>
-          <Button onClick={handleUseDefaultPupilSubjects} variant="secondary" className="shadow-sm">
-            <School className="h-4 w-4 mr-2" />
-            Standardliste verwenden
-          </Button>
-          <Textarea
-            placeholder="Fächerliste aus PUPIL hier einfügen (Tab-getrennt)..."
-            rows={4}
-            value={pupilPasteText}
-            onChange={(e) => setPupilPasteText(e.target.value)}
-            className="font-mono text-xs"
-          />
-          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="outline" className="shadow-sm">
-            <School className="h-4 w-4 mr-2" />
-            Eingefügte Liste verwenden
-          </Button>
+          <div className="hidden">
+            <Button onClick={handleUseDefaultPupilSubjects} variant="secondary" className="shadow-sm">
+              <School className="h-4 w-4 mr-2" />
+              Standardliste verwenden
+            </Button>
+            <Textarea
+              placeholder="Fächerliste aus PUPIL hier einfügen (Tab-getrennt)..."
+              rows={4}
+              value={pupilPasteText}
+              onChange={(e) => setPupilPasteText(e.target.value)}
+              className="font-mono text-xs"
+            />
+            <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="outline" className="shadow-sm">
+              <School className="h-4 w-4 mr-2" />
+              Eingefügte Liste verwenden
+            </Button>
+          </div>
 
           {pupilSubjects.length > 0 && (
             <div className="space-y-3">
