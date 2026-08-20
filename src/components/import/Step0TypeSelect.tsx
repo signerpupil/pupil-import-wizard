@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -62,7 +62,8 @@ export function Step0TypeSelect({
   loadedCorrectionRules,
 }: Step0TypeSelectProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
-  const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | null>(null);
+  const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
+  const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
