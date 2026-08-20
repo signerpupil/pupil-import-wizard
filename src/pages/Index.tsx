@@ -357,7 +357,7 @@ export default function Index() {
         )}
 
         <div className="mt-6 space-y-4">
-          {!showSpecialWizard && <StepHelpCard step={currentStep} />}
+          {!showSpecialWizard && currentStep !== 0 && <StepHelpCard step={currentStep} />}
 
           {currentStep === 0 && (
             <Step0TypeSelect
