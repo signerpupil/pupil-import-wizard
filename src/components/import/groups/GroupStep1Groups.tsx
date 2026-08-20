@@ -6,11 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { SearchableSelect } from '../lp-zuweisung/SearchableSelect';
-import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School, ChevronDown, ChevronRight } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
 import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
+import gruppenAnleitungAsset from '@/assets/gruppen-anleitung-lo.png.asset.json';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
