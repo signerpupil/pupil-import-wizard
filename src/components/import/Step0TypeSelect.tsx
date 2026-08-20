@@ -88,7 +88,7 @@ export function Step0TypeSelect({
           Import-Typ und Modus auswählen
         </div>
         <h1 className="text-3xl font-bold text-foreground tracking-tight">
-          Migration LehrerOffice - Import in Pupil
+          PUPIL@AG – Schritt für Schritt
         </h1>
         <p className="text-muted-foreground max-w-2xl">
           Was möchten Sie importieren? Wählen Sie den passenden Import-Typ für Ihre Daten aus LehrerOffice.
