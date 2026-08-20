@@ -208,7 +208,13 @@ export function Step0TypeSelect({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <Card
             className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
-            onClick={() => setOpenDialog('schulungsunterlagen')}
+            onClick={() =>
+              window.open(
+                'https://cloud.pupil.school/s/QN4W4qLSdiJnwQC/authenticate/showshare',
+                '_blank',
+                'noopener,noreferrer',
+              )
+            }
           >
             <CardHeader className="pb-3">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
@@ -216,7 +222,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-lg">Schulungsunterlagen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Zentrale Unterlagen und Materialien für PUPIL@AG.
+                Zentrale Unterlagen und Materialien für PUPIL@AG. Öffnet sich in einem neuen Tab.
               </CardDescription>
               <div className="mt-3 pt-3 border-t border-pupil-resources/10">
                 <button
@@ -303,12 +309,6 @@ export function Step0TypeSelect({
         onOpenChange={(open) => setOpenDialog(open ? 'elearning' : null)}
         title="E-Learnings für den Kanton Aargau"
         url="https://www.pupil.ch/ag-elearning"
-      />
-      <IframeDialog
-        open={openDialog === 'schulungsunterlagen'}
-        onOpenChange={(open) => setOpenDialog(open ? 'schulungsunterlagen' : null)}
-        title="Schulungsunterlagen"
-        url="https://cloud.pupil.school/s/QN4W4qLSdiJnwQC/authenticate/showshare"
       />
       <IframeDialog
         open={openDialog === 'lernumgebung'}
