@@ -10,6 +10,7 @@ import { SearchableSelect } from '../lp-zuweisung/SearchableSelect';
 import { ArrowLeft, ArrowRight, Clipboard, Trash2, Info, Plus, BookOpen, CheckCircle2, Search, AlertTriangle, School } from 'lucide-react';
 import type { GroupData } from '@/types/importTypes';
 import type { SubjectMapping, PupilSubject } from '../GroupImportWizard';
+import { defaultPupilSubjects } from '@/lib/pupilSubjectsDefault';
 
 interface GroupStep1GroupsProps {
   groups: GroupData[];
@@ -141,13 +142,27 @@ function parsePupilSubjects(text: string): PupilSubject[] {
 
   const subjects: PupilSubject[] = [];
 
-  for (const line of lines) {
-    const cols = line.split('\t').map(c => c.trim());
-    const name = cols[0] || '';
-    const schluessel = cols.length > 1 ? cols[1] : '';
+  // Header-basierte Spaltenerkennung (robust gegenüber neuen Spalten wie "Ordnung")
+  let nameIdx = 0;
+  let keyIdx = 1;
+  let startIdx = 0;
+  const headerCols = lines[0].split('\t').map(c => c.trim().toLowerCase());
+  const foundName = headerCols.findIndex(c => c === 'fachname' || c === 'fach' || c === 'name' || c === 'bezeichnung');
+  if (foundName >= 0) {
+    nameIdx = foundName;
+    const foundKey = headerCols.findIndex(c => c.includes('schlüssel') || c.includes('schluessel'));
+    keyIdx = foundKey >= 0 ? foundKey : foundName + 1;
+    startIdx = 1;
+  }
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = lines[i].split('\t').map(c => c.trim());
+    const name = cols[nameIdx] || '';
+    const schluessel = cols.length > keyIdx ? cols[keyIdx] : '';
 
     if (!name) continue;
-    if (name.toLowerCase() === 'fach' || name.toLowerCase() === 'name' || name.toLowerCase() === 'bezeichnung') continue;
+    const lower = name.toLowerCase();
+    if (lower === 'fach' || lower === 'fachname' || lower === 'name' || lower === 'bezeichnung' || lower === 'ordnung') continue;
 
     subjects.push({ name, schluessel });
   }
@@ -196,6 +211,10 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
   const handleParsePupilSubjects = () => {
     const parsed = parsePupilSubjects(pupilPasteText);
     onPupilSubjectsChange(parsed);
+  };
+
+  const handleUseDefaultPupilSubjects = () => {
+    onPupilSubjectsChange(defaultPupilSubjects);
   };
 
   const handleRemoveGroup = (index: number) => {
@@ -356,6 +375,17 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="border-primary/20 bg-primary/[0.03]">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              Die aktuelle PUPIL-Fächerliste ({defaultPupilSubjects.length} Fächer) ist bereits hinterlegt – ein manuelles Kopieren ist nicht nötig.
+              Bei Bedarf können Sie eine eigene Liste einfügen und ersetzen.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleUseDefaultPupilSubjects} variant="secondary" className="shadow-sm">
+            <School className="h-4 w-4 mr-2" />
+            Standardliste verwenden
+          </Button>
           <Textarea
             placeholder="Fächerliste aus PUPIL hier einfügen (Tab-getrennt)..."
             rows={4}
@@ -363,9 +393,9 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             onChange={(e) => setPupilPasteText(e.target.value)}
             className="font-mono text-xs"
           />
-          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="secondary" className="shadow-sm">
+          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="outline" className="shadow-sm">
             <School className="h-4 w-4 mr-2" />
-            PUPIL-Fächer erkennen
+            Eingefügte Liste verwenden
           </Button>
 
           {pupilSubjects.length > 0 && (
