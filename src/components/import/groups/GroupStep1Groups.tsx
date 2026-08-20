@@ -384,7 +384,7 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             <Info className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
               Die aktuelle PUPIL-Fächerliste ({defaultPupilSubjects.length} Fächer) ist bereits hinterlegt – ein manuelles Kopieren ist nicht nötig.
-              Bei Bedarf können Sie eine eigene Liste einfügen und ersetzen.
+              Sie können direkt zu Punkt 3 gehen.
             </AlertDescription>
           </Alert>
           <div className="hidden">
