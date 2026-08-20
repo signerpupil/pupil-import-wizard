@@ -370,6 +370,17 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="border-primary/20 bg-primary/[0.03]">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              Die aktuelle PUPIL-Fächerliste ({defaultPupilSubjects.length} Fächer) ist bereits hinterlegt – ein manuelles Kopieren ist nicht nötig.
+              Bei Bedarf können Sie eine eigene Liste einfügen und ersetzen.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleUseDefaultPupilSubjects} variant="secondary" className="shadow-sm">
+            <School className="h-4 w-4 mr-2" />
+            Standardliste verwenden
+          </Button>
           <Textarea
             placeholder="Fächerliste aus PUPIL hier einfügen (Tab-getrennt)..."
             rows={4}
@@ -377,9 +388,9 @@ export function GroupStep1Groups({ groups, onGroupsChange, subjectMap, onSubject
             onChange={(e) => setPupilPasteText(e.target.value)}
             className="font-mono text-xs"
           />
-          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="secondary" className="shadow-sm">
+          <Button onClick={handleParsePupilSubjects} disabled={!pupilPasteText.trim()} variant="outline" className="shadow-sm">
             <School className="h-4 w-4 mr-2" />
-            PUPIL-Fächer erkennen
+            Eingefügte Liste verwenden
           </Button>
 
           {pupilSubjects.length > 0 && (
