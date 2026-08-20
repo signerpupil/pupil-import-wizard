@@ -4,9 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, CheckCircle2, AlertTriangle, Users, School, Wand2, Database } from 'lucide-react';
 import { parseFile } from '@/lib/fileParser';
 import type { ClassTeacherData, PupilPerson, PupilClass, TeacherAssignment } from '@/types/importTypes';
+import { extractPersons, extractClasses } from '@/lib/lpSourceParsing';
+import {
+  getTeacherHandoff,
+  getClassHandoff,
+  type TeacherHandoff,
+  type ClassHandoff,
+} from '@/lib/importHandoff';
 import { PUPILInstructionGuide } from './PUPILInstructionGuide';
 import { PUPILClassesInstructionGuide } from './PUPILClassesInstructionGuide';
 import { SearchableSelect } from './SearchableSelect';
@@ -40,6 +47,17 @@ export function LPStep2Teachers({
   const [classFileError, setClassFileError] = useState<string | null>(null);
   const [manualOverrides, setManualOverrides] = useState<Map<string, string>>(new Map());
   const [manualClassOverrides, setManualClassOverrides] = useState<Map<string, string>>(new Map());
+  const [teacherHandoff, setTeacherHandoff] = useState<TeacherHandoff | null>(null);
+  const [classHandoff, setClassHandoff] = useState<ClassHandoff | null>(null);
+  const [showPersonUpload, setShowPersonUpload] = useState(false);
+  const [showClassUpload, setShowClassUpload] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getTeacherHandoff().then(h => { if (active) setTeacherHandoff(h); });
+    void getClassHandoff().then(h => { if (active) setClassHandoff(h); });
+    return () => { active = false; };
+  }, []);
 
   const uniqueTeacherNames = useMemo(() => {
     const names = new Set<string>();
