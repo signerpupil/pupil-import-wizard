@@ -64,6 +64,7 @@ export function Step0TypeSelect({
 }: Step0TypeSelectProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
+  const [showElearningLogin, setShowElearningLogin] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
