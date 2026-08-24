@@ -388,7 +388,7 @@ export function Step0TypeSelect({
 
       {/* Kontakt-Dialog */}
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Kontakt zur Projektleitung Pupil</DialogTitle>
             <DialogDescription>
@@ -397,7 +397,7 @@ export function Step0TypeSelect({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-foreground">
-              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt“</strong> von Sales erhalten und angenommen?
+              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt"</strong> von Sales erhalten und angenommen?
             </p>
             <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
               <AlertDescription className="text-xs text-muted-foreground">
@@ -405,7 +405,7 @@ export function Step0TypeSelect({
               </AlertDescription>
             </Alert>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
             <Button
               variant="outline"
               onClick={() => {
