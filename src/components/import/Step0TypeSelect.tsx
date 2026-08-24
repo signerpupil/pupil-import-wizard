@@ -64,6 +64,7 @@ export function Step0TypeSelect({
 }: Step0TypeSelectProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
+  const [showElearningLogin, setShowElearningLogin] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
@@ -289,6 +290,25 @@ export function Step0TypeSelect({
               <CardDescription className="text-sm leading-relaxed">
                 E-Learnings und Schulungsinhalte für den Kanton Aargau.
               </CardDescription>
+              <div className="mt-3 pt-3 border-t border-pupil-resources/15">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowElearningLogin((prev) => !prev);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-pupil-resources hover:underline"
+                >
+                  {showElearningLogin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showElearningLogin ? 'Login ausblenden' : 'Login anzeigen'}
+                </button>
+                {showElearningLogin && (
+                  <div className="mt-1.5 space-y-1 text-sm bg-pupil-resources/10 text-pupil-resources rounded px-2 py-1.5 inline-block">
+                    <p className="font-mono">dario.baumgartner+AG@7education.com</p>
+                    <p className="font-mono">Pupil@AG!2025!</p>
+                  </div>
+                )}
+              </div>
             </CardHeader>
           </Card>
 
