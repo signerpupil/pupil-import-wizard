@@ -87,7 +87,7 @@ export function Step0TypeSelect({
       {/* Intro */}
       <div className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          Migration LehrerOffice – Import in Pupil
+          PUPIL@AG - Schritt für Schritt
         </h1>
         <p className="text-sm text-muted-foreground max-w-2xl">
           Bereiten Sie Ihre Daten aus LehrerOffice Schritt für Schritt für den Import in PUPIL auf.

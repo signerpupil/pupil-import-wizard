@@ -14,10 +14,10 @@ export function WizardHeader({ title, showStep = false }: WizardHeaderProps) {
         <img src={pupilLogo} alt="pupil by seven education" className="h-10 w-auto" />
         <div className="h-8 w-px bg-border" aria-hidden="true" />
         <div className="min-w-0">
-          <span className="block text-sm font-semibold tracking-tight text-foreground">PUPIL@AG</span>
+          <span className="block text-sm font-semibold tracking-tight text-foreground">
+</span>
           <span className="block text-xs text-muted-foreground truncate">
-            Migration LehrerOffice – Import in Pupil
-          </span>
+</span>
         </div>
         {showStep && trimmed && (
           <span className="ml-auto shrink-0 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
