@@ -84,11 +84,25 @@ export function Step0TypeSelect({
 
   return (
     <div className="space-y-8">
-      {/* Hero section */}
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">
-          PUPIL@AG – Schritt für Schritt
-        </h1>
+      {/* Logo + Hero section */}
+      <div className="space-y-4 p-6 rounded-xl bg-white border border-border/40 shadow-sm">
+        <div className="flex items-center gap-5">
+          <div className="shrink-0 bg-white rounded-lg p-1">
+            <img
+              src="/pupil-logo.png"
+              alt="pupil by seven education"
+              className="h-14 w-auto"
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              PUPIL@AG – Schritt für Schritt
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Migration LehrerOffice – Import in Pupil
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Login Onboarding */}
