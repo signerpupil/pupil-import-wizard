@@ -421,12 +421,14 @@ export function Step0TypeSelect({
           <DialogHeader>
             <DialogTitle>Kontakt zur Projektleitung Pupil</DialogTitle>
             <DialogDescription>
-              Die Migration ist Schritt für Schritt dokumentiert. Ein persönliches Begleitgespräch ist daher kostenpflichtig, sofern Sie kein entsprechendes Angebot angenommen haben.
+              Die Migration und die weiteren Abläufe sind Schritt für Schritt dokumentiert. Ein persönliches Begleitgespräch ist daher nur möglich, wenn Sie ein entsprechendes Angebot angenommen haben.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-foreground whitespace-pre-wrap">
               Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt"</strong> von Sales erhalten und angenommen?
+
+Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren. Wenn nicht, dürfen Sie gerne einen Termin mit Sales vereinbaren, um ein entsprechendes Angebot zu erhalten. 
             </p>
             <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
               <AlertDescription className="text-xs text-muted-foreground">
