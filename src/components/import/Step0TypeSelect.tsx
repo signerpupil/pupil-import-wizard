@@ -381,9 +381,22 @@ export function Step0TypeSelect({
                   {showSchulungsPassword ? 'Passwort ausblenden' : 'Passwort anzeigen'}
                 </button>
                 {showSchulungsPassword && (
-                  <p className="mt-1.5 text-sm font-mono bg-pupil-resources/10 text-pupil-resources rounded px-2 py-1 inline-block">
-                    Pupil@AG!2025!
-                  </p>
+                  <div
+                    className="mt-2 flex items-center gap-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                    <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('Pupil@AG!2025!', 'schulungsPassword')}
+                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                      title="Passwort kopieren"
+                    >
+                      {copiedField === 'schulungsPassword' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      {copiedField === 'schulungsPassword' ? 'Kopiert' : 'Kopieren'}
+                    </button>
+                  </div>
                 )}
               </div>
             </CardHeader>
