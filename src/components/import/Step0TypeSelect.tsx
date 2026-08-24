@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -64,6 +65,7 @@ export function Step0TypeSelect({
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
@@ -87,6 +89,61 @@ export function Step0TypeSelect({
         <h1 className="text-3xl font-bold text-foreground tracking-tight">
           PUPIL@AG – Schritt für Schritt
         </h1>
+      </div>
+
+      {/* Login Onboarding */}
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-onboarding/30 bg-pupil-onboarding/[0.06]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-onboarding text-pupil-onboarding-foreground shadow-md">
+              <Rocket className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Login & Onboarding</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Greifen Sie auf Ihr schulspezifisches Onboarding-Portal zu.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
+            size="lg"
+            className="bg-pupil-onboarding hover:bg-pupil-onboarding/90 text-pupil-onboarding-foreground shadow-md"
+          >
+            Onboarding-Portal öffnen
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+        <Alert className="border-pupil-onboarding/20 bg-pupil-onboarding/[0.04]">
+          <AlertDescription className="text-xs text-muted-foreground">
+            Hinweis: Beim Klick wird die Seite <strong>www.pipy.app/pupil/onboarding</strong> in einem neuen Tab geöffnet.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      {/* Kontakt zur Projektleitung Pupil */}
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-contact/30 bg-pupil-contact/[0.06]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-contact text-pupil-contact-foreground shadow-md">
+              <Mail className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Kontakt zur Projektleitung Pupil</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Haben Sie Fragen oder benötigen Sie persönliche Unterstützung? Buchen Sie einen Termin.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setContactDialogOpen(true)}
+            size="lg"
+            className="bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground shadow-md"
+          >
+            Termin buchen
+            <Calendar className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Import Type Selection */}
@@ -328,6 +385,51 @@ export function Step0TypeSelect({
         title="PUPIL@AG - Roadmap"
         url="https://dokumentation.pupil.ch/article/vwd7iovrqq-pupil-ag-roadmap"
       />
+
+      {/* Kontakt-Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kontakt zur Projektleitung Pupil</DialogTitle>
+            <DialogDescription>
+              Die Migration ist Schritt für Schritt dokumentiert. Ein persönliches Begleitgespräch ist daher kostenpflichtig, sofern Sie kein entsprechendes Angebot angenommen haben.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-foreground">
+              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt“</strong> von Sales erhalten und angenommen?
+            </p>
+            <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
+              <AlertDescription className="text-xs text-muted-foreground">
+                Hinweis: Der jeweilige Link öffnet sich in einem neuen Tab. Wählen Sie unten die passende Option.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.open('https://calendly.com/sebastian-mombers-7education/30min', '_blank', 'noopener,noreferrer');
+                setContactDialogOpen(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Nein – Calendly öffnen
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </Button>
+            <Button
+              onClick={() => {
+                window.open('https://bookings.cloud.microsoft/bookwithme/user/8f3fb96c1e4947168ab6012279648721%407education.com?anonymous&ismsaljsauthenabled', '_blank', 'noopener,noreferrer');
+                setContactDialogOpen(false);
+              }}
+              className="w-full sm:w-auto bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground"
+            >
+              Ja – Microsoft Bookings öffnen
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
