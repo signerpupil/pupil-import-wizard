@@ -29,13 +29,31 @@ export function FloatingAssistant() {
   return (
     <>
       {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Hilfe-Assistent öffnen"
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </button>
+        <div className="fixed bottom-6 right-6 z-50 group">
+          {/* Ambient pulse ring */}
+          <div className="absolute inset-0 rounded-full bg-primary opacity-20 animate-ping [animation-duration:3s]" />
+          <div className="absolute -inset-1 rounded-full bg-primary/30 blur-md group-hover:bg-primary/50 transition-all duration-500" />
+
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Hilfe-Assistent öffnen"
+            className="relative flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_30px_hsl(var(--primary)/0.4)] hover:shadow-[0_12px_40px_hsl(var(--primary)/0.5)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
+          >
+            <MessageCircle className="h-7 w-7" />
+
+            {/* Active indicator */}
+            <span className="absolute top-3 right-3 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-foreground" />
+            </span>
+          </button>
+
+          {/* Hover tooltip */}
+          <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none shadow-xl">
+            Wie kann ich helfen?
+            <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-foreground rotate-45" />
+          </div>
+        </div>
       )}
 
       {open && (
