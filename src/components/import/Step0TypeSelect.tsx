@@ -386,6 +386,51 @@ export function Step0TypeSelect({
         url="https://dokumentation.pupil.ch/article/vwd7iovrqq-pupil-ag-roadmap"
       />
 
+      {/* Kontakt-Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kontakt zur Projektleitung Pupil</DialogTitle>
+            <DialogDescription>
+              Die Migration ist Schritt für Schritt dokumentiert. Ein persönliches Begleitgespräch ist daher kostenpflichtig, sofern Sie kein entsprechendes Angebot angenommen haben.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-foreground">
+              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt“</strong> von Sales erhalten und angenommen?
+            </p>
+            <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
+              <AlertDescription className="text-xs text-muted-foreground">
+                Hinweis: Der jeweilige Link öffnet sich in einem neuen Tab. Wählen Sie unten die passende Option.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.open('https://calendly.com/sebastian-mombers-7education/30min', '_blank', 'noopener,noreferrer');
+                setContactDialogOpen(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Nein – Calendly öffnen
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </Button>
+            <Button
+              onClick={() => {
+                window.open('https://bookings.cloud.microsoft/bookwithme/user/8f3fb96c1e4947168ab6012279648721%407education.com?anonymous&ismsaljsauthenabled', '_blank', 'noopener,noreferrer');
+                setContactDialogOpen(false);
+              }}
+              className="w-full sm:w-auto bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground"
+            >
+              Ja – Microsoft Bookings öffnen
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Förderplaner-Typ auswählen</h3>
