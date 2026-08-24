@@ -91,6 +91,61 @@ export function Step0TypeSelect({
         </h1>
       </div>
 
+      {/* Login Onboarding */}
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-onboarding/30 bg-pupil-onboarding/[0.06]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-onboarding text-pupil-onboarding-foreground shadow-md">
+              <Rocket className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Login & Onboarding</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Greifen Sie auf Ihr schulspezifisches Onboarding-Portal zu.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
+            size="lg"
+            className="bg-pupil-onboarding hover:bg-pupil-onboarding/90 text-pupil-onboarding-foreground shadow-md"
+          >
+            Onboarding-Portal öffnen
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+        <Alert className="border-pupil-onboarding/20 bg-pupil-onboarding/[0.04]">
+          <AlertDescription className="text-xs text-muted-foreground">
+            Hinweis: Beim Klick wird die Seite <strong>www.pipy.app/pupil/onboarding</strong> in einem neuen Tab geöffnet.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      {/* Kontakt zur Projektleitung Pupil */}
+      <div className="space-y-4 p-6 rounded-xl border border-pupil-contact/30 bg-pupil-contact/[0.06]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-contact text-pupil-contact-foreground shadow-md">
+              <Mail className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Kontakt zur Projektleitung Pupil</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Haben Sie Fragen oder benötigen Sie persönliche Unterstützung? Buchen Sie einen Termin.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setContactDialogOpen(true)}
+            size="lg"
+            className="bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground shadow-md"
+          >
+            Termin buchen
+            <Calendar className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       {/* Import Type Selection */}
       <div className="space-y-4 p-6 rounded-xl border border-primary/10 bg-primary/[0.02]">
         <h3 className="text-xl font-semibold text-foreground">Migration LehrerOffice - Import in Pupil</h3>
