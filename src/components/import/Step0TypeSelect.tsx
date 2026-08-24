@@ -69,7 +69,7 @@ export function Step0TypeSelect({
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
-  const handleCopy = async (value: string, field: 'email' | 'password') => {
+  const handleCopy = async (value: string, field: 'email' | 'password' | 'schulungsPassword') => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedField(field);
