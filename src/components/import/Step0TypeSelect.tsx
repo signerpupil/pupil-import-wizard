@@ -83,87 +83,34 @@ export function Step0TypeSelect({
     );
 
   return (
-    <div className="space-y-8">
-      {/* Logo + Hero section */}
-      <div className="space-y-4 p-6 rounded-xl bg-white border border-border/40 shadow-sm">
-        <div className="flex items-center gap-5">
-          <div className="shrink-0 bg-white rounded-lg p-1">
-            <img
-              src="/pupil-logo.png"
-              alt="pupil by seven education"
-              className="h-14 w-auto"
-            />
+    <div className="space-y-10">
+      {/* Intro */}
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+          Migration LehrerOffice – Import in Pupil
+        </h1>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          Bereiten Sie Ihre Daten aus LehrerOffice Schritt für Schritt für den Import in PUPIL auf.
+          Wählen Sie unten den passenden Import-Typ. Weiter unten finden Sie Hilfe, Kontakt und Schulungsmaterial.
+        </p>
+      </div>
+
+      {/* 1. Import starten */}
+      <section className="space-y-5 p-6 rounded-xl border border-primary/25 bg-primary/[0.03]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-primary text-primary-foreground">
+            <FileUp className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              PUPIL@AG – Schritt für Schritt
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Migration LehrerOffice – Import in Pupil
+            <h2 className="text-xl font-semibold text-foreground">Import starten</h2>
+            <p className="text-sm text-muted-foreground">
+              Wählen Sie aus, welche Daten Sie aus LehrerOffice übernehmen möchten.
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Login Onboarding */}
-      <div className="space-y-4 p-6 rounded-xl border border-pupil-onboarding/30 bg-pupil-onboarding/[0.06]">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-onboarding text-pupil-onboarding-foreground shadow-md">
-              <Rocket className="h-7 w-7" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">Login & Onboarding</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Greifen Sie auf Ihr schulspezifisches Onboarding-Portal zu.
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
-            size="lg"
-            className="bg-pupil-onboarding hover:bg-pupil-onboarding/90 text-pupil-onboarding-foreground shadow-md"
-          >
-            Onboarding-Portal öffnen
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <Alert className="border-pupil-onboarding/20 bg-pupil-onboarding/[0.04]">
-          <AlertDescription className="text-xs text-muted-foreground">
-            Hinweis: Beim Klick wird die Seite <strong>www.pipy.app/pupil/onboarding</strong> in einem neuen Tab geöffnet.
-          </AlertDescription>
-        </Alert>
-      </div>
-
-      {/* Kontakt zur Projektleitung Pupil */}
-      <div className="space-y-4 p-6 rounded-xl border border-pupil-contact/30 bg-pupil-contact/[0.06]">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 bg-pupil-contact text-pupil-contact-foreground shadow-md">
-              <Mail className="h-7 w-7" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">Kontakt zur Projektleitung Pupil</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Haben Sie Fragen oder benötigen Sie persönliche Unterstützung? Buchen Sie einen Termin.
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => setContactDialogOpen(true)}
-            size="lg"
-            className="bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground shadow-md"
-          >
-            Termin buchen
-            <Calendar className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Import Type Selection */}
-      <div className="space-y-4 p-6 rounded-xl border border-primary/10 bg-primary/[0.02]">
-        <h3 className="text-xl font-semibold text-foreground">Migration LehrerOffice - Import in Pupil</h3>
         <StepHelpCard step={0} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
             .map(t => importConfigs.find(c => c.type === t))
@@ -176,59 +123,57 @@ export function Step0TypeSelect({
                 <Card
                   key={config.type}
                   className={cn(
-                    'cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group',
+                    'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
                     isSelected
-                      ? 'ring-2 ring-primary shadow-lg bg-primary/[0.03]'
+                      ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
                       : 'hover:border-primary/30'
                   )}
                   onClick={() => onSelectType(config.type)}
                 >
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <div
                       className={cn(
-                        'w-14 h-14 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                        'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
                         isSelected
-                          ? 'bg-primary text-primary-foreground shadow-md'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
                           : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
                       )}
                     >
-                      <Icon className="h-7 w-7" />
+                      <Icon className="h-6 w-6" />
                     </div>
-                    <CardTitle className="text-lg">{config.name}</CardTitle>
+                    <CardTitle className="text-base">{config.name}</CardTitle>
                     <CardDescription className="text-sm leading-relaxed">{config.description}</CardDescription>
                   </CardHeader>
                 </Card>
               );
             })}
         </div>
+      </section>
 
-        {/* CTA Button */}
-        <div className="flex justify-center pt-4">
-          <Button
-            onClick={onNext}
-            disabled={!canProceed}
-            size="lg"
-            className="px-8 text-base shadow-md hover:shadow-lg transition-all"
-          >
-            Weiter
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+      {/* 2. Pupil Instanz einrichten */}
+      <section className="space-y-5 p-6 rounded-xl border border-pupil-teal/25 bg-pupil-teal/[0.04]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-teal text-pupil-teal-foreground">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Pupil Instanz einrichten</h2>
+            <p className="text-sm text-muted-foreground">
+              Grundlagen zur Einrichtung Ihrer Schule in PUPIL.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Pupil Instanz einrichten */}
-      <div className="space-y-4 p-6 rounded-xl border border-pupil-teal/20 bg-pupil-teal/[0.04]">
-        <h3 className="text-xl font-semibold text-foreground">Pupil Instanz einrichten</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-teal/30 hover:border-pupil-teal h-full"
             onClick={() => setOpenDialog('tutorial')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
-                <PlayCircle className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-sm">
+                <PlayCircle className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Interaktives Tutorial</CardTitle>
+              <CardTitle className="text-base">Interaktives Tutorial</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Klickbares Tutorial zur Schulverwaltung – öffnet sich direkt hier im Fenster.
               </CardDescription>
@@ -236,49 +181,111 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-teal/40 bg-pupil-teal/[0.06] hover:border-pupil-teal"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-teal/30 hover:border-pupil-teal h-full"
             onClick={() => setOpenDialog('roles')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-md">
-                <Shield className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-teal text-pupil-teal-foreground shadow-sm">
+                <Shield className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Übersicht Rollen- & Zugriffsrechte</CardTitle>
+              <CardTitle className="text-base">Übersicht Rollen- & Zugriffsrechte</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Übersicht aller Rollen und Berechtigungen in PUPIL.
               </CardDescription>
             </CardHeader>
           </Card>
         </div>
-      </div>
+      </section>
 
-      {/* E-Learnings für den Kanton Aargau */}
-      <div className="space-y-4 p-6 rounded-xl border border-pupil-learning/30 bg-pupil-learning/[0.06]">
-        <h3 className="text-xl font-semibold text-foreground">E-Learnings für den Kanton Aargau</h3>
+      {/* 3. Hilfe & Kontakt */}
+      <section className="space-y-5 p-6 rounded-xl border border-border bg-muted/30">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-foreground/80 text-background">
+            <Mail className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Hilfe & Kontakt</h2>
+            <p className="text-sm text-muted-foreground">
+              Zugang zum Onboarding-Portal und direkter Kontakt zur Projektleitung.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-muted text-foreground">
+                <Rocket className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Login & Onboarding</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Ihr schulspezifisches Onboarding-Portal auf www.pipy.app – öffnet in einem neuen Tab.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-auto">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
+              >
+                Onboarding-Portal öffnen
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="h-full flex flex-col border-pupil-contact/40">
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-contact/10 text-pupil-contact">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Kontakt zur Projektleitung Pupil</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Persönliche Unterstützung nötig? Buchen Sie einen Termin bei der Projektleitung.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-auto">
+              <Button variant="outline" className="w-full" onClick={() => setContactDialogOpen(true)}>
+                Termin buchen
+                <Calendar className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* 4. Schulung & Ressourcen */}
+      <section className="space-y-5 p-6 rounded-xl border border-pupil-resources/25 bg-pupil-resources/[0.05]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-resources text-pupil-resources-foreground">
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Schulung & Ressourcen</h2>
+            <p className="text-sm text-muted-foreground">
+              E-Learnings, Unterlagen und Informationen rund um PUPIL@AG.
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-learning/40 bg-pupil-learning/[0.08] hover:border-pupil-learning"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() => setOpenDialog('elearning')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-learning text-pupil-learning-foreground shadow-md">
-                <BookOpen className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <BookOpen className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">PUPIL E-Learning Aargau</CardTitle>
+              <CardTitle className="text-base">PUPIL E-Learning Aargau</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 E-Learnings und Schulungsinhalte für den Kanton Aargau.
               </CardDescription>
             </CardHeader>
           </Card>
-        </div>
-      </div>
 
-      {/* Weitere Ressourcen & Schulung */}
-      <div className="space-y-4 p-6 rounded-xl border border-pupil-resources/30 bg-pupil-resources/[0.06]">
-        <h3 className="text-xl font-semibold text-foreground">Weitere Ressourcen & Schulung</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() =>
               window.open(
                 'https://cloud.pupil.school/s/QN4W4qLSdiJnwQC/authenticate/showshare',
@@ -287,15 +294,15 @@ export function Step0TypeSelect({
               )
             }
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
-                <FolderOpen className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <FolderOpen className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Schulungsunterlagen</CardTitle>
+              <CardTitle className="text-base">Schulungsunterlagen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Zentrale Unterlagen und Materialien für PUPIL@AG. Öffnet sich in einem neuen Tab.
               </CardDescription>
-              <div className="mt-3 pt-3 border-t border-pupil-resources/10">
+              <div className="mt-3 pt-3 border-t border-pupil-resources/15">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -317,14 +324,14 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() => setOpenDialog('lernumgebung')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
-                <GraduationCap className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <GraduationCap className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Lernumgebung für Lehrpersonen</CardTitle>
+              <CardTitle className="text-base">Lernumgebung für Lehrpersonen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Interaktive Lernumgebung und Übungsinhalte für Lehrpersonen.
               </CardDescription>
@@ -332,14 +339,14 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() => setOpenDialog('schulportal')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
-                <School className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <School className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">Schulportal Kanton Aargau</CardTitle>
+              <CardTitle className="text-base">Schulportal Kanton Aargau</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Offizielle Informationen des Kantons Aargau zu PUPIL.
               </CardDescription>
@@ -347,21 +354,21 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group border-pupil-resources/40 bg-pupil-resources/[0.08] hover:border-pupil-resources"
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() => setOpenDialog('roadmap')}
           >
-            <CardHeader className="pb-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-md">
-                <Map className="h-7 w-7" />
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <Map className="h-6 w-6" />
               </div>
-              <CardTitle className="text-lg">PUPIL@AG - Roadmap</CardTitle>
+              <CardTitle className="text-base">PUPIL@AG – Roadmap</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Aktuelle Roadmap und Planung für das Projekt PUPIL@AG.
               </CardDescription>
             </CardHeader>
           </Card>
         </div>
-      </div>
+      </section>
 
       <IframeDialog
         open={openDialog === 'tutorial'}
