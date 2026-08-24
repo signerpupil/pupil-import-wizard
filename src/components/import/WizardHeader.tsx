@@ -1,34 +1,29 @@
+
 interface WizardHeaderProps {
   title?: string;
+  showStep?: boolean;
 }
 
-export function WizardHeader({ title = 'Import Wizard' }: WizardHeaderProps) {
+export function WizardHeader({ title, showStep = false }: WizardHeaderProps) {
+  const trimmed = title?.trim();
+
   return (
-    <>
-      {/* Teal title bar with repeating pattern */}
-      <div 
-        className="h-[63px] relative"
-        style={{
-          background: 'linear-gradient(135deg, #0077BB 0%, #00A0D2 50%, #0077BB 100%)',
-        }}
-      >
-        {/* Diagonal lines pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage: `repeating-linear-gradient(
-              135deg,
-              transparent,
-              transparent 4px,
-              rgba(255,255,255,0.1) 4px,
-              rgba(255,255,255,0.1) 8px
-            )`,
-          }}
-        />
-        <div className="container mx-auto px-5 h-full flex items-center relative z-10">
-          <h1 className="text-white text-2xl font-light tracking-[0.15em] uppercase">{title}</h1>
+    <header className="sticky top-0 z-40 bg-card border-b border-border/60 shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]">
+      <div className="container mx-auto px-4 max-w-5xl h-16 flex items-center gap-4">
+        <img src={`${import.meta.env.BASE_URL}pupil-logo.png`} alt="pupil by seven education" className="h-10 w-auto" />
+        <div className="h-8 w-px bg-border" aria-hidden="true" />
+        <div className="min-w-0">
+          <span className="block text-sm font-semibold tracking-tight text-foreground">PUPIL@AG</span>
+          <span className="block text-xs text-muted-foreground truncate">
+            Migration LehrerOffice – Import in Pupil
+          </span>
         </div>
+        {showStep && trimmed && (
+          <span className="ml-auto shrink-0 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+            {trimmed}
+          </span>
+        )}
       </div>
-    </>
+    </header>
   );
 }
