@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,8 +65,19 @@ export function Step0TypeSelect({
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
   const [showElearningLogin, setShowElearningLogin] = useState(false);
+  const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+
+  const handleCopy = async (value: string, field: 'email' | 'password') => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 1500);
+    } catch {
+      // Fallback: silently ignore if clipboard is unavailable
+    }
+  };
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
@@ -303,9 +314,36 @@ export function Step0TypeSelect({
                   {showElearningLogin ? 'Login ausblenden' : 'Login anzeigen'}
                 </button>
                 {showElearningLogin && (
-                  <div className="mt-1.5 space-y-1 text-sm bg-pupil-resources/10 text-pupil-resources rounded px-2 py-1.5 inline-block">
-                    <p className="font-mono">dario.baumgartner+AG@7education.com</p>
-                    <p className="font-mono">Pupil@AG!2025!</p>
+                  <div
+                    className="mt-2 space-y-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-muted-foreground shrink-0">E-Mail:</span>
+                      <code className="text-sm font-mono truncate min-w-0 flex-1">dario.baumgartner+AG@7education.com</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('dario.baumgartner+AG@7education.com', 'email')}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                        title="E-Mail kopieren"
+                      >
+                        {copiedField === 'email' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copiedField === 'email' ? 'Kopiert' : 'Kopieren'}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                      <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('Pupil@AG!2025!', 'password')}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                        title="Passwort kopieren"
+                      >
+                        {copiedField === 'password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copiedField === 'password' ? 'Kopiert' : 'Kopieren'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
