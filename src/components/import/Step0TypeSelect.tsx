@@ -89,7 +89,7 @@ export function Step0TypeSelect({
         <div className="flex items-center gap-5">
           <div className="shrink-0 bg-white rounded-lg p-1">
             <img
-              src={pupilLogoAsset.url}
+              src="/pupil-logo.png"
               alt="pupil by seven education"
               className="h-14 w-auto"
             />
