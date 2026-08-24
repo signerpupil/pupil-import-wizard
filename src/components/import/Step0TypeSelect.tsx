@@ -65,8 +65,19 @@ export function Step0TypeSelect({
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
   const [showElearningLogin, setShowElearningLogin] = useState(false);
+  const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+
+  const handleCopy = async (value: string, field: 'email' | 'password') => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 1500);
+    } catch {
+      // Fallback: silently ignore if clipboard is unavailable
+    }
+  };
 
   useEffect(() => {
     setShowFileUpload(processingMode === 'continued' && correctionSource === 'file');
