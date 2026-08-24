@@ -148,6 +148,14 @@ export function Step0TypeSelect({
               );
             })}
         </div>
+
+        {/* Weiter */}
+        <div className="flex justify-end pt-2">
+          <Button size="lg" onClick={onNext} disabled={!canProceed} className="gap-2">
+            Weiter zum Upload
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </section>
 
       {/* 2. Pupil Instanz einrichten */}
