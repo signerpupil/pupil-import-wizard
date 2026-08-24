@@ -1,4 +1,4 @@
-import pupilLogo from '@/assets/pupil-logo.png.asset.json';
+import pupilLogo from '@/assets/pupil-logo.png';
 
 interface WizardHeaderProps {
   title?: string;
@@ -11,7 +11,7 @@ export function WizardHeader({ title, showStep = false }: WizardHeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-card border-b border-border/60 shadow-[0_1px_3px_hsl(var(--foreground)/0.04)]">
       <div className="container mx-auto px-4 max-w-5xl h-16 flex items-center gap-4">
-        <img src={pupilLogo.url} alt="pupil by seven education" className="h-10 w-auto" />
+        <img src={pupilLogo} alt="pupil by seven education" className="h-10 w-auto" />
         <div className="h-8 w-px bg-border" aria-hidden="true" />
         <div className="min-w-0">
           <span className="block text-sm font-semibold tracking-tight text-foreground">PUPIL@AG</span>
