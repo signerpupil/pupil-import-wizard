@@ -649,6 +649,16 @@ export function Step0TypeSelect({
         </Card>
       )}
 
+      {/* Weiter */}
+      <div className="flex justify-end">
+        <Button size="lg" onClick={onNext} disabled={!canProceed} className="gap-2">
+          Weiter zum Upload
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+
+
       {/* Privacy Notice - compact at the bottom */}
       <Alert className="border-muted bg-muted/30">
         <ShieldCheck className="h-4 w-4 text-pupil-teal" />
