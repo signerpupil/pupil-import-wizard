@@ -311,7 +311,7 @@ export function Step0TypeSelect({
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-pupil-resources hover:underline"
                 >
                   {showElearningLogin ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  {showElearningLogin ? 'Login ausblenden' : 'Login anzeigen'}
+                  {showElearningLogin ? 'Login ausblenden' : 'Unpersönliches Login anzeigen'}
                 </button>
                 {showElearningLogin && (
                   <div
