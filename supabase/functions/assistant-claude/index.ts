@@ -47,6 +47,15 @@ Dynamische Gruppen: In PUPIL können mehrere Klassen (z.B. zwei Kindergartenklas
 Synchronisation nach PUPIL Connect: Damit die Gruppe im Elternportal/Chat sichtbar ist, muss in den Gruppeneinstellungen die Checkbox "Gruppe in Chat anzeigen" aktiviert werden. Neue Eltern werden dann automatisch zur Chatgruppe hinzugefügt.
 Anwendungsfall Kindergarten (zwei Klassen in einer Connect-Gruppe anschreiben): EINE dynamische Gruppe über beide Kindergartenklassen in PUPIL erstellen, die gewünschten Lehrpersonen als Mitglieder hinzufügen und "Gruppe in Chat anzeigen" aktivieren. Die Gruppe erscheint dann in Connect und synchronisiert Änderungen (z.B. neue Eltern) automatisch. Manuell direkt in Connect erstellte Gruppen werden NICHT automatisch mit den Klassen synchronisiert – dynamische Gruppen in PUPIL sind der empfohlene Weg.
 
+--- SCHNITTSTELLEN & MODULE (KANTONALES UMFELD) ---
+[QUELLE: Projekt Koneksa – Kantonale Schnittstellen und Module]
+PUPIL@AG wird in die bestehende Systemlandschaft eingebunden, damit Daten zwischen Schulen, Gemeinden und weiteren Systemen zuverlässig ausgetauscht werden können. Schnittstellen, die unidirektional sind, fliessen nur in eine Richtung (also von X entweder in PUPIL@AG oder aus PUPIL@AG nach X). Bidirektionale Schnittstellen fliessen in beide Richtungen.
+
+Bereits realisierte Schnittstellen:
+- M365 / Azure Active Directory: unidirektional, aus PUPIL@AG ausgehend – zur Authentifizierung und Benutzerverwaltung.
+- Apple School Manager: unidirektional, aus PUPIL@AG ausgehend – zur Benutzerverwaltung für Schulen mit Apple-Geräten.
+- PULS (Personalstammdaten): unidirektional, in PUPIL@AG eingehend – zum Abrufen von Stammdaten der Lehrpersonen und weiteren Angestellten.
+
 --- EINFÜHRUNG & SLOTS ---
 [QUELLE: schulen-aargau.ch - Einführung PUPIL@AG]
 Infoveranstaltungen: Slot 1: Do 18.06.2026 16:00-17:30 Uhr; Slot 2: Do 24.09.2026; Slot 3: Do 07.01.2027; Slot 4: Do 08.04.2027; Slot 5: Do 24.06.2027.
