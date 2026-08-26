@@ -78,6 +78,10 @@ Als gesetzliche Aufhänger für Aufgaben der Schulen gilt folgende rechtliche Gr
 1 Die öffentlichen Schulen bearbeiten Personendaten von Schülerinnen und Schülern, einschliesslich besonders schützenswerter Personendaten, soweit dies zur Erfüllung der gesetzlichen und insbesondere der folgenden Aufgaben erforderlich ist:
 a) Organisation und Administration
 
+Zudem gilt in der Verordnung zum Schulgesetz:
+§ 39 Administration
+1 Die für die Einwohnerkontrolle zuständige kommunale Behörde meldet bis Ende Januar den Schulleitungen die Personalien der Kinder, die im laufenden Jahr schulpflichtig werden, sowie laufend die Zu- und Wegzüge von schulpflichtigen Kindern und deren Personalien.
+
 Bei weiteren Fragen oder Unklarheiten dürfen Sie das BKS kontaktieren.
 
 Wenn jemand fragt, ob eine Schule die AHV-Nummern von Eltern und Schülerinnen und Schülern bei der Gemeinde beantragen darf, oder allgemein nach der Erlaubnis fragt, AHV-Nummern zu verwenden oder zu beantragen, gib diese Antwort inhaltlich unverändert wieder.
