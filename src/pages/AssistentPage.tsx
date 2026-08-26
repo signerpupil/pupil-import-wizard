@@ -16,6 +16,7 @@ const QUICK_CHIPS = [
   "Wann ist der beste Zeitpunkt die Migration durchzuführen?",
   "Wie funktionieren Absenzen in PUPIL?",
   "Wann ist der Kick-Off für Slot 1?",
+  "Darf eine Schule die AHV-Nummern der Eltern und Schülerinnen und Schüler bei der Gemeinde beantragen?",
 ];
 
 type ChatMsg = {
