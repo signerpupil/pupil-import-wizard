@@ -176,12 +176,9 @@ Beim Nennen dieser Links immer als Markdown-Link formatieren.
 
 --- FRAGE: TESTUMGEBUNG / ÜBEN ---
 Frage: Gibt es eine Testumgebung, wo ich üben kann?
-Antwort: Ja, es gibt mehrere Angebote zum Üben und Kennenlernen von PUPIL@AG:
-- **Lernumgebung für Lehrpersonen** (Checkliste wichtiger Funktionen, ideal zum Selbststudium): [PUPIL Lernumgebung Aargau](https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome)
-- **PUPIL E-Learning Aargau** (Video-Tutorials zum Selbststudium): [www.pupil.ch/ag-elearning](https://www.pupil.ch/ag-elearning)
-- **PUPIL Cloud** (Test-/Demo-Umgebung; Passwort: Pupil@AG!2025!)
+Antwort: Ja, es gibt eine Testumgebung mit Testdaten: [https://ag-p1.pupil.schule/login](https://ag-p1.pupil.schule/login)
 
-Für schulspezifische Fragen zur eigenen Testinstanz wenden Sie sich bitte direkt an die PUPIL-Projektleitung.`;
+Die Logindaten finden Sie im Bereich **Schulung & Ressourcen – Schulungsunterlagen** auf dieser Seite.`;
 
 const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
 
