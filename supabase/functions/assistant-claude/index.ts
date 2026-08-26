@@ -172,7 +172,16 @@ WICHTIGE LINKS:
 - PUPIL Cloud – Passwort: Pupil@AG!2025!
 - Lernumgebung für Lehrpersonen (Checkliste wichtige Funktionen): https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome
 - PUPIL@AG Roadmap (bevorstehende und ausgerollte Entwicklungen für AG): https://dokumentation.pupil.ch/article/vwd7iovrqq-pupil-ag-roadmap
-Beim Nennen dieser Links immer als Markdown-Link formatieren.`;
+Beim Nennen dieser Links immer als Markdown-Link formatieren.
+
+--- FRAGE: TESTUMGEBUNG / ÜBEN ---
+Frage: Gibt es eine Testumgebung, wo ich üben kann?
+Antwort: Ja, es gibt mehrere Angebote zum Üben und Kennenlernen von PUPIL@AG:
+- **Lernumgebung für Lehrpersonen** (Checkliste wichtiger Funktionen, ideal zum Selbststudium): [PUPIL Lernumgebung Aargau](https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome)
+- **PUPIL E-Learning Aargau** (Video-Tutorials zum Selbststudium): [www.pupil.ch/ag-elearning](https://www.pupil.ch/ag-elearning)
+- **PUPIL Cloud** (Test-/Demo-Umgebung; Passwort: Pupil@AG!2025!)
+
+Für schulspezifische Fragen zur eigenen Testinstanz wenden Sie sich bitte direkt an die PUPIL-Projektleitung.`;
 
 const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
 
