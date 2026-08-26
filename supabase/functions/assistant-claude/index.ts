@@ -67,6 +67,20 @@ Slot 4: Schulverwaltung Mo 21.06.2027 (vm); Schulalltag Mi 23.06.2027 + Mi 30.06
 Slot 5: Schulverwaltung Mo 27.09.2027 (vm); Schulalltag Mi 20.10.2027 + Mi 27.10.2027 (je nm).
 Einführungsrollen: PL ST 40-65h; SV ST 40-65h; Fachspez. 0-65h; Trainer 18-24h; Superuser 12-24h während Einführung + laufend.
 Migration von LehrerOffice: Self-Service, kostenfrei, Termin innerhalb des Slots.
+
+--- RECHTSGRUNDLAGEN AHV-NUMMERN ---
+[QUELLE: BKS - Rechtliche Grundlagen zur Verwendung der AHV-Nummer im schulischen Kontext]
+Die Verwendung der AHV-Nummer stützt sich auf folgende Rechtsgrundlagen:
+Gemäss Bundesrecht in Art. 153c Abs. 1 lit. a Ziff. 3 des Bundesgesetzes über die Alters- und Hinterlassenenversicherung (AHVG) können die Einheiten der Kantons- und Gemeindeverwaltungen die AHV-Nummer systematisch verwenden. Auch den Bildungsinstitutionen kommt dieses Recht zu (Art. 153c Abs. 1 lit. a Ziff. 5 AHVG). Es müssen besondere technische und organisatorische Massnahmen (TOM) errichtet werden (vgl. Art. 153d AHVG), die seitens des Departements Bildung, Kultur und Sport (BKS) für die Applikation PUPIL@AG sichergestellt werden.
+
+Als gesetzliche Aufhänger für Aufgaben der Schulen gilt folgende rechtliche Grundlage im Schulgesetz:
+§ 128 Bearbeitung von Personendaten
+1 Die öffentlichen Schulen bearbeiten Personendaten von Schülerinnen und Schülern, einschliesslich besonders schützenswerter Personendaten, soweit dies zur Erfüllung der gesetzlichen und insbesondere der folgenden Aufgaben erforderlich ist:
+a) Organisation und Administration
+
+Bei weiteren Fragen oder Unklarheiten dürfen Sie das BKS kontaktieren.
+
+Wenn jemand fragt, ob eine Schule die AHV-Nummern von Eltern und Schülerinnen und Schülern bei der Gemeinde beantragen darf, oder allgemein nach der Erlaubnis fragt, AHV-Nummern zu verwenden oder zu beantragen, gib diese Antwort inhaltlich unverändert wieder.
 Sloteinteilung Slot 1 (01.09.26-30.11.26): Kreisschule Erzbachtal, Kreisschule Leerau, Kreisschule Mellingen-Wohlenschwil, Kreisschule Reitnau-Wiliberg, Kreisschule Rohrdorferberg, Kreisschule Surbtal, Kreisschule Unteres Fricktal, Primarschule Boezberg, Primarschulverband Fischingertal, Schule Aarburg, Schule Birr, Schule Brittnau, Schule Buttwil, Schule Densbueren, Schule Dintikon, Schule Eggenwil, Schule Gipf-Oberfrick, Schule Hausen, Schule Hirschthal, Schule Kallern, Schule Kölliken, Schule Meisterschwanden, Schule Menziken, Schule Muri, Schule Neuenhof, Schule Niederlenz, Schule Niederrohrdorf, Schule Oberkulm, Schule Oberlunkhofen, Schule Oberrohrdorf, Schule Rottenschwil, Schule Ruefenach, Schule Sarmenstorf, Schule Schinznach, Schule Schwaderloch, Schule Stein, Schule Suhr, Schule Untersiggenthal, Schule Waltenschwil.
 
 --- ANMELDELINKS SCHULUNGEN ---
