@@ -404,6 +404,27 @@ export function Step0TypeSelect({
 
           <Card
             className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
+            onClick={() =>
+              window.open(
+                'https://ag-p1.pupil.schule/login',
+                '_blank',
+                'noopener,noreferrer',
+              )
+            }
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <LogIn className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Übungsumgebung</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Pupil Übungsumgebung für Schulverwaltung, Schulleitung und Lehrpersonen. Die Logindaten finden sie im Bereich Schulungsunterlagen.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
             onClick={() => setOpenDialog('lernumgebung')}
           >
             <CardHeader className="pb-4">
