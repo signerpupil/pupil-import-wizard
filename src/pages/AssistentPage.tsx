@@ -13,7 +13,7 @@ const QUICK_CHIPS = [
   "Wann muss ich SSO einrichten?",
   "Wie erstelle ich dynamische Gruppen?",
   "Was ist das Projekt Koneksa?",
-  "Welche Schulen sind in Slot 1?",
+  "Wann ist der beste Zeitpunkt die Migration durchzuführen?",
   "Wie funktionieren Absenzen in PUPIL?",
   "Wann ist der Kick-Off für Slot 1?",
 ];
