@@ -505,7 +505,13 @@ export function Step0TypeSelect({
         </div>
       </section>
 
+      <MitarbeitendeTutorialDialog
+        open={mitarbeitendeTutorialOpen}
+        onOpenChange={setMitarbeitendeTutorialOpen}
+      />
+
       <IframeDialog
+
         open={openDialog === 'tutorial'}
         onOpenChange={(open) => setOpenDialog(open ? 'tutorial' : null)}
         title="Interaktives Tutorial – Schulverwaltung"
