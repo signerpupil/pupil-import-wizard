@@ -106,8 +106,38 @@ export default function AssistentPage() {
           </div>
         </div>
 
-        {/* Datenschutz */}
-        {!privacyOk && (
+        {/* Datenschutz & KI-Disclaimer */}
+        {!disclaimerOk && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
+            <div className="flex items-start gap-3">
+              <Bot className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">
+                  <strong>KI-Assistent:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
+                </p>
+                <p className="text-sm text-slate-700">
+                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet.
+                </p>
+                <p className="text-sm text-slate-700">
+                  Für verbindliche Auskünfte, Termine oder Rechtsfragen wende dich bitte direkt an den Support:{' '}
+                  <a href="mailto:pupil@ag.ch" className="underline" style={{ color: PRIMARY }}>pupil@ag.ch</a> / 062 835 26 03.
+                </p>
+                <label className="flex items-start gap-2 text-sm text-slate-700 pt-1">
+                  <input
+                    type="checkbox"
+                    id="disclaimer-check"
+                    className="mt-1"
+                    onChange={(e) => {
+                      if (e.target.checked) acceptDisclaimer();
+                    }}
+                  />
+                  <span>Ich verstehe, dass die Antworten KI-generiert sind und Fehler enthalten können. Ich gebe keine personenbezogenen Daten ein.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+        {!privacyOk && disclaimerOk && (
           <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
             <p className="text-sm text-slate-700">
               <strong>Datenschutzhinweis:</strong> Deine Fragen werden an Anthropic (Claude) gesendet
