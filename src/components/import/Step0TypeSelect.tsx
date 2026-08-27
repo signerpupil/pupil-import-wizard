@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check, FileCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,8 @@ export function Step0TypeSelect({
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonTitle, setComingSoonTitle] = useState('');
 
   const handleCopy = async (value: string, field: 'email' | 'password' | 'schulungsPassword') => {
     try {
@@ -186,7 +188,7 @@ export function Step0TypeSelect({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           <Card
             className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
             onClick={() => setMitarbeitendeTutorialOpen(true)}
@@ -202,6 +204,135 @@ export function Step0TypeSelect({
             </CardHeader>
           </Card>
 
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'schueler'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => onSelectType('schueler')}
+          >
+            <CardHeader className="pb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                selectedType === 'schueler'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                <Users className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Stammdaten SuS und EZB</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Schüler, Erziehungsberechtigte und Klassen importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            onClick={() => { setComingSoonTitle('Import Personendossier'); setComingSoonOpen(true); }}
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+                <FileCheck className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Personendossier</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Personendossier-Daten in Pupil importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => { onSelectType('foerderplaner'); onSelectSubType('foerderplanung'); }}
+          >
+            <CardHeader className="pb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                <Target className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Förderplanung</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Förderziele, Massnahmen und Förderverlauf importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'foerderplaner' && selectedSubType === 'lernberichte'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => { onSelectType('foerderplaner'); onSelectSubType('lernberichte'); }}
+          >
+            <CardHeader className="pb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                selectedType === 'foerderplaner' && selectedSubType === 'lernberichte'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                <FileText className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Lernbericht</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Lernberichte und Beurteilungen importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'journal'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => onSelectType('journal')}
+          >
+            <CardHeader className="pb-4">
+              <div className={cn(
+                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                selectedType === 'journal'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Journal</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Beobachtungen, Gespräche und weitere Journaldaten importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            onClick={() => { setComingSoonTitle('Import Absenzen'); setComingSoonOpen(true); }}
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Absenzen</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Absenzdaten in Pupil importieren.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </section>
 
@@ -591,6 +722,21 @@ Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren.
               Ja – Microsoft Bookings öffnen
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Coming Soon Dialog */}
+      <Dialog open={comingSoonOpen} onOpenChange={setComingSoonOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{comingSoonTitle}</DialogTitle>
+            <DialogDescription>
+              Dieser Import-Typ ist aktuell noch nicht als Wizard verfügbar. Bitte nutzen Sie in der Zwischenzeit den entsprechenden Import direkt in PUPIL.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setComingSoonOpen(false)}>Verstanden</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
