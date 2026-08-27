@@ -74,6 +74,8 @@ export default {
         "onboarding-foreground": "hsl(var(--pupil-onboarding-foreground))",
         contact: "hsl(var(--pupil-contact))",
         "contact-foreground": "hsl(var(--pupil-contact-foreground))",
+        amber: "hsl(var(--pupil-amber))",
+        "amber-foreground": "hsl(var(--pupil-amber-foreground))",
         },
       },
       borderRadius: {

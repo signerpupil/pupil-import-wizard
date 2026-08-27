@@ -175,29 +175,24 @@ export function Step0TypeSelect({
       </section>
 
       {/* 2. Datenimporte */}
-      <section className="space-y-5 p-6 rounded-xl border border-border bg-muted/30">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-foreground/80 text-background">
-            <Database className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Datenimporte</h2>
-            <p className="text-sm text-muted-foreground">
-              Direkte Datenimporte in PUPIL.
-            </p>
-          </div>
+      <section className="space-y-5 p-6 rounded-xl border border-border bg-card">
+        <div className="border-l-4 border-pupil-amber pl-4">
+          <h2 className="text-xl font-semibold text-foreground tracking-tight">Datenimporte</h2>
+          <p className="text-sm text-muted-foreground">
+            Direkte Datenimporte in PUPIL.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
             onClick={() => setMitarbeitendeTutorialOpen(true)}
           >
             <CardHeader className="pb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
                 <UserCog className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Stammdaten Mitarbeitende</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Stammdaten Mitarbeitende</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Stammdaten in Pupil hochladen – Klick-Tutorial in 6 Schritten.
               </CardDescription>
@@ -206,10 +201,10 @@ export function Step0TypeSelect({
 
           <Card
             className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'schueler'
-                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
-                : 'hover:border-primary/30'
+                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
+                : 'bg-card border-border hover:border-pupil-amber/30'
             )}
             onClick={() => onSelectType('schueler')}
           >
@@ -217,12 +212,12 @@ export function Step0TypeSelect({
               <div className={cn(
                 'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
                 selectedType === 'schueler'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
+                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
               )}>
                 <Users className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Stammdaten SuS und EZB</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Stammdaten SuS und EZB</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Schüler, Erziehungsberechtigte und Klassen importieren.
               </CardDescription>
@@ -230,14 +225,14 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
             onClick={() => { setComingSoonTitle('Import Personendossier'); setComingSoonOpen(true); }}
           >
             <CardHeader className="pb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
                 <FileCheck className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Personendossier</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Personendossier</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Personendossier-Daten in Pupil importieren.
               </CardDescription>
@@ -246,10 +241,10 @@ export function Step0TypeSelect({
 
           <Card
             className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
-                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
-                : 'hover:border-primary/30'
+                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
+                : 'bg-card border-border hover:border-pupil-amber/30'
             )}
             onClick={() => { onSelectType('foerderplaner'); onSelectSubType('foerderplanung'); }}
           >
@@ -257,12 +252,12 @@ export function Step0TypeSelect({
               <div className={cn(
                 'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
                 selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
+                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
               )}>
                 <Target className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Förderplanung</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Förderplanung</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Förderziele, Massnahmen und Förderverlauf importieren.
               </CardDescription>
@@ -271,10 +266,10 @@ export function Step0TypeSelect({
 
           <Card
             className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'foerderplaner' && selectedSubType === 'lernberichte'
-                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
-                : 'hover:border-primary/30'
+                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
+                : 'bg-card border-border hover:border-pupil-amber/30'
             )}
             onClick={() => { onSelectType('foerderplaner'); onSelectSubType('lernberichte'); }}
           >
@@ -282,12 +277,12 @@ export function Step0TypeSelect({
               <div className={cn(
                 'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
                 selectedType === 'foerderplaner' && selectedSubType === 'lernberichte'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
+                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
               )}>
                 <FileText className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Lernbericht</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Lernbericht</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Lernberichte und Beurteilungen importieren.
               </CardDescription>
@@ -296,10 +291,10 @@ export function Step0TypeSelect({
 
           <Card
             className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'journal'
-                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
-                : 'hover:border-primary/30'
+                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
+                : 'bg-card border-border hover:border-pupil-amber/30'
             )}
             onClick={() => onSelectType('journal')}
           >
@@ -307,12 +302,12 @@ export function Step0TypeSelect({
               <div className={cn(
                 'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
                 selectedType === 'journal'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
+                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
               )}>
                 <BookOpen className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Journal</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Journal</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Beobachtungen, Gespräche und weitere Journaldaten importieren.
               </CardDescription>
@@ -320,14 +315,14 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
             onClick={() => { setComingSoonTitle('Import Absenzen'); setComingSoonOpen(true); }}
           >
             <CardHeader className="pb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
                 <Calendar className="h-6 w-6" />
               </div>
-              <CardTitle className="text-base">Import Absenzen</CardTitle>
+              <CardTitle className="text-base font-semibold leading-snug">Import Absenzen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Absenzdaten in Pupil importieren.
               </CardDescription>
