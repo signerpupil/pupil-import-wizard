@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 
 const LOGO_URL =
   "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
 const PRIMARY = "#2b80c0";
 const BG = "#f4f7fb";
 const PRIVACY_KEY = "pupil-assistent-privacy-ok";
+const DISCLAIMER_KEY = "pupil-assistent-disclaimer-ok";
 const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/assistant-claude`;
 
 const QUICK_CHIPS = [
@@ -31,10 +32,12 @@ export default function AssistentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [privacyOk, setPrivacyOk] = useState(false);
+  const [disclaimerOk, setDisclaimerOk] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPrivacyOk(localStorage.getItem(PRIVACY_KEY) === "1");
+    setDisclaimerOk(localStorage.getItem(DISCLAIMER_KEY) === "1");
   }, []);
 
   useEffect(() => {
@@ -44,6 +47,11 @@ export default function AssistentPage() {
   const dismissPrivacy = () => {
     localStorage.setItem(PRIVACY_KEY, "1");
     setPrivacyOk(true);
+  };
+
+  const acceptDisclaimer = () => {
+    localStorage.setItem(DISCLAIMER_KEY, "1");
+    setDisclaimerOk(true);
   };
 
   async function send(text: string) {
@@ -98,8 +106,38 @@ export default function AssistentPage() {
           </div>
         </div>
 
-        {/* Datenschutz */}
-        {!privacyOk && (
+        {/* Datenschutz & KI-Disclaimer */}
+        {!disclaimerOk && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
+            <div className="flex items-start gap-3">
+              <Bot className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">
+                  <strong>KI-Assistent:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
+                </p>
+                <p className="text-sm text-slate-700">
+                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet.
+                </p>
+                <p className="text-sm text-slate-700">
+                  Für verbindliche Auskünfte, Termine oder Rechtsfragen wende dich bitte direkt an den Support:{' '}
+                  <a href="mailto:pupil@ag.ch" className="underline" style={{ color: PRIMARY }}>pupil@ag.ch</a> / 062 835 26 03.
+                </p>
+                <label className="flex items-start gap-2 text-sm text-slate-700 pt-1">
+                  <input
+                    type="checkbox"
+                    id="disclaimer-check"
+                    className="mt-1"
+                    onChange={(e) => {
+                      if (e.target.checked) acceptDisclaimer();
+                    }}
+                  />
+                  <span>Ich verstehe, dass die Antworten KI-generiert sind und Fehler enthalten können. Ich gebe keine personenbezogenen Daten ein.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+        {!privacyOk && disclaimerOk && (
           <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
             <p className="text-sm text-slate-700">
               <strong>Datenschutzhinweis:</strong> Deine Fragen werden an Anthropic (Claude) gesendet
@@ -154,6 +192,10 @@ export default function AssistentPage() {
               >
                 {m.role === "assistant" ? (
                   <div className="prose prose-sm max-w-none prose-a:text-sky-700">
+                    <div className="flex items-center gap-1.5 mb-1.5 not-prose">
+                      <Bot className="h-3 w-3 text-slate-400" />
+                      <span className="text-[10px] uppercase tracking-wide text-slate-400 font-medium">KI-generiert</span>
+                    </div>
                     <ReactMarkdown
                       components={{
                         a: (props) => (
@@ -164,7 +206,7 @@ export default function AssistentPage() {
                       {m.content}
                     </ReactMarkdown>
                     {m.source && (
-                      <div className="mt-2 not-prose">
+                      <div className="mt-2 not-prose flex items-center gap-2 flex-wrap">
                         {m.source === "faq" ? (
                           <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
                             FAQ
@@ -217,6 +259,23 @@ export default function AssistentPage() {
           >
             <Send className="h-4 w-4" /> Senden
           </button>
+        </div>
+
+        {/* Dauerhafter KI-Disclaimer & Support */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 px-1">
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>Antworten sind KI-generiert und können Fehler enthalten. Bitte kritische Angaben verifizieren.</span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <a href="mailto:pupil@ag.ch" className="flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
+              <Mail className="h-3.5 w-3.5" /> Support
+            </a>
+            <span className="hidden sm:inline">|</span>
+            <span className="flex items-center gap-1">
+              <Phone className="h-3.5 w-3.5" /> 062 835 26 03
+            </span>
+          </div>
         </div>
       </div>
     </div>
