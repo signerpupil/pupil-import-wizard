@@ -70,6 +70,8 @@ export function Step0TypeSelect({
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [comingSoonTitle, setComingSoonTitle] = useState('');
 
   const handleCopy = async (value: string, field: 'email' | 'password' | 'schulungsPassword') => {
     try {
