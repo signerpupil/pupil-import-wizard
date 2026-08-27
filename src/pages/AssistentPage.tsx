@@ -32,10 +32,12 @@ export default function AssistentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [privacyOk, setPrivacyOk] = useState(false);
+  const [disclaimerOk, setDisclaimerOk] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPrivacyOk(localStorage.getItem(PRIVACY_KEY) === "1");
+    setDisclaimerOk(localStorage.getItem(DISCLAIMER_KEY) === "1");
   }, []);
 
   useEffect(() => {
@@ -45,6 +47,11 @@ export default function AssistentPage() {
   const dismissPrivacy = () => {
     localStorage.setItem(PRIVACY_KEY, "1");
     setPrivacyOk(true);
+  };
+
+  const acceptDisclaimer = () => {
+    localStorage.setItem(DISCLAIMER_KEY, "1");
+    setDisclaimerOk(true);
   };
 
   async function send(text: string) {
