@@ -89,6 +89,7 @@ const steps: TutorialStep[] = [
       { left: 0.5, top: 63.8, width: 16, height: 4.6, label: '1' },
       { left: 79, top: 26.4, width: 18.8, height: 4.5, label: '2 Sync MD zu PUPIL' },
     ],
+  },
   {
     title: 'Schulverwaltung in der Personenübersicht suchen',
     description:
