@@ -170,7 +170,51 @@ export function Step0TypeSelect({
         </div>
       </section>
 
-      {/* 2. Pupil Instanz einrichten */}
+      {/* 2. Datenimporte */}
+      <section className="space-y-5 p-6 rounded-xl border border-border bg-muted/30">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-foreground/80 text-background">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Datenimporte</h2>
+            <p className="text-sm text-muted-foreground">
+              Direkte Datenimporte in PUPIL.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'stammdaten-lehrpersonen'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => onSelectType('stammdaten-lehrpersonen')}
+          >
+            <CardHeader className="pb-4">
+              <div
+                className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                  selectedType === 'stammdaten-lehrpersonen'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                )}
+              >
+                <UserCog className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Import Stammdaten Mitarbeitende</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Stammdaten in Pupil hochladen.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </section>
+
+      {/* 3. Pupil Instanz einrichten */}
       <section className="space-y-5 p-6 rounded-xl border border-pupil-teal/25 bg-pupil-teal/[0.04]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-teal text-pupil-teal-foreground">
