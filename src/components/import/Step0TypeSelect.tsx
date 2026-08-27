@@ -726,6 +726,21 @@ Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren.
         </DialogContent>
       </Dialog>
 
+      {/* Coming Soon Dialog */}
+      <Dialog open={comingSoonOpen} onOpenChange={setComingSoonOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{comingSoonTitle}</DialogTitle>
+            <DialogDescription>
+              Dieser Import-Typ ist aktuell noch nicht als Wizard verfügbar. Bitte nutzen Sie in der Zwischenzeit den entsprechenden Import direkt in PUPIL.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setComingSoonOpen(false)}>Verstanden</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {selectedType === 'foerderplaner' && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Förderplaner-Typ auswählen</h3>
