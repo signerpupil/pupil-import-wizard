@@ -192,6 +192,10 @@ export default function AssistentPage() {
               >
                 {m.role === "assistant" ? (
                   <div className="prose prose-sm max-w-none prose-a:text-sky-700">
+                    <div className="flex items-center gap-1.5 mb-1.5 not-prose">
+                      <Bot className="h-3 w-3 text-slate-400" />
+                      <span className="text-[10px] uppercase tracking-wide text-slate-400 font-medium">KI-generiert</span>
+                    </div>
                     <ReactMarkdown
                       components={{
                         a: (props) => (
@@ -202,7 +206,7 @@ export default function AssistentPage() {
                       {m.content}
                     </ReactMarkdown>
                     {m.source && (
-                      <div className="mt-2 not-prose">
+                      <div className="mt-2 not-prose flex items-center gap-2 flex-wrap">
                         {m.source === "faq" ? (
                           <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
                             FAQ
