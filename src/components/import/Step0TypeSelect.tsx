@@ -175,12 +175,17 @@ export function Step0TypeSelect({
       </section>
 
       {/* 2. Datenimporte */}
-      <section className="space-y-5 p-6 rounded-xl border border-border bg-card">
-        <div className="border-l-4 border-pupil-amber pl-4">
-          <h2 className="text-xl font-semibold text-foreground tracking-tight">Datenimporte</h2>
-          <p className="text-sm text-muted-foreground">
-            Direkte Datenimporte in PUPIL.
-          </p>
+      <section className="space-y-5 p-6 rounded-xl border border-pupil-amber/25 bg-pupil-amber/[0.03]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-amber text-pupil-amber-foreground">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Datenimporte</h2>
+            <p className="text-sm text-muted-foreground">
+              Direkte Datenimporte in PUPIL.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
