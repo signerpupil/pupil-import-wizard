@@ -60,10 +60,10 @@ const steps: TutorialStep[] = [
   {
     title: 'Importart «Mitarbeitende importieren» wählen',
     description:
-      'Öffnen Sie die Auswahl «Bitte wählen Sie eine Importart» und wählen Sie «Mitarbeitende importieren (Edis Format)».',
+      'Öffnen Sie die Auswahl «Bitte wählen Sie eine Importart» und wählen Sie «Mitarbeitende importieren (LehrerOffice Lehrpersonen)».',
     image: img3.url,
     alt: 'Auswahl der Importart im Dialog Personen importieren',
-    hotspots: [{ left: 39, top: 30.5, width: 39.5, height: 4, label: 'Edis Format' }],
+    hotspots: [{ left: 39, top: 30.5, width: 39.5, height: 4, label: 'LehrerOffice Lehrpersonen' }],
   },
   {
     title: 'Bereinigte Datei hochladen und importieren',
