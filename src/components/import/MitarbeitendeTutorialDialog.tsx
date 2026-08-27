@@ -89,6 +89,35 @@ const steps: TutorialStep[] = [
       { left: 0.5, top: 63.8, width: 16, height: 4.6, label: '1' },
       { left: 79, top: 26.4, width: 18.8, height: 4.5, label: '2 Sync MD zu PUPIL' },
     ],
+  {
+    title: 'Schulverwaltung in der Personenübersicht suchen',
+    description:
+      'Gehen Sie zurück zur Personenübersicht und geben Sie im Suchfeld den Namen der Schulverwaltung ein. Klicken Sie danach beim gefundenen Eintrag auf das Bearbeiten-Symbol (Stift).',
+    image: img6.url,
+    alt: 'Personenübersicht mit Suchfeld und Bearbeiten-Symbol',
+    hotspots: [
+      { left: 79.5, top: 21, width: 17.5, height: 3.6, label: '1 Suche' },
+      { left: 90.2, top: 40.2, width: 2.2, height: 3.8, label: '2 Bearbeiten' },
+    ],
+  },
+  {
+    title: 'Rollen «Schulverwaltung» und «Admin Schulverwaltung» vergeben',
+    description:
+      'Wechseln Sie im Bearbeitungsfenster in die Registerkarte «Rollen». Aktivieren Sie zusätzlich die Rollen «Schulverwaltung» und «Admin Schulverwaltung». Die bestehende Rolle «MA» bleibt aktiviert.',
+    image: img7.url,
+    alt: 'Registerkarte Rollen mit aktivierten Rollen MA, Schulverwaltung und Admin Schulverwaltung',
+    hotspots: [
+      { left: 73.2, top: 11.6, width: 4.6, height: 3.2, label: '1 Rollen' },
+      { left: 17, top: 48.4, width: 2.6, height: 2.8, label: '2 Schulverwaltung' },
+      { left: 17, top: 81.2, width: 2.6, height: 2.8, label: '3 Admin Schulverwaltung' },
+    ],
+  },
+  {
+    title: 'Änderungen speichern',
+    description: 'Klicken Sie abschliessend auf «Speichern und schliessen», um die Rollenzuweisung zu übernehmen.',
+    image: img8.url,
+    alt: 'Button Speichern und schliessen im Rollen-Dialog',
+    hotspots: [{ left: 72, top: 91.5, width: 11.5, height: 3.8, label: 'Speichern und schliessen' }],
   },
 ];
 
