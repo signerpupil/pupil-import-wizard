@@ -260,6 +260,23 @@ export default function AssistentPage() {
             <Send className="h-4 w-4" /> Senden
           </button>
         </div>
+
+        {/* Dauerhafter KI-Disclaimer & Support */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 px-1">
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>Antworten sind KI-generiert und können Fehler enthalten. Bitte kritische Angaben verifizieren.</span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <a href="mailto:pupil@ag.ch" className="flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
+              <Mail className="h-3.5 w-3.5" /> Support
+            </a>
+            <span className="hidden sm:inline">|</span>
+            <span className="flex items-center gap-1">
+              <Phone className="h-3.5 w-3.5" /> 062 835 26 03
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
