@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Loader2, AlertCircle, Mail, Phone } from "lucide-react";
+import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 
 const LOGO_URL =
   "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
