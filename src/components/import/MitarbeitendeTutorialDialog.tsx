@@ -10,6 +10,9 @@ import img2 from '@/assets/mitarbeitende-tut-72.png.asset.json';
 import img3 from '@/assets/mitarbeitende-tut-73.png.asset.json';
 import img4 from '@/assets/mitarbeitende-tut-74.png.asset.json';
 import img5 from '@/assets/mitarbeitende-tut-75.png.asset.json';
+import img6 from '@/assets/mitarbeitende-tut-76.png.asset.json';
+import img7 from '@/assets/mitarbeitende-tut-77.png.asset.json';
+import img8 from '@/assets/mitarbeitende-tut-78.png.asset.json';
 
 interface Hotspot {
   /** Werte in Prozent des Bildes */
