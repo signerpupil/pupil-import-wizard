@@ -32,10 +32,20 @@ export function LOInstructionGuide() {
     <>
       <Collapsible open={open} onOpenChange={handleToggle}>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-sm font-medium text-primary hover:bg-primary/5 px-3 py-2 h-auto">
-            <BookOpen className="h-4 w-4" />
-            Anleitung: Daten aus LehrerOffice kopieren
-            {open ? <ChevronDown className="h-4 w-4 ml-auto" /> : <ChevronRight className="h-4 w-4 ml-auto" />}
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-3 text-sm font-semibold text-primary bg-primary/5 border-primary/20 hover:bg-primary/10 hover:border-primary/40 px-4 py-3 h-auto shadow-sm"
+          >
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 shrink-0">
+              <BookOpen className="h-4 w-4 text-primary" />
+            </span>
+            <span className="flex-1 text-left">
+              Anleitung: Daten aus LehrerOffice kopieren
+              <span className="block text-xs font-normal text-primary/80 mt-0.5">
+                Klicken, um die Schritt-für-Schritt-Anleitung aufzuklappen
+              </span>
+            </span>
+            {open ? <ChevronDown className="h-5 w-5 ml-auto shrink-0" /> : <ChevronRight className="h-5 w-5 ml-auto shrink-0" />}
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="px-3 pb-4 space-y-5 pt-2">
