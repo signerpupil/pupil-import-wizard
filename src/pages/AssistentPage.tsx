@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 
 const LOGO_URL =
   "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
 const PRIMARY = "#2b80c0";
 const BG = "#f4f7fb";
 const PRIVACY_KEY = "pupil-assistent-privacy-ok";
+const DISCLAIMER_KEY = "pupil-assistent-disclaimer-ok";
 const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/assistant-claude`;
 
 const QUICK_CHIPS = [
