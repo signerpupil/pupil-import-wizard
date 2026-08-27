@@ -56,6 +56,8 @@
     --pupil-onboarding-foreground: 0 0% 100%;
     --pupil-contact: 28 90% 55%;
     --pupil-contact-foreground: 0 0% 100%;
+    --pupil-amber: 32 95% 55%;
+    --pupil-amber-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -110,6 +112,8 @@
     --pupil-onboarding-foreground: 0 0% 100%;
     --pupil-contact: 28 90% 55%;
     --pupil-contact-foreground: 0 0% 100%;
+    --pupil-amber: 32 95% 55%;
+    --pupil-amber-foreground: 0 0% 100%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
