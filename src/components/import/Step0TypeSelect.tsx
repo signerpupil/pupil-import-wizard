@@ -13,6 +13,7 @@ import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/c
 import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { CorrectionRulesUpload } from './CorrectionRulesUpload';
 import { IframeDialog } from './IframeDialog';
+import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { StepHelpCard } from './StepHelpCard';
 
 interface Step0TypeSelectProps {
@@ -66,6 +67,7 @@ export function Step0TypeSelect({
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
   const [showElearningLogin, setShowElearningLogin] = useState(false);
   const [copiedField, setCopiedField] = useState<'email' | 'password' | 'schulungsPassword' | null>(null);
+  const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
@@ -186,31 +188,20 @@ export function Step0TypeSelect({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <Card
-            className={cn(
-              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
-              selectedType === 'stammdaten-lehrpersonen'
-                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
-                : 'hover:border-primary/30'
-            )}
-            onClick={() => onSelectType('stammdaten-lehrpersonen')}
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full hover:border-primary/30"
+            onClick={() => setMitarbeitendeTutorialOpen(true)}
           >
             <CardHeader className="pb-4">
-              <div
-                className={cn(
-                  'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                  selectedType === 'stammdaten-lehrpersonen'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
-                )}
-              >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors bg-muted group-hover:bg-primary/10 group-hover:text-primary">
                 <UserCog className="h-6 w-6" />
               </div>
               <CardTitle className="text-base">Import Stammdaten Mitarbeitende</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Stammdaten in Pupil hochladen.
+                Stammdaten in Pupil hochladen – Klick-Tutorial in 6 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
+
         </div>
       </section>
 
@@ -514,7 +505,13 @@ export function Step0TypeSelect({
         </div>
       </section>
 
+      <MitarbeitendeTutorialDialog
+        open={mitarbeitendeTutorialOpen}
+        onOpenChange={setMitarbeitendeTutorialOpen}
+      />
+
       <IframeDialog
+
         open={openDialog === 'tutorial'}
         onOpenChange={(open) => setOpenDialog(open ? 'tutorial' : null)}
         title="Interaktives Tutorial – Schulverwaltung"
