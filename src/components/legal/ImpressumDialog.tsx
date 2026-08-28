@@ -107,7 +107,7 @@ export function ImpressumDialog({ open, onOpenChange }: ImpressumDialogProps) {
                 entstanden sind, werden ausgeschlossen.
               </p>
               <p className="text-muted-foreground mt-2">
-                <strong>KI-Assistent:</strong> Die Antworten des PUPIL@AG Assistenten werden von einem 
+                <strong>Edi:</strong> Die Antworten von Edi werden von einem 
                 KI-Sprachmodell generiert und dienen ausschliesslich der Orientierung. Für verbindliche 
                 Auskünfte ist der offizielle Support des BKS zuständig.
               </p>

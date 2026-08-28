@@ -92,7 +92,7 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <Label htmlFor="assistant-toggle" className="text-xs whitespace-nowrap inline-flex items-center gap-1">
                 <MessageCircle className="h-3 w-3" />
-                Hilfe-Assistent
+                Edi
               </Label>
               <Switch
                 id="assistant-toggle"

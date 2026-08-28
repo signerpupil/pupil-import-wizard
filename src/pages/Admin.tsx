@@ -145,7 +145,7 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="faqs" className="flex items-center gap-2">
               <MessageCircleQuestion className="h-4 w-4" />
-              <span className="hidden sm:inline">Assistent-FAQ</span>
+              <span className="hidden sm:inline">Edi-FAQ</span>
             </TabsTrigger>
           </TabsList>
 
