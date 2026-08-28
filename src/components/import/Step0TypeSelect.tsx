@@ -14,6 +14,7 @@ import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
 import { CorrectionRulesUpload } from './CorrectionRulesUpload';
 import { IframeDialog } from './IframeDialog';
 import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
+import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { StepHelpCard } from './StepHelpCard';
 
 interface Step0TypeSelectProps {
@@ -68,6 +69,7 @@ export function Step0TypeSelect({
   const [showElearningLogin, setShowElearningLogin] = useState(false);
   const [copiedField, setCopiedField] = useState<'email' | 'password' | 'schulungsPassword' | null>(null);
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
+  const [susEzbTutorialOpen, setSusEzbTutorialOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
