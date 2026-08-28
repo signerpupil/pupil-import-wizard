@@ -160,7 +160,7 @@ export function AdminAssistantFaqs() {
       toast({ title: 'Fehler', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Gespeichert', description: 'Der Assistent nutzt die FAQ ab der nächsten Frage.' });
+    toast({ title: 'Gespeichert', description: 'Edi nutzt die FAQ ab der nächsten Frage.' });
     setIsDialogOpen(false);
     fetchFaqs();
   };
@@ -231,9 +231,9 @@ export function AdminAssistantFaqs() {
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle>Assistent-FAQ</CardTitle>
+            <CardTitle>Edi-FAQ</CardTitle>
             <CardDescription>
-              Häufige Fragen der Schulen mit Ihrer Antwort erfassen. Der Assistent nutzt diese
+              Häufige Fragen der Schulen mit Ihrer Antwort erfassen. Edi nutzt diese
               Antworten sofort und bevorzugt gegenüber Live-Suche und Standardwissen.
             </CardDescription>
           </div>
@@ -391,7 +391,7 @@ export function AdminAssistantFaqs() {
                 checked={formData.is_active}
                 onCheckedChange={(v) => setFormData({ ...formData, is_active: v })}
               />
-              <Label>Aktiv (wird vom Assistenten verwendet)</Label>
+              <Label>Aktiv (wird von Edi verwendet)</Label>
             </div>
           </div>
           <DialogFooter>

@@ -122,14 +122,14 @@ export function DatenschutzDialog({ open, onOpenChange }: DatenschutzDialogProps
             </section>
 
             <section>
-              <h3 className="font-semibold text-foreground mb-2">4b. KI-Assistent / Chat-Funktion</h3>
+              <h3 className="font-semibold text-foreground mb-2">4b. Edi / Chat-Funktion</h3>
               <p className="text-muted-foreground">
-                Der PUPIL@AG Assistent verwendet das Sprachmodell <strong>Claude von Anthropic</strong>, 
+                Edi verwendet das Sprachmodell <strong>Claude von Anthropic</strong>, 
                 um Fragen zum Onboarding und zur Nutzung von PUPIL@AG zu beantworten. Dabei werden Ihre 
                 eingegebenen Fragen an die Anthropic-API übermittelt.
               </p>
               <p className="text-muted-foreground mt-2">
-                <strong>Bitte beachten:</strong> Die Antworten des KI-Assistenten sind automatisch generiert 
+                <strong>Bitte beachten:</strong> Die Antworten von Edi sind automatisch generiert 
                 und können Fehler, Unvollständigkeiten oder veraltete Informationen enthalten. Für verbindliche 
                 Auskünfte, insbesondere zu Terminen, rechtlichen Fragen oder sicherheitskritischen Einstellungen, 
                 wenden Sie sich bitte an den offiziellen Support unter{' '}

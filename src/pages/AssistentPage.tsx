@@ -98,10 +98,10 @@ export default function AssistentPage() {
           <img src={LOGO_URL} alt="PUPIL" className="h-10 w-auto" />
           <div>
             <h1 className="text-xl font-semibold" style={{ color: PRIMARY }}>
-              PUPIL Assistent
+              Edi
             </h1>
             <p className="text-sm text-slate-500">
-              Hilfe zu Import, Onboarding und Datenregeln
+              Edi beantwortet Fragen zum Onboarding-Prozess und zu PUPIL – mit Live-Zugriff auf die aktuelle PUPIL-Dokumentation. Antworten sind KI-generiert und können Fehler enthalten.
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function AssistentPage() {
               <Bot className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="text-sm text-slate-700">
-                  <strong>KI-Assistent:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
+                  <strong>Edi:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
                 </p>
                 <p className="text-sm text-slate-700">
                   <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet.
@@ -243,7 +243,7 @@ export default function AssistentPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Frag den Assistenten… (Enter = senden, Shift+Enter = neue Zeile)"
+            placeholder="Frag Edi… (Enter = senden, Shift+Enter = neue Zeile)"
             rows={2}
             className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300"
           />
