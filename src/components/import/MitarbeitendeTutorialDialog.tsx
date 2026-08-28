@@ -139,15 +139,17 @@ export function MitarbeitendeTutorialDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] p-0 gap-0 flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b space-y-1 text-left">
-          <DialogTitle className="text-base flex items-center gap-3 pr-8">
-            <Badge variant="secondary" className="shrink-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col">
+        <DialogHeader className="px-4 py-3 border-b space-y-1 text-left">
+          <div className="flex flex-row items-center justify-between">
+            <DialogTitle className="text-base">Klicktutorial – Stammdaten Mitarbeitende</DialogTitle>
+            <Badge variant="secondary" className="shrink-0 mr-8">
               Schritt {index + 1} / {steps.length}
             </Badge>
-            <span>{step.title}</span>
-          </DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed">{step.description}</DialogDescription>
+          </div>
+          <DialogDescription className="text-sm leading-relaxed">
+            <span className="font-medium text-foreground">{step.title}</span> – {step.description}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-auto bg-muted/40 p-4">
