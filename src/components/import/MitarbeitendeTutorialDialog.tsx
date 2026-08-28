@@ -180,6 +180,9 @@ export function MitarbeitendeTutorialDialog({ open, onOpenChange }: Props) {
           </div>
         </div>
 
+        <p className="px-4 py-2 text-xs text-muted-foreground border-t">
+          Klicken Sie auf die markierten Bereiche im Bild oder nutzen Sie die Navigation unten, um durch das Tutorial zu gehen.
+        </p>
         <div className="flex items-center justify-between gap-4 border-t px-6 py-3">
           <Button variant="outline" onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0}>
             <ArrowLeft className="mr-2 h-4 w-4" />
