@@ -633,6 +633,11 @@ export function Step0TypeSelect({
         open={mitarbeitendeTutorialOpen}
         onOpenChange={setMitarbeitendeTutorialOpen}
       />
+      <SusEzbTutorialDialog
+        open={susEzbTutorialOpen}
+        onOpenChange={setSusEzbTutorialOpen}
+      />
+
 
       <IframeDialog
 
