@@ -642,6 +642,11 @@ export function Step0TypeSelect({
         open={susEzbTutorialOpen}
         onOpenChange={setSusEzbTutorialOpen}
       />
+      <PersonendossierTutorialDialog
+        open={personendossierTutorialOpen}
+        onOpenChange={setPersonendossierTutorialOpen}
+      />
+
 
 
       <IframeDialog
