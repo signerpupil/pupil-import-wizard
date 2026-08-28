@@ -8,7 +8,7 @@ import { WIZARD_HELP_BLOCK } from "../_shared/wizardHelp.ts";
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
-const SYSTEM_PROMPT_STATIC = `Du bist der 'PUPIL@AG Assistent' – ein Hilfe-Chatbot für Projektleitungen und Migrationsverantwortliche im Kanton Aargau (Projekt Koneksa).
+const SYSTEM_PROMPT_STATIC = `Du bist Edi, der Hilfe-Chatbot für Projektleitungen und Migrationsverantwortliche im Kanton Aargau (Projekt Koneksa).
 
 Du hast Zugriff auf zwei Wissensquellen:
 A) Statischer Kontext: Koneksa-Projekthintergrund, Produktübersicht PUPIL@AG, Einführungsdetails und Slot-Zuteilung, Onboarding-Prozess Slot 1.
@@ -198,7 +198,7 @@ Antwort: Ja, es gibt eine Testumgebung mit Testdaten: [https://ag-p1.pupil.schul
 
 Die Logindaten finden Sie im Bereich **Schulung & Ressourcen – Schulungsunterlagen** auf dieser Seite.`;
 
-const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für den PUPIL@AG Assistenten. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
+const RESEARCH_SYSTEM = `Du bist ein Recherche-Agent für Edi. Suche mit dem web_search Tool nach relevanten Passagen zur Nutzerfrage auf dokumentation.pupil.ch, release.pupil.ch, pupil.ch und schulen-aargau.ch. Antworte ausschliesslich als strukturierte Bullet-Liste mit den gefundenen Fakten und jeweils der Quelle als Markdown-Link. Keine Interpretation, keine Einleitung, keine Empfehlung – nur Fundstellen. Wenn nichts Relevantes gefunden wurde, antworte exakt mit: KEINE_TREFFER`;
 
 function buildLiveSystemPrompt(liveContext: string): string {
   return `${SYSTEM_PROMPT_STATIC}
@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
         model: CLAUDE_MODEL,
         max_tokens: 5,
         system:
-          "Klassifiziere die Nutzeranfrage für den PUPIL@AG Assistenten. Antworte NUR mit exakt einem Wort: LIVE oder STATIC. LIVE = Produktfrage zur Bedienung/Funktion/Konfiguration von PUPIL@AG, Release-Notes, aktuelle Doku-Details (dokumentation.pupil.ch). STATIC = Koneksa-Projekt, Slots/Termine, Onboarding-Prozess, Anmeldung Schulungen, Support-Kontakte, allgemeine Produktübersicht.",
+          "Klassifiziere die Nutzeranfrage für Edi. Antworte NUR mit exakt einem Wort: LIVE oder STATIC. LIVE = Produktfrage zur Bedienung/Funktion/Konfiguration von PUPIL@AG, Release-Notes, aktuelle Doku-Details (dokumentation.pupil.ch). STATIC = Koneksa-Projekt, Slots/Termine, Onboarding-Prozess, Anmeldung Schulungen, Support-Kontakte, allgemeine Produktübersicht.",
         messages: [{ role: "user", content: lastUser }],
       });
       const verdict = extractText(cls).toUpperCase();
