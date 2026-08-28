@@ -15,6 +15,8 @@ import { CorrectionRulesUpload } from './CorrectionRulesUpload';
 import { IframeDialog } from './IframeDialog';
 import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
+import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
+
 import { StepHelpCard } from './StepHelpCard';
 
 interface Step0TypeSelectProps {
@@ -70,6 +72,8 @@ export function Step0TypeSelect({
   const [copiedField, setCopiedField] = useState<'email' | 'password' | 'schulungsPassword' | null>(null);
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [susEzbTutorialOpen, setSusEzbTutorialOpen] = useState(false);
+  const [personendossierTutorialOpen, setPersonendossierTutorialOpen] = useState(false);
+
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
@@ -224,7 +228,7 @@ export function Step0TypeSelect({
 
           <Card
             className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
-            onClick={() => { setComingSoonTitle('Import Personendossier'); setComingSoonOpen(true); }}
+            onClick={() => setPersonendossierTutorialOpen(true)}
           >
             <CardHeader className="pb-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
@@ -232,8 +236,9 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Personendossier</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Personendossier-Daten in Pupil importieren.
+                Dateien wie Zeugnisse oder Arztbescheinigungen hochladen – Klick-Tutorial in 8 Schritten.
               </CardDescription>
+
             </CardHeader>
           </Card>
 
@@ -637,6 +642,11 @@ export function Step0TypeSelect({
         open={susEzbTutorialOpen}
         onOpenChange={setSusEzbTutorialOpen}
       />
+      <PersonendossierTutorialDialog
+        open={personendossierTutorialOpen}
+        onOpenChange={setPersonendossierTutorialOpen}
+      />
+
 
 
       <IframeDialog
