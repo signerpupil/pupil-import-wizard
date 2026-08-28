@@ -205,29 +205,20 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className={cn(
-              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
-              selectedType === 'schueler'
-                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
-                : 'bg-card border-border hover:border-pupil-amber/30'
-            )}
-            onClick={() => onSelectType('schueler')}
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
+            onClick={() => setSusEzbTutorialOpen(true)}
           >
             <CardHeader className="pb-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                selectedType === 'schueler'
-                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
-                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
-              )}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
                 <Users className="h-6 w-6" />
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Stammdaten SuS und EZB</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Schüler, Erziehungsberechtigte und Klassen importieren.
+                Schüler, Erziehungsberechtigte und Klassen importieren – Klick-Tutorial in 5 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
+
 
           <Card
             className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
