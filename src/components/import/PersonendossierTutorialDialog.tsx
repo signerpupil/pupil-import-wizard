@@ -95,15 +95,25 @@ const steps: TutorialStep[] = [
       'Häufiger Fehler: Wenn der Dateiname keinen gültigen Schlüssel enthält oder der Unterstrich fehlt, kann das Dokument nicht zugeordnet werden. Das System meldet in diesem Fall einen Fehler (siehe Schritt 11).',
   },
   {
-    title: 'Schritt 7–9: Datenimport starten und Dateien auswählen',
+    title: 'Schritt 7–8: Datenimport starten',
     description:
-      'Navigieren Sie zu «Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte» und klicken Sie bei «Personen-Dossier (Dateien)» auf «Starten». Klicken Sie danach auf «Auswählen…» oder ziehen Sie Ihre Dateien direkt in den gestrichelten Bereich «Dateien hierher ziehen…».',
+      'Navigieren Sie im Menü zu «Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte» und klicken Sie bei «Personen-Dossier (Dateien)» auf die Schaltfläche «Starten».',
+    image: img0.url,
+    alt: 'Übersicht Datenimporte mit Schaltfläche Starten bei Personen-Dossier (Dateien)',
+    hotspots: [
+      { left: 0.4, top: 29.8, width: 9.8, height: 2.8, label: '7 Master Data' },
+      { left: 0.4, top: 35.3, width: 10.4, height: 2.8, label: '7 Personen' },
+      { left: 0.4, top: 85.2, width: 9.8, height: 2.8, label: '7 Datenimporte' },
+      { left: 42.2, top: 27, width: 9.2, height: 3.6, label: '8 Starten' },
+    ],
+  },
+  {
+    title: 'Schritt 9: Dateien auswählen',
+    description:
+      'Klicken Sie auf «Auswählen…» oder ziehen Sie Ihre Dateien direkt in den gestrichelten Bereich «Dateien hierher ziehen…».',
     image: img3.url,
     alt: 'Persondossiers importieren – Import-Datei bereitstellen mit Button Auswählen',
-    hotspots: [
-      { left: 2.5, top: 68.5, width: 14.5, height: 3.2, label: '7 Personen → Datenimporte' },
-      { left: 54.7, top: 69.8, width: 10, height: 4.4, label: '9 Auswählen…' },
-    ],
+    hotspots: [{ left: 54.7, top: 69.8, width: 10, height: 4.4, label: '9 Auswählen…' }],
     info:
       'Sie können pro Import maximal 500 Dokumente gleichzeitig hochladen, jede Datei darf höchstens 10 MB gross sein. Bei mehr Dateien führen Sie den Import in mehreren Durchgängen durch.',
   },
