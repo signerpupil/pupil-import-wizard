@@ -18,7 +18,7 @@ export function TutorialDialog({ open, onOpenChange }: TutorialDialogProps) {
           <Button
             variant="outline"
             size="sm"
-            className="mr-8 gap-1"
+            className="mr-8 gap-1 hidden"
             onClick={() => window.open(TUTORIAL_URL, '_blank', 'noopener,noreferrer')}
           >
             <ExternalLink className="h-3.5 w-3.5" />
