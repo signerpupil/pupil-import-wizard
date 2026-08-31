@@ -18,7 +18,7 @@ export function IframeDialog({ open, onOpenChange, title, url }: IframeDialogPro
           <Button
             variant="outline"
             size="sm"
-            className="mr-8 gap-1"
+            className="mr-8 gap-1 hidden"
             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
           >
             <ExternalLink className="h-3.5 w-3.5" />
