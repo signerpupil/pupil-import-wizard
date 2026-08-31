@@ -698,9 +698,9 @@ export function Step0TypeSelect({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-foreground whitespace-pre-wrap">
-              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt"</strong> von Sales erhalten und angenommen?
+              Haben Sie vorab ein Angebot für <strong>„Begleitung im Projekt"</strong> von unserer Verkaufsabteilung erhalten und angenommen?
 
-Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren. Wenn nicht, dürfen Sie gerne einen Termin mit Sales vereinbaren, um ein entsprechendes Angebot zu erhalten. 
+Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren. Wenn nicht, dürfen Sie gerne einen Termin mit unserer Verkaufsabteilung vereinbaren, um ein entsprechendes Angebot zu erhalten. 
             </p>
             <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
               <AlertDescription className="text-xs text-muted-foreground">
@@ -717,7 +717,7 @@ Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren.
               }}
               className="w-full sm:w-auto"
             >
-              Nein – Calendly öffnen
+              Nein – Termin buchen
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </Button>
             <Button
@@ -727,7 +727,7 @@ Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren.
               }}
               className="w-full sm:w-auto bg-pupil-contact hover:bg-pupil-contact/90 text-pupil-contact-foreground"
             >
-              Ja – Microsoft Bookings öffnen
+              Ja – Termin buchen
               <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </Button>
           </DialogFooter>
