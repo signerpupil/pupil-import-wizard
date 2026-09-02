@@ -631,6 +631,27 @@ export function Step0TypeSelect({
               </CardDescription>
             </CardHeader>
           </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
+            onClick={() =>
+              window.open(
+                'https://dokumentation.pupil.ch/',
+                '_blank',
+                'noopener,noreferrer',
+              )
+            }
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <FileText className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Dokumentation</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Ausführliche Anleitungen und Hilfeartikel zur Nutzung von PUPIL. Öffnet sich in einem neuen Tab.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </section>
 
