@@ -810,46 +810,6 @@ Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren.
         </DialogContent>
       </Dialog>
 
-      {selectedType === 'foerderplaner' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Förderplaner-Typ auswählen</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {foerderplanerSubTypes.map((subType) => {
-              const Icon = iconMap[subType.icon as keyof typeof iconMap];
-              const isSelected = selectedSubType === subType.subType;
-
-              return (
-                <Card
-                  key={subType.subType}
-                  className={cn(
-                    'cursor-pointer transition-all hover:shadow-md',
-                    isSelected && 'ring-2 ring-pupil-teal shadow-md'
-                  )}
-                  onClick={() => onSelectSubType(subType.subType)}
-                >
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                          isSelected ? 'bg-pupil-teal text-pupil-teal-foreground' : 'bg-muted'
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{subType.name}</p>
-                        <p className="text-sm text-muted-foreground">{subType.description}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Processing Mode Selection */}
       {selectedType && !isSpecialType && (
         <div className="space-y-4">
