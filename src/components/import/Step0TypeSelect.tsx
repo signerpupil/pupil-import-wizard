@@ -124,7 +124,7 @@ export function Step0TypeSelect({
             <FileUp className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Import starten</h2>
+            <h2 className="text-xl font-semibold text-foreground">Datenaufbereitung</h2>
             <p className="text-sm text-muted-foreground">
               Wählen Sie aus, welche Daten Sie aus LehrerOffice übernehmen möchten.
             </p>
