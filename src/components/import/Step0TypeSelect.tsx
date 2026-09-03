@@ -616,19 +616,23 @@ export function Step0TypeSelect({
                         {copiedField === 'email' ? 'Kopiert' : 'Kopieren'}
                       </button>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
-                      <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('Pupil@AG!2025!', 'password')}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
-                        title="Passwort kopieren"
-                      >
-                        {copiedField === 'password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                        {copiedField === 'password' ? 'Kopiert' : 'Kopieren'}
-                      </button>
-                    </div>
+                    {!robotVerified ? (
+                      <RobotCheck onVerified={() => setRobotVerified(true)} />
+                    ) : (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                        <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy('Pupil@AG!2025!', 'password')}
+                          className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                          title="Passwort kopieren"
+                        >
+                          {copiedField === 'password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          {copiedField === 'password' ? 'Kopiert' : 'Kopieren'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -665,24 +669,27 @@ export function Step0TypeSelect({
                   {showSchulungsPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   {showSchulungsPassword ? 'Passwort ausblenden' : 'Passwort anzeigen'}
                 </button>
-                {showSchulungsPassword && (
-                  <div
-                    className="mt-2 flex items-center gap-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
-                    <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('Pupil@AG!2025!', 'schulungsPassword')}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
-                      title="Passwort kopieren"
+                {showSchulungsPassword &&
+                  (!robotVerified ? (
+                    <RobotCheck onVerified={() => setRobotVerified(true)} />
+                  ) : (
+                    <div
+                      className="mt-2 flex items-center gap-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {copiedField === 'schulungsPassword' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      {copiedField === 'schulungsPassword' ? 'Kopiert' : 'Kopieren'}
-                    </button>
-                  </div>
-                )}
+                      <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                      <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('Pupil@AG!2025!', 'schulungsPassword')}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                        title="Passwort kopieren"
+                      >
+                        {copiedField === 'schulungsPassword' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copiedField === 'schulungsPassword' ? 'Kopiert' : 'Kopieren'}
+                      </button>
+                    </div>
+                  ))}
               </div>
             </CardHeader>
           </Card>
