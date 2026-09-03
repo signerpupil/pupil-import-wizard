@@ -49,6 +49,85 @@ const iconMap = {
   UserCog,
 };
 
+type RobotCheckPhase = 'idle' | 'checking' | 'challenge' | 'error';
+
+function RobotCheck({ onVerified }: { onVerified: () => void }) {
+  const [phase, setPhase] = useState<RobotCheckPhase>('idle');
+  const [answer, setAnswer] = useState('');
+  const [challenge, setChallenge] = useState({ a: 0, b: 0 });
+
+  const handleCheckbox = () => {
+    if (phase !== 'idle' && phase !== 'error') return;
+    setChallenge({ a: 2 + Math.floor(Math.random() * 8), b: 2 + Math.floor(Math.random() * 8) });
+    setPhase('checking');
+    setAnswer('');
+    window.setTimeout(() => setPhase('challenge'), 900);
+  };
+
+  const handleSubmit = () => {
+    if (parseInt(answer, 10) === challenge.a + challenge.b) {
+      onVerified();
+    } else {
+      setPhase('error');
+      setAnswer('');
+    }
+  };
+
+  return (
+    <div
+      className="mt-2 rounded-lg border border-pupil-resources/25 bg-background p-3"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          role="checkbox"
+          aria-label="Ich bin kein Roboter"
+          aria-checked={phase === 'checking' || phase === 'challenge'}
+          onClick={handleCheckbox}
+          className={cn(
+            'h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors',
+            phase === 'checking' || phase === 'challenge'
+              ? 'border-pupil-resources bg-pupil-resources/10'
+              : 'border-muted-foreground/40 hover:border-pupil-resources bg-background',
+          )}
+        >
+          {phase === 'checking' ? (
+            <RefreshCw className="h-3 w-3 animate-spin text-pupil-resources" />
+          ) : phase === 'challenge' ? (
+            <Check className="h-3.5 w-3.5 text-pupil-resources" />
+          ) : null}
+        </button>
+        <span className="text-sm text-foreground">Ich bin kein Roboter</span>
+      </div>
+      {phase === 'challenge' && (
+        <div className="mt-3 flex items-center gap-2 pl-7">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {challenge.a} + {challenge.b} =
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            className="w-16 rounded-md border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-pupil-resources/40"
+            autoFocus
+          />
+          <Button type="button" size="sm" variant="outline" onClick={handleSubmit}>
+            Überprüfen
+          </Button>
+        </div>
+      )}
+      {phase === 'error' && (
+        <p className="mt-2 pl-7 text-xs text-destructive">
+          Das war leider falsch. Bitte erneut versuchen.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Step0TypeSelect({
   selectedType,
   selectedSubType,
@@ -69,6 +148,7 @@ export function Step0TypeSelect({
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSchulungsPassword, setShowSchulungsPassword] = useState(false);
   const [showElearningLogin, setShowElearningLogin] = useState(false);
+  const [robotVerified, setRobotVerified] = useState(false);
   const [copiedField, setCopiedField] = useState<'email' | 'password' | 'schulungsPassword' | null>(null);
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [susEzbTutorialOpen, setSusEzbTutorialOpen] = useState(false);
@@ -535,19 +615,23 @@ export function Step0TypeSelect({
                         {copiedField === 'email' ? 'Kopiert' : 'Kopieren'}
                       </button>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
-                      <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('Pupil@AG!2025!', 'password')}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
-                        title="Passwort kopieren"
-                      >
-                        {copiedField === 'password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                        {copiedField === 'password' ? 'Kopiert' : 'Kopieren'}
-                      </button>
-                    </div>
+                    {!robotVerified ? (
+                      <RobotCheck onVerified={() => setRobotVerified(true)} />
+                    ) : (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                        <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy('Pupil@AG!2025!', 'password')}
+                          className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                          title="Passwort kopieren"
+                        >
+                          {copiedField === 'password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          {copiedField === 'password' ? 'Kopiert' : 'Kopieren'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -584,24 +668,27 @@ export function Step0TypeSelect({
                   {showSchulungsPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   {showSchulungsPassword ? 'Passwort ausblenden' : 'Passwort anzeigen'}
                 </button>
-                {showSchulungsPassword && (
-                  <div
-                    className="mt-2 flex items-center gap-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
-                    <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('Pupil@AG!2025!', 'schulungsPassword')}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
-                      title="Passwort kopieren"
+                {showSchulungsPassword &&
+                  (!robotVerified ? (
+                    <RobotCheck onVerified={() => setRobotVerified(true)} />
+                  ) : (
+                    <div
+                      className="mt-2 flex items-center gap-2 rounded-lg border border-pupil-resources/20 bg-background p-2.5"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {copiedField === 'schulungsPassword' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      {copiedField === 'schulungsPassword' ? 'Kopiert' : 'Kopieren'}
-                    </button>
-                  </div>
-                )}
+                      <span className="text-xs text-muted-foreground shrink-0">Passwort:</span>
+                      <code className="text-sm font-mono truncate min-w-0 flex-1">Pupil@AG!2025!</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('Pupil@AG!2025!', 'schulungsPassword')}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-pupil-resources/10 px-2 py-1 text-xs font-medium text-pupil-resources hover:bg-pupil-resources/20 transition-colors"
+                        title="Passwort kopieren"
+                      >
+                        {copiedField === 'schulungsPassword' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copiedField === 'schulungsPassword' ? 'Kopiert' : 'Kopieren'}
+                      </button>
+                    </div>
+                  ))}
               </div>
             </CardHeader>
           </Card>
