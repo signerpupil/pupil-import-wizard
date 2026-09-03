@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MessageCircle, X } from 'lucide-react';
+import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
 
 const STORAGE_KEY = 'assistant-enabled';
 const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
@@ -17,6 +17,7 @@ export function setAssistantEnabled(enabled: boolean) {
 export function FloatingAssistant() {
   const [enabled, setEnabled] = useState(isAssistantEnabled());
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
     const onToggle = () => setEnabled(isAssistantEnabled());
@@ -35,7 +36,7 @@ export function FloatingAssistant() {
           <div className="absolute -inset-1 rounded-full bg-primary/30 blur-md group-hover:bg-primary/50 transition-all duration-500" />
 
           <button
-            onClick={() => setOpen(true)}
+            onClick={() => { setOpen(true); setMinimized(false); }}
             aria-label="Edi öffnen"
             className="relative flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_30px_hsl(var(--primary)/0.4)] hover:shadow-[0_12px_40px_hsl(var(--primary)/0.5)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
           >
@@ -56,17 +57,53 @@ export function FloatingAssistant() {
         </div>
       )}
 
-      {open && (
+      {open && minimized && (
+        <div className="fixed bottom-6 right-6 z-50 w-[min(360px,calc(100vw-2rem))] bg-primary text-primary-foreground border rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setMinimized(false)}>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              <span className="font-medium text-sm">Edi</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMinimized(false); }}
+                aria-label="Maximieren"
+                className="hover:bg-primary-foreground/10 rounded p-1.5"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+                aria-label="Schliessen"
+                className="hover:bg-primary-foreground/10 rounded p-1.5"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {open && !minimized && (
         <div className="fixed bottom-6 right-6 z-50 w-[min(780px,calc(100vw-2rem))] h-[min(760px,calc(100vh-3rem))] bg-background border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b px-3 py-2 bg-primary text-primary-foreground">
             <span className="font-medium text-sm">Edi</span>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Schliessen"
-              className="hover:bg-primary-foreground/10 rounded p-1"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setMinimized(true)}
+                aria-label="Minimieren"
+                className="hover:bg-primary-foreground/10 rounded p-1"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Schliessen"
+                className="hover:bg-primary-foreground/10 rounded p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <iframe
             src={ASSISTANT_URL}
