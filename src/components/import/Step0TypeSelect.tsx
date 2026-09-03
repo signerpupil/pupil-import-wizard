@@ -54,13 +54,11 @@ type RobotCheckPhase = 'idle' | 'checking' | 'challenge' | 'error';
 function RobotCheck({ onVerified }: { onVerified: () => void }) {
   const [phase, setPhase] = useState<RobotCheckPhase>('idle');
   const [answer, setAnswer] = useState('');
-  const challenge = useMemo(
-    () => ({ a: 2 + Math.floor(Math.random() * 8), b: 2 + Math.floor(Math.random() * 8) }),
-    [phase === 'challenge'],
-  );
+  const [challenge, setChallenge] = useState({ a: 0, b: 0 });
 
   const handleCheckbox = () => {
     if (phase !== 'idle' && phase !== 'error') return;
+    setChallenge({ a: 2 + Math.floor(Math.random() * 8), b: 2 + Math.floor(Math.random() * 8) });
     setPhase('checking');
     setAnswer('');
     window.setTimeout(() => setPhase('challenge'), 900);
