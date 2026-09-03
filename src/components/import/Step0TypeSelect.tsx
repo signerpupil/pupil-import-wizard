@@ -82,6 +82,7 @@ function RobotCheck({ onVerified }: { onVerified: () => void }) {
         <button
           type="button"
           role="checkbox"
+          aria-label="Ich bin kein Roboter"
           aria-checked={phase === 'checking' || phase === 'challenge'}
           onClick={handleCheckbox}
           className={cn(
