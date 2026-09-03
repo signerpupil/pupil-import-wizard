@@ -49,6 +49,86 @@ const iconMap = {
   UserCog,
 };
 
+type RobotCheckPhase = 'idle' | 'checking' | 'challenge' | 'error';
+
+function RobotCheck({ onVerified }: { onVerified: () => void }) {
+  const [phase, setPhase] = useState<RobotCheckPhase>('idle');
+  const [answer, setAnswer] = useState('');
+  const challenge = useMemo(
+    () => ({ a: 2 + Math.floor(Math.random() * 8), b: 2 + Math.floor(Math.random() * 8) }),
+    [phase === 'challenge'],
+  );
+
+  const handleCheckbox = () => {
+    if (phase !== 'idle' && phase !== 'error') return;
+    setPhase('checking');
+    setAnswer('');
+    window.setTimeout(() => setPhase('challenge'), 900);
+  };
+
+  const handleSubmit = () => {
+    if (parseInt(answer, 10) === challenge.a + challenge.b) {
+      onVerified();
+    } else {
+      setPhase('error');
+      setAnswer('');
+    }
+  };
+
+  return (
+    <div
+      className="mt-2 rounded-lg border border-pupil-resources/25 bg-background p-3"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={phase === 'checking' || phase === 'challenge'}
+          onClick={handleCheckbox}
+          className={cn(
+            'h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors',
+            phase === 'checking' || phase === 'challenge'
+              ? 'border-pupil-resources bg-pupil-resources/10'
+              : 'border-muted-foreground/40 hover:border-pupil-resources bg-background',
+          )}
+        >
+          {phase === 'checking' ? (
+            <RefreshCw className="h-3 w-3 animate-spin text-pupil-resources" />
+          ) : phase === 'challenge' ? (
+            <Check className="h-3.5 w-3.5 text-pupil-resources" />
+          ) : null}
+        </button>
+        <span className="text-sm text-foreground">Ich bin kein Roboter</span>
+      </div>
+      {phase === 'challenge' && (
+        <div className="mt-3 flex items-center gap-2 pl-7">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {challenge.a} + {challenge.b} =
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            className="w-16 rounded-md border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-pupil-resources/40"
+            autoFocus
+          />
+          <Button type="button" size="sm" variant="outline" onClick={handleSubmit}>
+            Überprüfen
+          </Button>
+        </div>
+      )}
+      {phase === 'error' && (
+        <p className="mt-2 pl-7 text-xs text-destructive">
+          Das war leider falsch. Bitte erneut versuchen.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Step0TypeSelect({
   selectedType,
   selectedSubType,
