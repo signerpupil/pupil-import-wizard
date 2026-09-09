@@ -93,7 +93,7 @@ export function setOptOut(value: boolean): void {
   setAnalyticsMode(value ? 'off' : 'auto');
 }
 
-function getSessionId(): string {
+export function getSessionId(): string {
   const ss = safeSessionStorage();
   if (!ss) return crypto.randomUUID();
   let id = ss.getItem(SESSION_KEY);
