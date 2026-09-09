@@ -3,6 +3,7 @@
 // deshalb aktuellste Sonnet-Version. Bei Bedarf einfach CLAUDE_MODEL ändern.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildFaqBlock, faqLikelyMatches, loadActiveFaqs } from "../_shared/faqs.ts";
+import { logChat } from "../_shared/chatLog.ts";
 import { WIZARD_HELP_BLOCK } from "../_shared/wizardHelp.ts";
 
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
