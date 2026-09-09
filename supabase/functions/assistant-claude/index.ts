@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
     }
-    const { messages }: { messages: Msg[] } = await req.json();
+    const { messages, sessionId }: { messages: Msg[]; sessionId?: string } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages fehlt" }), {
         status: 400,
