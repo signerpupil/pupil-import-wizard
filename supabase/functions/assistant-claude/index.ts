@@ -5,6 +5,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildFaqBlock, faqLikelyMatches, loadActiveFaqs } from "../_shared/faqs.ts";
 import { logChat } from "../_shared/chatLog.ts";
 import { WIZARD_HELP_BLOCK } from "../_shared/wizardHelp.ts";
+import { FELDABGLEICH_BLOCK } from "../_shared/feldabgleich.ts";
 
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
