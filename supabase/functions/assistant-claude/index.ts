@@ -328,7 +328,15 @@ Deno.serve(async (req) => {
     const answer = await anthropic(body, false);
     const text = extractText(answer);
 
-    return new Response(JSON.stringify({ text, source: faqHit ? "faq" : source }), {
+    const finalSource = faqHit ? "faq" : source;
+    await logChat({
+      question: lastUser,
+      answer: text,
+      source: finalSource,
+      session_id: sessionId ?? null,
+    });
+
+    return new Response(JSON.stringify({ text, source: finalSource }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (err) {
