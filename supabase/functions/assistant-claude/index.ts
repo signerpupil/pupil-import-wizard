@@ -3,6 +3,7 @@
 // deshalb aktuellste Sonnet-Version. Bei Bedarf einfach CLAUDE_MODEL ändern.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildFaqBlock, faqLikelyMatches, loadActiveFaqs } from "../_shared/faqs.ts";
+import { logChat } from "../_shared/chatLog.ts";
 import { WIZARD_HELP_BLOCK } from "../_shared/wizardHelp.ts";
 
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
@@ -245,7 +246,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
     }
-    const { messages }: { messages: Msg[] } = await req.json();
+    const { messages, sessionId }: { messages: Msg[]; sessionId?: string } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages fehlt" }), {
         status: 400,
@@ -327,7 +328,15 @@ Deno.serve(async (req) => {
     const answer = await anthropic(body, false);
     const text = extractText(answer);
 
-    return new Response(JSON.stringify({ text, source: faqHit ? "faq" : source }), {
+    const finalSource = faqHit ? "faq" : source;
+    await logChat({
+      question: lastUser,
+      answer: text,
+      source: finalSource,
+      session_id: sessionId ?? null,
+    });
+
+    return new Response(JSON.stringify({ text, source: finalSource }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (err) {

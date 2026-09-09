@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
+import { getSessionId } from "@/lib/analytics";
 
 const LOGO_URL =
   "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
@@ -68,6 +69,7 @@ export default function AssistentPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           messages: next.map((m) => ({ role: m.role, content: m.content })),
+          sessionId: getSessionId(),
         }),
       });
       const data = await res.json();
@@ -116,7 +118,7 @@ export default function AssistentPage() {
                   <strong>Edi:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
                 </p>
                 <p className="text-sm text-slate-700">
-                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet.
+                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet. Fragen und Antworten werden anonym protokolliert (ohne Benutzerkonto oder Namen), damit häufige Themen erkannt und die Hilfe verbessert werden kann.
                 </p>
                 <p className="text-sm text-slate-700">
                   Für verbindliche Auskünfte, Termine oder Rechtsfragen wende dich bitte direkt an den Support:{' '}
