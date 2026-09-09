@@ -5,6 +5,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildFaqBlock, faqLikelyMatches, loadActiveFaqs } from "../_shared/faqs.ts";
 import { logChat } from "../_shared/chatLog.ts";
 import { WIZARD_HELP_BLOCK } from "../_shared/wizardHelp.ts";
+import { FELDABGLEICH_BLOCK } from "../_shared/feldabgleich.ts";
 
 const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -316,12 +317,12 @@ Deno.serve(async (req) => {
     }
 
     // Stufe 3: finale Antwort (ohne Tools)
-    const baseSystem = SYSTEM_PROMPT_STATIC + WIZARD_HELP_BLOCK + faqBlock;
+    const baseSystem = SYSTEM_PROMPT_STATIC + WIZARD_HELP_BLOCK + FELDABGLEICH_BLOCK + faqBlock;
     const body: Record<string, unknown> = {
       model: CLAUDE_MODEL,
       max_tokens: 1500,
       system: liveContext
-        ? buildLiveSystemPrompt(liveContext) + WIZARD_HELP_BLOCK + faqBlock
+        ? buildLiveSystemPrompt(liveContext) + WIZARD_HELP_BLOCK + FELDABGLEICH_BLOCK + faqBlock
         : baseSystem,
       messages,
     };
