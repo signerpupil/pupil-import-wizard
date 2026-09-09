@@ -118,7 +118,7 @@ export default function AssistentPage() {
                   <strong>Edi:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
                 </p>
                 <p className="text-sm text-slate-700">
-                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet.
+                  <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet. Fragen und Antworten werden anonym protokolliert (ohne Benutzerkonto oder Namen), damit häufige Themen erkannt und die Hilfe verbessert werden kann.
                 </p>
                 <p className="text-sm text-slate-700">
                   Für verbindliche Auskünfte, Termine oder Rechtsfragen wende dich bitte direkt an den Support:{' '}
