@@ -68,6 +68,7 @@ export default function AssistentPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           messages: next.map((m) => ({ role: m.role, content: m.content })),
+          sessionId: getSessionId(),
         }),
       });
       const data = await res.json();
