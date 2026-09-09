@@ -317,12 +317,12 @@ Deno.serve(async (req) => {
     }
 
     // Stufe 3: finale Antwort (ohne Tools)
-    const baseSystem = SYSTEM_PROMPT_STATIC + WIZARD_HELP_BLOCK + faqBlock;
+    const baseSystem = SYSTEM_PROMPT_STATIC + WIZARD_HELP_BLOCK + FELDABGLEICH_BLOCK + faqBlock;
     const body: Record<string, unknown> = {
       model: CLAUDE_MODEL,
       max_tokens: 1500,
       system: liveContext
-        ? buildLiveSystemPrompt(liveContext) + WIZARD_HELP_BLOCK + faqBlock
+        ? buildLiveSystemPrompt(liveContext) + WIZARD_HELP_BLOCK + FELDABGLEICH_BLOCK + faqBlock
         : baseSystem,
       messages,
     };
