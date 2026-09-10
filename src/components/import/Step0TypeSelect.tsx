@@ -213,7 +213,7 @@ export function Step0TypeSelect({
 
         <StepHelpCard step={0} defaultExpanded={false} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
           {(['stammdaten-lehrpersonen', 'schueler', 'gruppen', 'lp-zuweisung'] as const)
             .map(t => importConfigs.find(c => c.type === t))
             .filter((c): c is NonNullable<typeof c> => !!c)
@@ -249,6 +249,33 @@ export function Step0TypeSelect({
                 </Card>
               );
             })}
+
+          <Card
+            className={cn(
+              'cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 group h-full',
+              selectedType === 'foerderplaner'
+                ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
+                : 'hover:border-primary/30'
+            )}
+            onClick={() => { onSelectType('foerderplaner'); onSelectSubType('foerderplanung'); }}
+          >
+            <CardHeader className="pb-4">
+              <div
+                className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
+                  selectedType === 'foerderplaner'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted group-hover:bg-primary/10 group-hover:text-primary'
+                )}
+              >
+                <Target className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Förderplaner</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Förderplanung, Lernberichte, Journal und weitere Planungsdaten aufbereiten.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
 
         {/* Weiter */}
