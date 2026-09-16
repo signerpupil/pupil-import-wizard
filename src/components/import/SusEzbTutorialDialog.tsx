@@ -113,7 +113,7 @@ export function SusEzbTutorialDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-auto bg-muted/40 p-4">
-          <div className="relative mx-auto w-full max-w-6xl">
+          <div className="relative mx-auto w-full">
             <img
               src={step.image}
               alt={step.alt}

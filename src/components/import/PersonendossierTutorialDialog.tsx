@@ -188,7 +188,8 @@ export function PersonendossierTutorialDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-auto bg-muted/40 p-4">
-          <div className="mx-auto w-full max-w-6xl space-y-3">
+          <div className="mx-auto w-full space-y-3">
+            <div className="mx-auto w-full max-w-6xl space-y-3 text-content">
             {step.image && (
               <div className="relative">
                 <img
