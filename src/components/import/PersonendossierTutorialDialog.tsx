@@ -250,6 +250,7 @@ export function PersonendossierTutorialDialog({ open, onOpenChange }: Props) {
                 <p className="text-muted-foreground">{step.warning}</p>
               </div>
             )}
+            </div>
           </div>
         </div>
 
