@@ -113,6 +113,27 @@ export function buildOutputRows(
   return { headers, standardUser, data };
 }
 
+// 1-based Spaltenindizes der Datumsfelder im Export
+const DATE_COL_INDEXES = [14, 24]; // Geb, Eintritt
+const EXCEL_DATE_FORMAT = 'DD.MM.YYYY';
+
+/** Parst "01.01.1990", "1.1.1990", "1990-01-01" → Date (UTC-neutral), sonst null */
+function parseSwissDate(value: string): Date | null {
+  if (!value) return null;
+  const v = value.replace(/^'/, '').trim();
+  let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (m) {
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), 12);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export async function exportStammdatenLehrpersonenToXlsx(
   originalHeaders: string[],
   rows: ParsedRow[],
