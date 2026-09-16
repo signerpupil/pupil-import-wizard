@@ -113,6 +113,27 @@ export function buildOutputRows(
   return { headers, standardUser, data };
 }
 
+// 1-based Spaltenindizes der Datumsfelder im Export
+const DATE_COL_INDEXES = [14, 24]; // Geb, Eintritt
+const EXCEL_DATE_FORMAT = 'DD.MM.YYYY';
+
+/** Parst "01.01.1990", "1.1.1990", "1990-01-01" → Date (UTC-neutral), sonst null */
+function parseSwissDate(value: string): Date | null {
+  if (!value) return null;
+  const v = value.replace(/^'/, '').trim();
+  let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  if (m) {
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), 12);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export async function exportStammdatenLehrpersonenToXlsx(
   originalHeaders: string[],
   rows: ParsedRow[],
@@ -132,15 +153,28 @@ export async function exportStammdatenLehrpersonenToXlsx(
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
   headerRow.alignment = { vertical: 'middle' };
 
-  // Set column widths and force text format to preserve values like dates / leading zeros
+  // Set column widths and force text format to preserve values like leading zeros.
+  // Datumsspalten (Geb, Eintritt) erhalten ein echtes Datumsformat.
   headers.forEach((h, i) => {
     const col = sheet.getColumn(i + 1);
     col.width = h ? Math.max(h.length + 4, 12) : 3;
-    col.numFmt = '@';
+    col.numFmt = DATE_COL_INDEXES.includes(i + 1) ? EXCEL_DATE_FORMAT : '@';
   });
 
-  if (standardUser.length > 0) sheet.addRow(standardUser);
-  data.forEach(r => sheet.addRow(r));
+  const applyDates = (excelRow: ExcelJS.Row) => {
+    DATE_COL_INDEXES.forEach(colIdx => {
+      const cell = excelRow.getCell(colIdx);
+      const parsed = typeof cell.value === 'string' ? parseSwissDate(cell.value) : null;
+      if (parsed) {
+        cell.value = parsed;
+        cell.numFmt = EXCEL_DATE_FORMAT;
+        cell.alignment = { horizontal: 'right' };
+      }
+    });
+  };
+
+  if (standardUser.length > 0) applyDates(sheet.addRow(standardUser));
+  data.forEach(r => applyDates(sheet.addRow(r)));
 
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
 
