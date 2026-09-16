@@ -9,6 +9,7 @@ import { parseFile, mergeParseResults, type ParseResult } from '@/lib/fileParser
 import { ColumnPaginatedPreview } from './ColumnPaginatedPreview';
 import { NavigationButtons } from './NavigationButtons';
 import { StammdatenInstructionGuide } from './StammdatenInstructionGuide';
+import { MitarbeitendeExportInstructionGuide } from './MitarbeitendeExportInstructionGuide';
 
 interface Step1FileUploadProps {
   onFileLoaded: (result: ParseResult) => void;
@@ -130,6 +131,7 @@ export function Step1FileUpload({
       </div>
 
       {importType === 'schueler' && <StammdatenInstructionGuide />}
+      {importType === 'stammdaten-lehrpersonen' && <MitarbeitendeExportInstructionGuide />}
 
       {error && (
         <Alert variant="destructive">

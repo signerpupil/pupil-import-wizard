@@ -165,6 +165,7 @@ export function StammdatenLehrpersonenImportWizard({ onReset }: Props) {
           onFileLoaded={handleFileLoaded}
           onBack={handleBack}
           onNext={handleNext}
+          importType="stammdaten-lehrpersonen"
         />
       )}
 
