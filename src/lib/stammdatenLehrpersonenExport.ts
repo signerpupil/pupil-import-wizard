@@ -153,15 +153,28 @@ export async function exportStammdatenLehrpersonenToXlsx(
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
   headerRow.alignment = { vertical: 'middle' };
 
-  // Set column widths and force text format to preserve values like dates / leading zeros
+  // Set column widths and force text format to preserve values like leading zeros.
+  // Datumsspalten (Geb, Eintritt) erhalten ein echtes Datumsformat.
   headers.forEach((h, i) => {
     const col = sheet.getColumn(i + 1);
     col.width = h ? Math.max(h.length + 4, 12) : 3;
-    col.numFmt = '@';
+    col.numFmt = DATE_COL_INDEXES.includes(i + 1) ? EXCEL_DATE_FORMAT : '@';
   });
 
-  if (standardUser.length > 0) sheet.addRow(standardUser);
-  data.forEach(r => sheet.addRow(r));
+  const applyDates = (excelRow: ExcelJS.Row) => {
+    DATE_COL_INDEXES.forEach(colIdx => {
+      const cell = excelRow.getCell(colIdx);
+      const parsed = typeof cell.value === 'string' ? parseSwissDate(cell.value) : null;
+      if (parsed) {
+        cell.value = parsed;
+        cell.numFmt = EXCEL_DATE_FORMAT;
+        cell.alignment = { horizontal: 'right' };
+      }
+    });
+  };
+
+  if (standardUser.length > 0) applyDates(sheet.addRow(standardUser));
+  data.forEach(r => applyDates(sheet.addRow(r)));
 
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
 
