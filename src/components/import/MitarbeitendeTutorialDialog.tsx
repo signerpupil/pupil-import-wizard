@@ -120,6 +120,17 @@ const steps: TutorialStep[] = [
     alt: 'Button Speichern und schliessen im Rollen-Dialog',
     hotspots: [{ left: 72, top: 91.5, width: 11.5, height: 3.8, label: 'Speichern und schliessen' }],
   },
+  {
+    title: 'Nach der Rollenvergabe erneut synchronisieren',
+    description:
+      'Nach der manuellen Rollenvergabe muss erneut eine Synchronisation («Sync MD zu PUPIL») gestartet werden, damit die Rechte direkt greifen. Wird die Synchronisation nicht durchgeführt, wird erst über Nacht synchronisiert und die Rechte stehen dem User erst am nächsten Tag zur Verfügung.',
+    image: img5.url,
+    alt: 'Synchronisation Neu mit Button Sync MD zu PUPIL',
+    hotspots: [
+      { left: 0.5, top: 63.8, width: 16, height: 4.6, label: '1' },
+      { left: 79, top: 26.4, width: 18.8, height: 4.5, label: '2 Sync MD zu PUPIL' },
+    ],
+  },
 ];
 
 interface Props {
