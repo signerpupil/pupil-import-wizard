@@ -189,7 +189,6 @@ export function PersonendossierTutorialDialog({ open, onOpenChange }: Props) {
 
         <div className="flex-1 min-h-0 overflow-auto bg-muted/40 p-4">
           <div className="mx-auto w-full space-y-3">
-            <div className="mx-auto w-full max-w-6xl space-y-3 text-content">
             {step.image && (
               <div className="relative">
                 <img
@@ -218,6 +217,7 @@ export function PersonendossierTutorialDialog({ open, onOpenChange }: Props) {
               </div>
             )}
 
+            <div className="mx-auto w-full max-w-6xl space-y-3">
             {step.body && (
               <div className="rounded-lg border bg-background p-4 space-y-3">
                 <p className="font-mono text-sm bg-muted rounded px-3 py-2 inline-block">Schlüssel_Titel.pdf</p>
