@@ -179,11 +179,23 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
           </section>
 
           <Callout tone="warning">
-            <p>
-              <strong>Absenzen laufen über einen eigenen Import.</strong> Journaleinträge vom Eintragstyp «Absenz»
-              werden hier bewusst übersprungen — auch dann, wenn die Kategorie «Absenz» in PUPIL existiert. Diese Daten
-              migrierst du über den Absenz-Import.
-            </p>
+            <div>
+              <p>
+                <strong>Absenzen laufen über einen eigenen Import.</strong> Journaleinträge vom Eintragstyp «Absenz»
+                werden hier bewusst übersprungen — auch dann, wenn die Kategorie «Absenz» in PUPIL existiert. Diese Daten
+                migrierst du über den Absenz-Import.
+              </p>
+              {onOpenAbsenzenGuide && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-sm"
+                  onClick={() => { onOpenChange(false); onOpenAbsenzenGuide(); }}
+                >
+                  Zur Anleitung «Import Absenzen»
+                </Button>
+              )}
+            </div>
           </Callout>
 
           {/* Kategorien */}
