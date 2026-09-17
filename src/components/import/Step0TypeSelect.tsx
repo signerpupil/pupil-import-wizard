@@ -16,6 +16,7 @@ import { IframeDialog } from './IframeDialog';
 import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
+import { JournalImportGuideDialog } from './JournalImportGuideDialog';
 
 import { StepHelpCard } from './StepHelpCard';
 
@@ -152,6 +153,7 @@ export function Step0TypeSelect({
   const [copiedField, setCopiedField] = useState<'email' | 'password' | 'schulungsPassword' | null>(null);
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [susEzbTutorialOpen, setSusEzbTutorialOpen] = useState(false);
+  const [journalGuideOpen, setJournalGuideOpen] = useState(false);
   const [personendossierTutorialOpen, setPersonendossierTutorialOpen] = useState(false);
 
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
@@ -373,29 +375,20 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className={cn(
-              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
-              selectedType === 'journal'
-                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
-                : 'bg-card border-border hover:border-pupil-amber/30'
-            )}
-            onClick={() => onSelectType('journal')}
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
+            onClick={() => setJournalGuideOpen(true)}
           >
             <CardHeader className="pb-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                selectedType === 'journal'
-                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
-                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
-              )}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
                 <BookOpen className="h-6 w-6" />
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Journal</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Beobachtungen, Gespräche und weitere Journaldaten importieren.
+                Journaleinträge aus LehrerOffice importieren – Anleitung in 4 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
+
 
           <Card
             className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
@@ -793,6 +786,10 @@ export function Step0TypeSelect({
       <PersonendossierTutorialDialog
         open={personendossierTutorialOpen}
         onOpenChange={setPersonendossierTutorialOpen}
+      />
+      <JournalImportGuideDialog
+        open={journalGuideOpen}
+        onOpenChange={setJournalGuideOpen}
       />
 
 
