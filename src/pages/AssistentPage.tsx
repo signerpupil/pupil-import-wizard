@@ -95,17 +95,18 @@ export default function AssistentPage() {
     <div style={{ background: BG }} className="min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4">
-          <img src={ediLogo.url} alt="Edi" className="h-10 w-auto" />
+        <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col items-center text-center gap-3">
+          <img src={ediLogo.url} alt="Edi" className="h-16 w-auto" />
           <div>
             <h1 className="text-xl font-semibold" style={{ color: PRIMARY }}>
               Edi
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 max-w-xl mx-auto">
               Edi beantwortet Fragen zum Onboarding-Prozess und zu PUPIL – mit Live-Zugriff auf die aktuelle PUPIL-Dokumentation. Antworten sind KI-generiert und können Fehler enthalten.
             </p>
           </div>
         </div>
+
 
         {/* Datenschutz & KI-Disclaimer */}
         {!disclaimerOk && (
