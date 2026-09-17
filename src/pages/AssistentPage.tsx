@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 import { getSessionId } from "@/lib/analytics";
+import ediLogo from "@/assets/edi-logo.png.asset.json";
 
-const LOGO_URL =
-  "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
 const PRIMARY = "#2b80c0";
 const BG = "#f4f7fb";
 const PRIVACY_KEY = "pupil-assistent-privacy-ok";
