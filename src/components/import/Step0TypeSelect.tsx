@@ -154,6 +154,7 @@ export function Step0TypeSelect({
   const [mitarbeitendeTutorialOpen, setMitarbeitendeTutorialOpen] = useState(false);
   const [susEzbTutorialOpen, setSusEzbTutorialOpen] = useState(false);
   const [journalGuideOpen, setJournalGuideOpen] = useState(false);
+  const [absenzenGuideOpen, setAbsenzenGuideOpen] = useState(false);
   const [personendossierTutorialOpen, setPersonendossierTutorialOpen] = useState(false);
 
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
@@ -392,7 +393,7 @@ export function Step0TypeSelect({
 
           <Card
             className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
-            onClick={() => { setComingSoonTitle('Import Absenzen'); setComingSoonOpen(true); }}
+            onClick={() => setAbsenzenGuideOpen(true)}
           >
             <CardHeader className="pb-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
@@ -400,7 +401,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Absenzen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Absenzdaten in Pupil importieren.
+                Absenzen aus LehrerOffice importieren – Anleitung in 4 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -790,6 +791,12 @@ export function Step0TypeSelect({
       <JournalImportGuideDialog
         open={journalGuideOpen}
         onOpenChange={setJournalGuideOpen}
+        onOpenAbsenzenGuide={() => setAbsenzenGuideOpen(true)}
+      />
+      <AbsenzenImportGuideDialog
+        open={absenzenGuideOpen}
+        onOpenChange={setAbsenzenGuideOpen}
+        onOpenJournalGuide={() => setJournalGuideOpen(true)}
       />
 
 
