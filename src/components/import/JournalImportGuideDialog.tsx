@@ -7,6 +7,7 @@ import { AlertTriangle, Info, Lightbulb, CheckCircle2, ImageIcon } from 'lucide-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenAbsenzenGuide?: () => void;
 }
 
 function Callout({

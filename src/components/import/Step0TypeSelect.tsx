@@ -17,6 +17,7 @@ import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
 import { JournalImportGuideDialog } from './JournalImportGuideDialog';
+import { AbsenzenImportGuideDialog } from './AbsenzenImportGuideDialog';
 
 import { StepHelpCard } from './StepHelpCard';
 
