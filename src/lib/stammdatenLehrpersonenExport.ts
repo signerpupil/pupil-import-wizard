@@ -117,19 +117,36 @@ export function buildOutputRows(
 const DATE_COL_INDEXES = [14, 24]; // Geb, Eintritt
 const EXCEL_DATE_FORMAT = 'DD.MM.YYYY';
 
-/** Parst "01.01.1990", "1.1.1990", "1990-01-01" → Date (UTC-neutral), sonst null */
-function parseSwissDate(value: string): Date | null {
+/** Parst Schweizer Datumswerte inkl. LehrerOffice-Kurzjahr (00–29 = 2000er, 30–99 = 1900er). */
+export function parseSwissDate(value: string): Date | null {
   if (!value) return null;
   const v = value.replace(/^'/, '').trim();
-  let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2}|\d{4})$/);
   if (m) {
-    const d = new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
-    return isNaN(d.getTime()) ? null : d;
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    const shortYear = Number(m[3]);
+    const year = m[3].length === 2
+      ? (shortYear <= 29 ? 2000 + shortYear : 1900 + shortYear)
+      : shortYear;
+    const d = new Date(Date.UTC(year, month - 1, day));
+    return d.getUTCFullYear() === year
+      && d.getUTCMonth() === month - 1
+      && d.getUTCDate() === day
+      ? d
+      : null;
   }
   m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) {
-    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-    return isNaN(d.getTime()) ? null : d;
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const d = new Date(Date.UTC(year, month - 1, day));
+    return d.getUTCFullYear() === year
+      && d.getUTCMonth() === month - 1
+      && d.getUTCDate() === day
+      ? d
+      : null;
   }
   return null;
 }
