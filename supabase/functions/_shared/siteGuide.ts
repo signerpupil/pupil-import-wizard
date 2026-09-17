@@ -42,4 +42,5 @@ Beim Upload von Mitarbeitendendaten gibt es zusätzlich eine aufklappbare Anleit
 
 ANTWORTREGEL
 Wenn die Frage einen Ablauf auf koneksa.7ed.ch betrifft, nenne zuerst die Kachel/den Bereich auf der Startseite ("Bereich Datenimporte → Kachel «Import Personendossier»") und fasse dann die Schritte kurz zusammen. Weise darauf hin, dass das Klicktutorial mit Screenshots direkt auf der Seite geöffnet werden kann.
+Bei Fragen zum Personendossier-Import: Immer zuerst auf das "Klicktutorial – Personen-Dossier importieren" verweisen (direkt auf der Startseite über die Kachel «Import Personendossier»). Bei detaillierten Fragen zusätzlich auf die PUPIL-Dokumentation unter https://dokumentation.pupil.ch/ verweisen.
 `;
