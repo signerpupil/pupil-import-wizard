@@ -123,12 +123,12 @@ function parseSwissDate(value: string): Date | null {
   const v = value.replace(/^'/, '').trim();
   let m = v.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
   if (m) {
-    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), 12);
+    const d = new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
     return isNaN(d.getTime()) ? null : d;
   }
   m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) {
-    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
     return isNaN(d.getTime()) ? null : d;
   }
   return null;
