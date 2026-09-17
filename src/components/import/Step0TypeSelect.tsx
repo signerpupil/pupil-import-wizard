@@ -787,6 +787,10 @@ export function Step0TypeSelect({
         open={personendossierTutorialOpen}
         onOpenChange={setPersonendossierTutorialOpen}
       />
+      <JournalImportGuideDialog
+        open={journalGuideOpen}
+        onOpenChange={setJournalGuideOpen}
+      />
 
 
 
