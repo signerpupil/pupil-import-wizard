@@ -15,6 +15,7 @@ Ganz unten rechts ist Edi (dieser Assistent) als schwebender Button erreichbar; 
 
 ANLEITUNG "IMPORT PERSONENDOSSIER" (Kachel im Bereich Datenimporte, 12 Schritte)
 Zweck: Dateien wie Arztbescheinigungen oder Zeugnisse zu einzelnen Personen hochladen. Vorgehen für Zeugnis-Import identisch, nur anderer Zielordner.
+WICHTIG – VERWEISE: Wenn nach dem Import des Personendossiers gefragt wird, verweise zuerst auf das "Klicktutorial – Personen-Dossier importieren" (über die Kachel «Import Personendossier» im Bereich Datenimporte auf der Startseite zu öffnen – Schritt-für-Schritt mit Screenshots). Bei detaillierten oder weitergehenden Fragen (z.B. Sonderfälle, Ordnerstrukturen, Fehlermeldungen) verweise zusätzlich auf die offizielle PUPIL-Dokumentation unter https://dokumentation.pupil.ch/.
 - Schritt 1–2: "Schulverwaltung → Personendossier Einstellungen" öffnen und über "Neuer Hauptordner" eine Ordnerstruktur anlegen (z.B. "Zeugnisse").
 - Schritt 3–5: Reiter "Modul Ordner" → Zielordner suchen → in der Spalte "Standard für Module" den Eintrag "Dossier-Import" wählen. Pro Dokumententyp muss der Zielordner neu gesetzt werden.
 - Schritt 6: Dateien benennen nach dem Muster "Schlüssel_Titel.pdf" (Beispiel: PUP17021992_Zeugnis.pdf). Der Schlüssel ist die persönliche PUPIL-ID aus "Master Data → Personen", Spalte "Schlüssel". Unterstrich ist Pflicht. Der Dateiname kann bereits in LehrerOffice definiert werden.
