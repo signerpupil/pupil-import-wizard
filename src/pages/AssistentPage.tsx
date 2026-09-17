@@ -96,7 +96,7 @@ export default function AssistentPage() {
       <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4">
-          <img src={LOGO_URL} alt="PUPIL" className="h-10 w-auto" />
+          <img src={ediLogo.url} alt="Edi" className="h-10 w-auto" />
           <div>
             <h1 className="text-xl font-semibold" style={{ color: PRIMARY }}>
               Edi
