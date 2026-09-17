@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, Info, Lightbulb, CheckCircle2, ImageIcon } from 'lucide-react';
 
 interface Props {
@@ -116,7 +117,7 @@ const faqs: [string, string][] = [
   ['Ich komme nicht weiter — an wen wende ich mich?', 'Bleibt ein Fehler nach mehreren Versuchen bestehen, wende dich an den PUPIL-Support. Halte die Exportdatei und die Fehlerliste bereit.'],
 ];
 
-export function JournalImportGuideDialog({ open, onOpenChange }: Props) {
+export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGuide }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col">
