@@ -8,7 +8,7 @@ import { AlertTriangle, Info, Lightbulb, CheckCircle2, ImageIcon } from 'lucide-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenAbsenzenGuide?: () => void;
+  onOpenJournalGuide?: () => void;
 }
 
 function Callout({
@@ -58,33 +58,29 @@ function StepCard({ n, title, children }: { n: number; title: string; children: 
   );
 }
 
-const kategorien: [string, string][] = [
-  ['Absenz', 'Krankheit / Unfall · Arzt / Zahnarzt · Berufsvorbereitung · Schnuppertage · Freie Halbtage / Jokertag · Urlaub · Dispensation · Andere'],
-  ['Aufgabe', 'Erfüllt · Erteilt · Nicht erfüllt'],
-  ['Beobachtung', 'Negative Beobachtung · Neutrale Beobachtung · Positive Beobachtung'],
-  ['Berufswahl', 'Berufsberatung · Berufserkundung · Bewerbung · Schnupperlehre · Vorbereitung höhere Schule · Vorstellung Lehrbetrieb'],
-  ['Gespräch', 'Beratungsgespräch · Coachinggespräch · Elterngespräch · Gespräch · Schulisches Standortgespräch (SSG) · Standortgespräch · Telefongespräch'],
-  ['Korrespondenz', '–'],
-  ['Material', '–'],
-  ['Verstoss', '–'],
-  ['Versäumnis', 'Hausaufgaben · Lektion · Material · Verspätung'],
+const absenzgruende = [
+  'Krankheit / Unfall',
+  'Arzt / Zahnarzt',
+  'Berufsvorbereitung',
+  'Schnuppertage',
+  'Freie Halbtage / Jokertag',
+  'Urlaub',
+  'Dispensation',
+  'Andere',
 ];
 
 const importiert = [
-  'Kategorie (über Textabgleich)',
-  'Unterkategorie (über Textabgleich)',
-  'Fach (über Textabgleich)',
-  'Datum des Eintrags',
-  'Eintragstext / öffentliche Notiz',
-  'Massnahme oder Entschuldigung / interne Notiz',
+  'Absenzgrund (über Textabgleich)',
+  'Datum der Absenz',
+  'Lektionen (aus den Halbtagen berechnet)',
+  'Status: entschuldigt / unentschuldigt',
+  'Kommentar',
   'Eintrag von (Ersteller)',
-  'Erledigt / Status',
 ];
 
 const nichtImportiert = [
-  'Einträge mit «Absenz» in der Spalte «Eintragstyp»',
-  'Kategorien und Unterkategorien, die es in PUPIL nicht gibt',
-  'Fächer, die es in PUPIL nicht gibt',
+  'Einträge ohne «Absenz» in der Spalte «Eintragstyp»',
+  'Absenzgründe, die es in PUPIL nicht gibt',
   'Ersteller-Name (die Verknüpfung läuft über den Schlüssel)',
 ];
 
@@ -92,8 +88,7 @@ const checkliste = [
   'Du bist mit der Rolle N&Z-Administration in PUPIL angemeldet',
   'Alle Schülerinnen und Schüler aus der Importdatei sind in PUPIL erfasst',
   'Alle Lehrpersonen, die als Ersteller vorkommen, sind in PUPIL erfasst',
-  'Alle vorkommenden Kategorien und Unterkategorien sind in PUPIL angelegt',
-  'Alle vorkommenden Fächer sind in PUPIL angelegt',
+  'Alle vorkommenden Absenzgründe sind in PUPIL angelegt',
   'Das betreffende Schuljahr / Semester ist in PUPIL angelegt',
   'Die CSV-Datei ist aus LehrerOffice exportiert und lokal gespeichert',
 ];
@@ -101,41 +96,40 @@ const checkliste = [
 const fehler: [string, string, string][] = [
   ['Schüler/in nicht gefunden', 'Der Benutzerschlüssel aus der CSV existiert in PUPIL nicht', 'Betreffende SuS in PUPIL erfassen, dann erneut importieren'],
   ['Ersteller nicht gefunden', 'Die erfassende Lehrperson fehlt in PUPIL', 'Lehrperson in PUPIL erfassen'],
-  ['Kategorie nicht gefunden', 'Kategorie existiert nicht oder weicht in der Schreibweise ab', 'Kategorie in PUPIL anlegen oder Schreibweise in LehrerOffice korrigieren'],
-  ['Unterkategorie nicht gefunden', 'Unterkategorie existiert nicht oder weicht ab', 'Unterkategorie in PUPIL anlegen oder Schreibweise korrigieren'],
-  ['Fach nicht gefunden', 'Fach existiert nicht oder weicht in der Schreibweise ab', 'Fach in PUPIL anlegen oder Schreibweise in LehrerOffice korrigieren'],
+  ['Absenzgrund nicht gefunden', 'Absenzgrund existiert nicht oder weicht in der Schreibweise ab', 'Absenzgrund in PUPIL anlegen oder Schreibweise in LehrerOffice korrigieren'],
   ['Ungültiges Datum', 'Datum fehlt oder entspricht nicht dem Format TT.MM.JJJJ', 'Quelldaten in LehrerOffice korrigieren und neu exportieren'],
 ];
 
 const faqs: [string, string][] = [
   ['Kann ich einen Import rückgängig machen?', 'Nein. Einmal importierte Daten lassen sich nicht automatisch zurücknehmen. Prüfe die Datei deshalb gründlich in der Validierung.'],
-  ['Was passiert, wenn ich den Import zweimal durchführe?', 'Die Einträge werden doppelt erfasst. Führe den Import nur einmal durch.'],
-  ['Warum fehlen nach dem Import die Absenzen?', 'Das ist beabsichtigt. Journaleinträge vom Eintragstyp «Absenz» werden nicht über den Journal-Import übernommen, sondern über die Absenzverwaltung migriert.'],
-  ['Eine Kategorie oder ein Fach wird als «nicht gefunden» angezeigt — warum?', 'PUPIL gleicht Kategorien, Unterkategorien und Fächer über den Text ab. Schon ein zusätzliches Leerzeichen oder ein anderer Begriff führt dazu, dass kein passender Eintrag gefunden wird. Lege den Wert in PUPIL an oder passe die Schreibweise in LehrerOffice an, damit beide exakt übereinstimmen.'],
+  ['Was passiert, wenn ich den Import zweimal durchführe?', 'Die Absenzen werden doppelt erfasst. Führe den Import nur einmal durch.'],
+  ['Warum fehlen nach dem Import die übrigen Journaleinträge?', 'Das ist beabsichtigt. Der Absenzimport übernimmt ausschliesslich Einträge vom Typ «Absenz». Alle anderen Journaleinträge migrierst du über den separaten Journal-Import.'],
+  ['Wie wird bestimmt, ob eine Absenz entschuldigt oder unentschuldigt ist?', 'Als entschuldigt gilt eine Absenz, wenn die Spalte «Erledigt» den Wert «Ja» enthält oder in der Spalte «EntschuldigtDatum» ein Datum steht. In allen anderen Fällen wird sie als unentschuldigt übernommen.'],
+  ['Ein Absenzgrund wird als «nicht gefunden» angezeigt — warum?', 'PUPIL gleicht die Absenzgründe über den Text ab. Schon ein zusätzliches Leerzeichen oder ein anderer Begriff führt dazu, dass kein passender Grund gefunden wird. Lege den Absenzgrund in PUPIL an oder passe die Schreibweise in LehrerOffice an, damit beide exakt übereinstimmen.'],
   ['In der Fehlertabelle stehen Namen oder andere Werte bei den Schlüsseln — was ist passiert?', 'LehrerOffice hat viele Freitextfelder. Enthält ein solches Feld die Zeichenkombination " zusammen mit ;, kann die Zeile beim Import nicht mehr korrekt in Spalten aufgeteilt werden. Prüfe das betroffene Freitextfeld in LehrerOffice, entferne die problematischen Zeichen und exportiere neu.'],
   ['Umlaute werden falsch dargestellt — was ist passiert?', 'Die CSV-Datei wurde wahrscheinlich in Excel geöffnet und gespeichert, wodurch sich die Zeichencodierung geändert hat. Exportiere die Datei in LehrerOffice neu und lade sie hoch, ohne sie zwischendurch zu öffnen.'],
   ['Ich komme nicht weiter — an wen wende ich mich?', 'Bleibt ein Fehler nach mehreren Versuchen bestehen, wende dich an den PUPIL-Support. Halte die Exportdatei und die Fehlerliste bereit.'],
 ];
 
-export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGuide }: Props) {
+export function AbsenzenImportGuideDialog({ open, onOpenChange, onOpenJournalGuide }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col">
         <DialogHeader className="px-6 py-3 border-b space-y-1 text-left">
           <div className="flex flex-row items-center justify-between">
-            <DialogTitle className="text-base">Import Journal (LehrerOffice Format)</DialogTitle>
+            <DialogTitle className="text-base">Import Absenzen (LehrerOffice Format)</DialogTitle>
             <Badge variant="secondary" className="shrink-0 mr-8">Anleitung</Badge>
           </div>
           <DialogDescription className="text-sm leading-relaxed">
-            Bestehende Journaleinträge aus LehrerOffice nach PUPIL übertragen — für die N&amp;Z-Administration.
+            Bestehende Absenzen aus LehrerOffice nach PUPIL übertragen — für die N&amp;Z-Administration.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-auto px-6 py-5 space-y-6">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Mit diesem Import überträgst du bestehende Journaleinträge aus LehrerOffice nach PUPIL. Die Anleitung
-            richtet sich an die <strong className="text-foreground">N&amp;Z-Administration</strong>; technische
-            Vorkenntnisse brauchst du nicht.
+            Mit diesem Import überträgst du bestehende Absenzen aus LehrerOffice nach PUPIL. Die Anleitung richtet sich
+            an die <strong className="text-foreground">N&amp;Z-Administration</strong>; technische Vorkenntnisse
+            brauchst du nicht.
           </p>
 
           <Callout tone="warning">
@@ -154,13 +148,34 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
             </p>
           </Callout>
 
+          <Callout tone="info">
+            <div>
+              <p>
+                <strong>Dieselbe Datei wie beim Journal-Import.</strong> Grundlage ist{' '}
+                <code className="rounded bg-muted px-1">Koneksa_Journal.csv</code> — also die gleiche Exportdatei. PUPIL
+                filtert beim Absenzimport automatisch die Einträge vom Typ «Absenz» heraus. Alle übrigen
+                Journaleinträge übernimmst du über den separaten Journal-Import. Beide Importe gehören also zusammen,
+                laufen aber getrennt.
+              </p>
+              {onOpenJournalGuide && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-sm"
+                  onClick={() => { onOpenChange(false); onOpenJournalGuide(); }}
+                >
+                  Zur Anleitung «Import Journal»
+                </Button>
+              )}
+            </div>
+          </Callout>
+
           {/* Was übertragen wird */}
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-foreground">Was übertragen wird</h3>
             <p className="text-sm text-muted-foreground">
-              Grundlage ist die Datei <code className="rounded bg-muted px-1">Koneksa_Journal.csv</code>. Jeder Eintrag
-              wird über einen <strong className="text-foreground">Textabgleich</strong> der passenden Kategorie,
-              Unterkategorie und dem passenden Fach zugeordnet.
+              Jede Absenz wird über einen <strong className="text-foreground">Textabgleich</strong> dem passenden
+              Absenzgrund zugeordnet. Berücksichtigt werden nur Zeilen mit «Absenz» in der Spalte «Eintragstyp».
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-pupil-success/30 bg-pupil-success/5 p-4">
@@ -178,46 +193,51 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
             </div>
           </section>
 
-          <Callout tone="warning">
-            <div>
-              <p>
-                <strong>Absenzen laufen über einen eigenen Import.</strong> Journaleinträge vom Eintragstyp «Absenz»
-                werden hier bewusst übersprungen — auch dann, wenn die Kategorie «Absenz» in PUPIL existiert. Diese Daten
-                migrierst du über den Absenz-Import.
-              </p>
-              {onOpenAbsenzenGuide && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-sm"
-                  onClick={() => { onOpenChange(false); onOpenAbsenzenGuide(); }}
-                >
-                  Zur Anleitung «Import Absenzen»
-                </Button>
-              )}
-            </div>
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold text-foreground">Drei Umrechnungen, die PUPIL beim Import vornimmt</h3>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Entschuldigt oder unentschuldigt:</strong> Eine Absenz gilt als
+                entschuldigt, wenn die Spalte «Erledigt» den Wert «Ja» enthält <strong className="text-foreground">oder</strong>{' '}
+                in der Spalte «EntschuldigtDatum» ein Datum steht. In allen anderen Fällen wird sie als unentschuldigt
+                übernommen.
+              </li>
+              <li>
+                <strong className="text-foreground">Kommentar:</strong> Wird aus den Spalten «Eintragstext» und
+                «MassnahmeOderEntschuldigung» zusammengesetzt.
+              </li>
+              <li>
+                <strong className="text-foreground">Lektionen:</strong> Werden aus den Halbtagen berechnet und mit dem
+                Konfigurationswert «Lektionen pro Halbtag» multipliziert — aktuell 4.
+              </li>
+            </ul>
+          </section>
+
+          <Callout tone="info">
+            <p>
+              <strong>Bestätigte Absenzen erscheinen zusätzlich im Journal.</strong> Importierte Absenzen mit dem Status
+              «bestätigt» verhalten sich wie eine in PUPIL bestätigte Absenz und werden auch im Journal angezeigt.
+            </p>
           </Callout>
 
-          {/* Kategorien */}
+          {/* Absenzgründe */}
           <section className="space-y-3">
-            <h3 className="text-lg font-semibold text-foreground">Kategorien und Unterkategorien in PUPIL (Kanton AG)</h3>
+            <h3 className="text-lg font-semibold text-foreground">Absenzgründe in PUPIL (Kanton AG)</h3>
             <p className="text-sm text-muted-foreground">
-              Gleiche diese Liste vor dem Import mit deinen LehrerOffice-Kategorien ab. Alles, was hier nicht steht,
+              Gleiche diese Liste vor dem Import mit deinen LehrerOffice-Absenzgründen ab. Alles, was hier nicht steht,
               musst du vorher in PUPIL anlegen oder in LehrerOffice umbenennen.
             </p>
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/60">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold">Kategorie</th>
-                    <th className="px-3 py-2 text-left font-semibold">Unterkategorien</th>
+                    <th className="px-3 py-2 text-left font-semibold">Absenzgrund</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {kategorien.map(([k, u]) => (
-                    <tr key={k} className="border-t">
-                      <td className="px-3 py-2 font-medium text-foreground align-top whitespace-nowrap">{k}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{u}</td>
+                  {absenzgruende.map(g => (
+                    <tr key={g} className="border-t">
+                      <td className="px-3 py-2 text-muted-foreground">{g}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -243,7 +263,7 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
             <StepCard n={1} title="CSV-Datei aus LehrerOffice exportieren">
               <ol className="list-decimal space-y-1 pl-5">
                 <li>Öffne <strong className="text-foreground">LehrerOffice Zusatz</strong> und wechsle in den Exportbereich.</li>
-                <li>Wähle den Journal-Export: <strong className="text-foreground">Koneksa_Journal.csv</strong>.</li>
+                <li>Wähle den Export <strong className="text-foreground">Koneksa_Journal.csv</strong>.</li>
                 <li>Lade die Datei herunter und speichere sie lokal — <strong className="text-foreground">ohne sie zu öffnen oder zu bearbeiten</strong>.</li>
               </ol>
               <ImagePlaceholder label="Exportbereich LehrerOffice Zusatz" />
@@ -253,6 +273,12 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
                   stimmen. Musst du die Datei ausnahmsweise doch in Excel bearbeiten, achte beim Speichern auf Semikolon
                   als Trennzeichen und UTF-8 als Codierung. Treten danach plötzlich viele neue Fehler auf, wurde mit
                   falschen Einstellungen gespeichert.
+                </p>
+              </Callout>
+              <Callout tone="tip">
+                <p>
+                  <strong>Hast du die Datei für den Journal-Import schon exportiert?</strong> Dann kannst du dieselbe
+                  Datei verwenden und diesen Schritt überspringen.
                 </p>
               </Callout>
             </StepCard>
@@ -297,13 +323,13 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
               <p className="font-medium text-foreground">Vorgehen:</p>
               <ol className="list-decimal space-y-1 pl-5">
                 <li>Navigiere zu <strong className="text-foreground">Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte</strong>.</li>
-                <li>Wähle den Importtyp <strong className="text-foreground">«Journal»</strong>.</li>
+                <li>Wähle den Importtyp <strong className="text-foreground">«Absenzen»</strong>.</li>
                 <li>Klicke auf <strong className="text-foreground">«Datei auswählen»</strong> und wähle <code className="rounded bg-muted px-1">Koneksa_Journal.csv</code>.</li>
                 <li>Klicke auf <strong className="text-foreground">«Hochladen»</strong>.</li>
                 <li>Prüfe das Validierungsergebnis und behebe allfällige Fehler.</li>
                 <li>Klicke auf <strong className="text-foreground">«Import starten»</strong> und warte, bis der Import abgeschlossen ist.</li>
               </ol>
-              <ImagePlaceholder label="Importübersicht mit Importtyp Journal" />
+              <ImagePlaceholder label="Importübersicht mit Importtyp Absenzen" />
               <ImagePlaceholder label="Upload-Bereich mit ausgewählter Datei" />
               <ImagePlaceholder label="Validierung ohne Fehler mit Button «Import starten»" />
               <ImagePlaceholder label="Erfolgsmeldung nach dem Import" />
@@ -312,8 +338,8 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
               </Callout>
               <Callout tone="info">
                 <p>
-                  <strong>Dauer:</strong> Abhängig von der Datenmenge. Bei grossen Schulen mit vielen Journaleinträgen
-                  kann der Import einige Minuten dauern.
+                  <strong>Dauer:</strong> Abhängig von der Datenmenge. Bei grossen Schulen mit vielen Absenzen kann der
+                  Import einige Minuten dauern.
                 </p>
               </Callout>
             </StepCard>
@@ -347,8 +373,8 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
               <Callout tone="tip">
                 <p>
                   <strong>Grundregel:</strong> Inhaltliche Fehler korrigierst du in LehrerOffice und exportierst neu — so
-                  bleibt LehrerOffice als Quelle konsistent und die Codierung der CSV erhalten. Fehlende Kategorien,
-                  Unterkategorien und Fächer legst du dagegen direkt in PUPIL an.
+                  bleibt LehrerOffice als Quelle konsistent und die Codierung der CSV erhalten. Fehlende Absenzgründe
+                  legst du dagegen direkt in PUPIL an.
                 </p>
               </Callout>
               <Callout tone="tip">
@@ -361,12 +387,12 @@ export function JournalImportGuideDialog({ open, onOpenChange, onOpenAbsenzenGui
 
             <StepCard n={4} title="Ergebnis prüfen">
               <ol className="list-decimal space-y-1 pl-5">
-                <li>Navigiere zum <strong className="text-foreground">Journal</strong>.</li>
-                <li>Die importierten Einträge erscheinen mit Datum, Kategorie, Unterkategorie, Fach und Inhalt.</li>
-                <li>Prüfe stichprobenhaft einige Einträge auf Vollständigkeit.</li>
-                <li>Vergleiche die <strong className="text-foreground">Anzahl importierter Einträge</strong> aus der Zusammenfassung mit LehrerOffice. Die Absenz-Einträge sind dabei ausgenommen.</li>
+                <li>Navigiere zur <strong className="text-foreground">Absenzverwaltung</strong>.</li>
+                <li>Die importierten Absenzen erscheinen mit Datum, Absenzgrund, Lektionen, Status und Kommentar.</li>
+                <li>Prüfe stichprobenhaft einige Absenzen auf Vollständigkeit.</li>
+                <li>Vergleiche die <strong className="text-foreground">Anzahl importierter Absenzen</strong> aus der Zusammenfassung mit LehrerOffice.</li>
               </ol>
-              <ImagePlaceholder label="Journal-Ansicht mit importierten Einträgen" />
+              <ImagePlaceholder label="Absenzverwaltung mit importierten Absenzen" />
             </StepCard>
           </section>
 
