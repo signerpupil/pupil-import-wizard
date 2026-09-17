@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 import { getSessionId } from "@/lib/analytics";
+import ediLogo from "@/assets/edi-logo.png.asset.json";
 
-const LOGO_URL =
-  "https://static.wixstatic.com/media/254536_a0dcf7422d28431c8ef0ee0d676b2ca6~mv2.png";
 const PRIMARY = "#2b80c0";
 const BG = "#f4f7fb";
 const PRIVACY_KEY = "pupil-assistent-privacy-ok";
@@ -97,7 +96,7 @@ export default function AssistentPage() {
       <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4">
-          <img src={LOGO_URL} alt="PUPIL" className="h-10 w-auto" />
+          <img src={ediLogo.url} alt="Edi" className="h-10 w-auto" />
           <div>
             <h1 className="text-xl font-semibold" style={{ color: PRIMARY }}>
               Edi
