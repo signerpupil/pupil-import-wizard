@@ -45,7 +45,7 @@ export function FloatingAssistant() {
             <img
               src={ASSISTANT_LOGO_URL}
               alt="Edi Assistent"
-              className="h-[88%] w-[88%] object-contain animate-pulse [animation-duration:3s]"
+              className="h-[88%] w-[88%] object-contain"
             />
 
             {/* Chat-Bot badge */}
