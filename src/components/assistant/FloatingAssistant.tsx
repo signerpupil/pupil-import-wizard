@@ -33,24 +33,24 @@ export function FloatingAssistant() {
     <>
       {!open && (
         <div className="fixed bottom-6 right-6 z-50 group">
-          {/* Ambient pulse rings */}
-          <div className="absolute inset-0 rounded-full bg-primary opacity-30 animate-ping [animation-duration:2.5s]" />
-          <div className="absolute -inset-2 rounded-full bg-primary/40 blur-lg animate-pulse [animation-duration:3s]" />
+          {/* Ambient pulse rings (Edi-Magenta) */}
+          <div className="absolute inset-0 rounded-full bg-[#F43274] opacity-40 animate-ping [animation-duration:2.5s]" />
+          <div className="absolute -inset-2 rounded-full bg-[#F43274]/50 blur-lg animate-pulse [animation-duration:3s]" />
 
           <button
             onClick={() => { setOpen(true); setMinimized(false); }}
             aria-label="Edi öffnen"
-            className="relative flex items-center justify-center h-20 w-20 rounded-full overflow-hidden shadow-[0_10px_36px_hsl(var(--primary)/0.5)] hover:shadow-[0_14px_46px_hsl(var(--primary)/0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
+            className="relative flex items-center justify-center h-20 w-20 rounded-full bg-[#F43274] shadow-[0_10px_36px_rgba(244,50,116,0.55)] hover:shadow-[0_14px_46px_rgba(244,50,116,0.65)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
           >
             <img
               src={ASSISTANT_LOGO_URL}
               alt="Edi Assistent"
-              className="h-full w-full object-cover animate-pulse [animation-duration:3s]"
+              className="h-[88%] w-[88%] object-contain animate-pulse [animation-duration:3s]"
             />
 
             {/* Chat-Bot badge */}
-            <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-background border-2 border-background shadow-md">
-              <MessageCircle className="h-4 w-4 text-primary" />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-background border-2 border-background shadow-md">
+              <MessageCircle className="h-4 w-4 text-[#F43274]" />
             </span>
           </button>
 
