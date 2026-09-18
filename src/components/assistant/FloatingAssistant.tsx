@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
-import assistantLogo from '@/assets/edi-assistent-logo.png.asset.json';
+
+const ASSISTANT_LOGO_URL = `${import.meta.env.BASE_URL}edi-assistent-logo.png`;
 
 const STORAGE_KEY = 'assistant-enabled';
 const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
@@ -42,7 +43,7 @@ export function FloatingAssistant() {
             className="relative flex items-center justify-center h-20 w-20 rounded-full overflow-hidden shadow-[0_10px_36px_hsl(var(--primary)/0.5)] hover:shadow-[0_14px_46px_hsl(var(--primary)/0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
           >
             <img
-              src={assistantLogo.url}
+              src={ASSISTANT_LOGO_URL}
               alt="Edi Assistent"
               className="h-full w-full object-cover animate-pulse [animation-duration:3s]"
             />
