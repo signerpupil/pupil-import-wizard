@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
 
+const ASSISTANT_LOGO_URL = `${import.meta.env.BASE_URL}edi-assistent-logo.png`;
+
 const STORAGE_KEY = 'assistant-enabled';
 const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
 
@@ -31,26 +33,29 @@ export function FloatingAssistant() {
     <>
       {!open && (
         <div className="fixed bottom-6 right-6 z-50 group">
-          {/* Ambient pulse ring */}
-          <div className="absolute inset-0 rounded-full bg-primary opacity-20 animate-ping [animation-duration:3s]" />
-          <div className="absolute -inset-1 rounded-full bg-primary/30 blur-md group-hover:bg-primary/50 transition-all duration-500" />
+          {/* Ambient pulse rings */}
+          <div className="absolute inset-0 rounded-full bg-primary opacity-30 animate-ping [animation-duration:2.5s]" />
+          <div className="absolute -inset-2 rounded-full bg-primary/40 blur-lg animate-pulse [animation-duration:3s]" />
 
           <button
             onClick={() => { setOpen(true); setMinimized(false); }}
             aria-label="Edi öffnen"
-            className="relative flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_30px_hsl(var(--primary)/0.4)] hover:shadow-[0_12px_40px_hsl(var(--primary)/0.5)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
+            className="relative flex items-center justify-center h-20 w-20 rounded-full overflow-hidden shadow-[0_10px_36px_hsl(var(--primary)/0.5)] hover:shadow-[0_14px_46px_hsl(var(--primary)/0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
           >
-            <MessageCircle className="h-7 w-7" />
+            <img
+              src={ASSISTANT_LOGO_URL}
+              alt="Edi Assistent"
+              className="h-full w-full object-cover animate-pulse [animation-duration:3s]"
+            />
 
-            {/* Active indicator */}
-            <span className="absolute top-3 right-3 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-foreground" />
+            {/* Chat-Bot badge */}
+            <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-background border-2 border-background shadow-md">
+              <MessageCircle className="h-4 w-4 text-primary" />
             </span>
           </button>
 
-          {/* Hover tooltip */}
-          <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none shadow-xl">
+          {/* Permanent label */}
+          <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs font-medium rounded-lg whitespace-nowrap pointer-events-none shadow-xl animate-pulse [animation-duration:3s]">
             Edi fragen
             <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-foreground rotate-45" />
           </div>
