@@ -7,19 +7,18 @@ interface IframeDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   url: string;
-  showFooterLink?: boolean;
 }
 
-export function IframeDialog({ open, onOpenChange, title, url, showFooterLink = true }: IframeDialogProps) {
+export function IframeDialog({ open, onOpenChange, title, url }: IframeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 flex flex-col">
         <DialogHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0">
           <DialogTitle className="text-base">{title}</DialogTitle>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            className="mr-8 gap-1 hidden"
+            className="mr-10 gap-1.5 shrink-0"
             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -32,14 +31,6 @@ export function IframeDialog({ open, onOpenChange, title, url, showFooterLink = 
           className="flex-1 w-full border-0 bg-background"
           allow="clipboard-write; fullscreen"
         />
-        {showFooterLink && (
-          <p className="px-4 py-2 text-xs text-muted-foreground border-t">
-            Wird die Seite nicht angezeigt?{' '}
-            <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-              Direkt öffnen
-            </a>
-          </p>
-        )}
       </DialogContent>
     </Dialog>
   );
