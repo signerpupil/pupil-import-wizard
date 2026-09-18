@@ -808,6 +808,7 @@ export function Step0TypeSelect({
         onOpenChange={(open) => setOpenDialog(open ? 'tutorial' : null)}
         title="Interaktives Tutorial – Schulverwaltung"
         url="https://tutorial-schulverwaltung.lovable.app"
+        showFooterLink={false}
       />
       <IframeDialog
         open={openDialog === 'roles'}
