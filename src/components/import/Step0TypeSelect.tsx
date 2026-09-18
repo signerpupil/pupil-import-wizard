@@ -824,7 +824,7 @@ export function Step0TypeSelect({
         open={openDialog === 'lernumgebung'}
         onOpenChange={(open) => setOpenDialog(open ? 'lernumgebung' : null)}
         title="Lernumgebung für Lehrpersonen"
-        url="https://signerpupil.github.io/web-toys/PUPIL_Lernumgebung_AG.html#welcome"
+        url="https://studio.7ed.ch/pupil_lernumgebung_ag#welcome"
       />
       <IframeDialog
         open={openDialog === 'schulportal'}
