@@ -1,3 +1,5 @@
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -126,6 +128,48 @@
   }
 }
 
+/* ---- 7 Education Style (nur Vorschau-Seite) ---- */
+
+@layer base {
+  .seven-theme {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 338 90% 57%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 5%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 5%;
+
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 338 90% 57%;
+
+    --radius: 0.25rem;
+
+    --seven-blue: 228 93% 41%;
+    --seven-teal: 169 71% 45%;
+    --seven-orange: 25 100% 63%;
+    --seven-yellow: 49 100% 54%;
+    --seven-magenta: 338 90% 57%;
+
+    font-family: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -135,3 +179,4 @@
     @apply bg-background text-foreground;
   }
 }
+
