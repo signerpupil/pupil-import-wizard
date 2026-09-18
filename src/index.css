@@ -129,7 +129,6 @@
 }
 
 /* ---- 7 Education Style (nur Vorschau-Seite) ---- */
-@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap');
 
 @layer base {
   .seven-theme {
