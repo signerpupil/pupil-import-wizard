@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
+import assistantLogo from '@/assets/edi-assistent-logo.png.asset.json';
 
 const STORAGE_KEY = 'assistant-enabled';
 const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
