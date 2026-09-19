@@ -1,4 +1,6 @@
 import { GuidedImportTutorialDialog, type GuidedTutorialStep } from './GuidedImportTutorialDialog';
+import datenimporteAsset from '@/assets/tutorials/absenzen/datenimporte.png.asset.json';
+import dateiAuswaehlenAsset from '@/assets/tutorials/absenzen/datei-auswaehlen.png.asset.json';
 
 const imgBase = `${import.meta.env.BASE_URL}tutorials/foerderplanung/`;
 
@@ -50,11 +52,11 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 1: Importtyp Absenzen wählen',
     description:
       'Navigiere in PUPIL zu «Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte». Klicke im Bereich «Absenzen» auf «Starten».',
-    image: `${imgBase}uebersicht.jpg`,
+    image: datenimporteAsset.url,
     alt: 'Datenimporte-Übersicht mit dem Absenz-Import',
     hotspots: [
-      { left: 0.5, top: 69.2, width: 11.3, height: 2.5, label: 'Datenimporte' },
-      { left: 43.5, top: 70.2, width: 5.6, height: 3, label: 'Absenzen starten' },
+      { left: 0.4, top: 55.4, width: 12.2, height: 3.1, label: 'Master Data → Personen' },
+      { left: 43.4, top: 67.5, width: 8.5, height: 3.9, label: 'Absenzen starten' },
     ],
     info:
       'Wenn du Koneksa_Journal.csv bereits für den Journal-Import exportiert hast, kannst du genau dieselbe Datei verwenden.',
@@ -63,11 +65,11 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 2: Datei auswählen und prüfen',
     description:
       'Klicke auf «Auswählen…», wähle Koneksa_Journal.csv und gehe danach mit «Weiter zur Datenüberprüfung» zur Validierung.',
-    image: `${imgBase}datei-auswaehlen.jpg`,
+    image: dateiAuswaehlenAsset.url,
     alt: 'Import-Datei bereitstellen mit ausgewählter CSV-Datei',
     hotspots: [
-      { left: 41.6, top: 59.5, width: 7, height: 4, label: '1 Auswählen…' },
-      { left: 87.5, top: 68.3, width: 11.1, height: 2.8, label: '2 Weiter zur Datenüberprüfung' },
+      { left: 41.6, top: 57.8, width: 7, height: 3.9, label: '1 Auswählen…' },
+      { left: 89.3, top: 66.6, width: 9.2, height: 3.8, label: '2 Weiter zur Überprüfung' },
     ],
     success: 'Erfolgskontrolle: Die Datei erscheint mit Dateinamen und grünem Häkchen im Upload-Bereich.',
   },
