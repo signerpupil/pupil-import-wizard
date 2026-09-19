@@ -10,13 +10,12 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { ImportType, FoerderplanerSubType } from '@/types/importTypes';
 import type { ProcessingMode, CorrectionSource, CorrectionRule } from '@/types/correctionTypes';
-import { importConfigs, foerderplanerSubTypes } from '@/types/importTypes';
+import { importConfigs } from '@/types/importTypes';
 import { CorrectionRulesUpload } from './CorrectionRulesUpload';
 import { IframeDialog } from './IframeDialog';
 import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
-import { FoerderplanungTutorialDialog } from './FoerderplanungTutorialDialog';
 import { JournalTutorialDialog } from './JournalTutorialDialog';
 import { AbsenzenTutorialDialog } from './AbsenzenTutorialDialog';
 
@@ -158,7 +157,6 @@ export function Step0TypeSelect({
   const [journalGuideOpen, setJournalGuideOpen] = useState(false);
   const [absenzenGuideOpen, setAbsenzenGuideOpen] = useState(false);
   const [personendossierTutorialOpen, setPersonendossierTutorialOpen] = useState(false);
-  const [foerderplanungTutorialOpen, setFoerderplanungTutorialOpen] = useState(false);
 
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -316,22 +314,6 @@ export function Step0TypeSelect({
           </Card>
 
           <Card
-            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
-            onClick={() => setFoerderplanungTutorialOpen(true)}
-          >
-            <CardHeader className="pb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
-                <PlayCircle className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-base font-semibold leading-snug">Tutorial Import Förderplanung</CardTitle>
-              <CardDescription className="text-sm leading-relaxed">
-                Diagnostik, Förderziele und Lernberichte importieren – Klick-Tutorial mit Checkliste und 5 Schritten.
-              </CardDescription>
-
-            </CardHeader>
-          </Card>
-
-          <Card
             className={cn(
               'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
@@ -413,45 +395,6 @@ export function Step0TypeSelect({
           </Card>
         </div>
 
-        {selectedType === 'foerderplaner' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Förderplaner-Typ auswählen</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {foerderplanerSubTypes.map((subType) => {
-                const Icon = iconMap[subType.icon as keyof typeof iconMap];
-                const isSelected = selectedSubType === subType.subType;
-
-                return (
-                  <Card
-                    key={subType.subType}
-                    className={cn(
-                      'cursor-pointer transition-all hover:shadow-md',
-                      isSelected && 'ring-2 ring-pupil-teal shadow-md'
-                    )}
-                    onClick={() => onSelectSubType(subType.subType)}
-                  >
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={cn(
-                            'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                            isSelected ? 'bg-pupil-teal text-pupil-teal-foreground' : 'bg-muted'
-                          )}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{subType.name}</p>
-                          <p className="text-sm text-muted-foreground">{subType.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* 3. Pupil Instanz einrichten */}
@@ -823,10 +766,6 @@ export function Step0TypeSelect({
       <PersonendossierTutorialDialog
         open={personendossierTutorialOpen}
         onOpenChange={setPersonendossierTutorialOpen}
-      />
-      <FoerderplanungTutorialDialog
-        open={foerderplanungTutorialOpen}
-        onOpenChange={setFoerderplanungTutorialOpen}
       />
       <JournalTutorialDialog
         open={journalGuideOpen}
