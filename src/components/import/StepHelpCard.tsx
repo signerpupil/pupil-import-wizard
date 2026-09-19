@@ -92,21 +92,8 @@ export function StepHelpCard({ step, className, defaultExpanded = true }: StepHe
     setIsDismissed(false);
   };
 
-  if (!content) return null;
-
-  if (isDismissed) {
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleRestore}
-        className={cn("text-muted-foreground hover:text-foreground", className)}
-      >
-        <HelpCircle className="h-4 w-4 mr-1" />
-        Hilfe anzeigen
-      </Button>
-    );
-  }
+  // Help is hidden entirely (card and "Hilfe anzeigen" button)
+  return null;
 
   return (
     <Card className={cn("bg-primary/5 border-primary/20", className)}>
