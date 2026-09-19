@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return isSiteTheme(data?.value) ? data.value : 'pupil';
     },
-    initialData: cachedTheme,
+    placeholderData: cachedTheme,
     staleTime: 60_000,
     retry: 1,
   });
