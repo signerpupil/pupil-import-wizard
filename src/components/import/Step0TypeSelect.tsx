@@ -316,31 +316,6 @@ export function Step0TypeSelect({
           <Card
             className={cn(
               'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
-              selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
-                ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
-                : 'bg-card border-border hover:border-pupil-amber/30'
-            )}
-            onClick={() => { onSelectType('foerderplaner'); onSelectSubType('foerderplanung'); }}
-          >
-            <CardHeader className="pb-4">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors',
-                selectedType === 'foerderplaner' && selectedSubType === 'foerderplanung'
-                  ? 'bg-pupil-amber text-pupil-amber-foreground shadow-sm'
-                  : 'bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20'
-              )}>
-                <Target className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-base font-semibold leading-snug">Import Förderplanung</CardTitle>
-              <CardDescription className="text-sm leading-relaxed">
-                Förderziele, Massnahmen und Förderverlauf importieren.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card
-            className={cn(
-              'cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 group h-full',
               selectedType === 'foerderplaner' && selectedSubType === 'lernberichte'
                 ? 'ring-2 ring-pupil-amber shadow-md bg-pupil-amber/[0.04] border-pupil-amber/30'
                 : 'bg-card border-border hover:border-pupil-amber/30'
