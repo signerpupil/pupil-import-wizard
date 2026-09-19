@@ -1,4 +1,31 @@
-@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap');
+@font-face {
+  font-family: 'Switzer';
+  src: url('./assets/fonts/switzer-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Switzer';
+  src: url('./assets/fonts/switzer-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Switzer';
+  src: url('./assets/fonts/switzer-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Switzer';
+  src: url('./assets/fonts/switzer-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -60,6 +87,7 @@
     --pupil-contact-foreground: 0 0% 100%;
     --pupil-amber: 32 95% 55%;
     --pupil-amber-foreground: 0 0% 100%;
+    --assistant-accent: 338 90% 57%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -128,7 +156,7 @@
   }
 }
 
-/* ---- 7 Education Style (nur Vorschau-Seite) ---- */
+/* ---- 7 Education Style ---- */
 
 @layer base {
   .seven-theme {
@@ -165,8 +193,28 @@
     --seven-yellow: 49 100% 54%;
     --seven-magenta: 338 90% 57%;
 
+    --pupil-header: 0 0% 5%;
+    --pupil-header-foreground: 0 0% 100%;
+    --pupil-teal: 169 71% 45%;
+    --pupil-teal-foreground: 0 0% 5%;
+    --pupil-success: 169 71% 45%;
+    --pupil-success-foreground: 0 0% 5%;
+    --pupil-warning: 49 100% 54%;
+    --pupil-warning-foreground: 0 0% 5%;
+    --pupil-learning: 25 100% 63%;
+    --pupil-learning-foreground: 0 0% 5%;
+    --pupil-resources: 228 93% 41%;
+    --pupil-resources-foreground: 0 0% 100%;
+    --pupil-onboarding: 169 71% 45%;
+    --pupil-onboarding-foreground: 0 0% 5%;
+    --pupil-contact: 338 90% 57%;
+    --pupil-contact-foreground: 0 0% 100%;
+    --pupil-amber: 25 100% 63%;
+    --pupil-amber-foreground: 0 0% 5%;
+    --assistant-accent: 338 90% 57%;
+
     font-family: 'Switzer', ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 }
 

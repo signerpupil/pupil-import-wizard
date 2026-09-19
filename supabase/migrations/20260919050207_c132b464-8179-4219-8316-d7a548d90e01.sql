@@ -1,0 +1,1 @@
+GRANT ALL ON public.site_settings TO service_role;

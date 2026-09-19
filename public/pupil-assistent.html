@@ -24,9 +24,26 @@
     --radius: 12px;
   }
 
+  :root[data-theme="seven-education"] {
+    --ink: #0d0d0d;
+    --ink-soft: #666666;
+    --paper: #fffaf6;
+    --card: #ffffff;
+    --line: #e3e3e3;
+    --accent: #f43175;
+    --accent-hover: #d81d5d;
+    --accent-soft: #fff0f5;
+    --accent-ink: #ffffff;
+    --green: #14846f;
+    --green-soft: #e7f8f4;
+    --orange: #d85f13;
+    --orange-soft: #fff0e5;
+    --radius: 4px;
+  }
+
   body {
     font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    background: #f4f7fb;
+    background: var(--paper);
     color: var(--ink);
     min-height: 100vh;
     display: flex;
@@ -325,6 +342,11 @@
 
 <script>
 (function () {
+
+  var selectedTheme = new URLSearchParams(window.location.search).get('theme');
+  if (selectedTheme === 'seven-education') {
+    document.documentElement.dataset.theme = selectedTheme;
+  }
 
   // ─────────────────────────────────────────────
   // KNOWLEDGE BASE

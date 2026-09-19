@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 const ASSISTANT_LOGO_URL = `${import.meta.env.BASE_URL}edi-assistent-logo.png`;
 
 const STORAGE_KEY = 'assistant-enabled';
-const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
 
 export function isAssistantEnabled(): boolean {
   if (typeof window === 'undefined') return true;
@@ -17,6 +17,7 @@ export function setAssistantEnabled(enabled: boolean) {
 }
 
 export function FloatingAssistant() {
+  const { theme } = useTheme();
   const [enabled, setEnabled] = useState(isAssistantEnabled());
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -34,13 +35,13 @@ export function FloatingAssistant() {
       {!open && (
         <div className="fixed bottom-6 right-6 z-50 group">
           {/* Ambient pulse rings (Edi-Magenta) */}
-          <div className="absolute inset-0 rounded-full bg-[#F43274] opacity-40 animate-ping [animation-duration:2.5s]" />
-          <div className="absolute -inset-2 rounded-full bg-[#F43274]/50 blur-lg animate-pulse [animation-duration:3s]" />
+          <div className="absolute inset-0 rounded-full bg-[hsl(var(--assistant-accent))] opacity-40 animate-ping [animation-duration:2.5s]" />
+          <div className="absolute -inset-2 rounded-full bg-[hsl(var(--assistant-accent)/0.5)] blur-lg animate-pulse [animation-duration:3s]" />
 
           <button
             onClick={() => { setOpen(true); setMinimized(false); }}
             aria-label="Edi öffnen"
-            className="relative flex items-center justify-center h-20 w-20 rounded-full bg-[#F43274] shadow-[0_10px_36px_rgba(244,50,116,0.55)] hover:shadow-[0_14px_46px_rgba(244,50,116,0.65)] hover:-translate-y-1 active:scale-95 transition-all duration-300"
+            className="relative flex items-center justify-center h-20 w-20 rounded-full bg-[hsl(var(--assistant-accent))] shadow-xl hover:-translate-y-1 active:scale-95 transition-all duration-300"
           >
             <img
               src={ASSISTANT_LOGO_URL}
@@ -50,7 +51,7 @@ export function FloatingAssistant() {
 
             {/* Chat-Bot badge */}
             <span className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-background border-2 border-background shadow-md">
-              <MessageCircle className="h-4 w-4 text-[#F43274]" />
+              <MessageCircle className="h-4 w-4 text-[hsl(var(--assistant-accent))]" />
             </span>
           </button>
 
@@ -111,7 +112,7 @@ export function FloatingAssistant() {
             </div>
           </div>
           <iframe
-            src={ASSISTANT_URL}
+            src={`${import.meta.env.BASE_URL}pupil-assistent.html?theme=${theme}`}
             title="Edi"
             className="flex-1 w-full border-0 bg-white"
           />

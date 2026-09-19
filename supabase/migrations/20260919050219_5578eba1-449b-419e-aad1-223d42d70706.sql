@@ -1,0 +1,11 @@
+ALTER POLICY "Admins können Spalten verwalten" ON public.column_definitions USING (private.has_role(auth.uid(), 'admin')) WITH CHECK (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können Format-Regeln verwalten" ON public.format_rules USING (private.has_role(auth.uid(), 'admin')) WITH CHECK (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können Geschäftsregeln verwalten" ON public.business_rules USING (private.has_role(auth.uid(), 'admin')) WITH CHECK (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können alle Rollen sehen" ON public.user_roles USING (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können Rollen erstellen" ON public.user_roles WITH CHECK (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können Rollen löschen" ON public.user_roles USING (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins can read usage events" ON public.usage_events USING (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können FAQs verwalten" ON public.assistant_faqs USING (private.has_role(auth.uid(), 'admin')) WITH CHECK (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins können alle FAQs lesen" ON public.assistant_faqs USING (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Admins can read chat logs" ON public.assistant_chat_logs USING (private.has_role(auth.uid(), 'admin'));
+ALTER POLICY "Allow admins to update site_settings" ON public.site_settings USING (private.has_role(auth.uid(), 'admin')) WITH CHECK (private.has_role(auth.uid(), 'admin'));
