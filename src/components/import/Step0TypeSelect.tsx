@@ -234,7 +234,10 @@ export function Step0TypeSelect({
                       ? 'ring-2 ring-primary shadow-md bg-primary/[0.04]'
                       : 'hover:border-primary/30'
                   )}
-                  onClick={() => onSelectType(config.type)}
+                  onClick={() => {
+                    onSelectType(config.type);
+                    onNext();
+                  }}
                 >
                   <CardHeader className="pb-4">
                     <div
@@ -255,13 +258,6 @@ export function Step0TypeSelect({
             })}
         </div>
 
-        {/* Weiter */}
-        <div className="flex justify-end pt-2">
-          <Button size="lg" onClick={onNext} disabled={!canProceed} className="gap-2">
-            Weiter zum Upload
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
       </section>
 
       {/* 2. Datenimporte */}
