@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check, FileCheck, MonitorPlay } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check, FileCheck, MonitorPlay } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,15 +178,6 @@ export function Step0TypeSelect({
   }, [processingMode, correctionSource]);
 
   const isSpecialType = selectedType === 'gruppen' || selectedType === 'lp-zuweisung' || selectedType === 'stammdaten-lehrpersonen';
-  const canProceed = selectedType !== null && 
-    (selectedType !== 'foerderplaner' || selectedSubType !== null) &&
-    (isSpecialType ||
-     processingMode === 'initial' || 
-     (processingMode === 'continued' && (
-       (correctionSource === 'localStorage' && localStorageRulesCount > 0) ||
-       (correctionSource === 'file' && loadedCorrectionRules.length > 0)
-     ))
-    );
 
   return (
     <div className="site-home space-y-10">
