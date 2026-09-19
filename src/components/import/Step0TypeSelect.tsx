@@ -498,7 +498,10 @@ export function Step0TypeSelect({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Card className="h-full flex flex-col">
+          <Card
+            className="h-full flex flex-col border-pupil-teal/30 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-pupil-teal"
+            onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
+          >
             <CardHeader className="pb-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-muted text-foreground">
                 <Rocket className="h-6 w-6" />
@@ -512,7 +515,10 @@ export function Step0TypeSelect({
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open('https://www.pipy.app/pupil/onboarding', '_blank', 'noopener,noreferrer');
+                }}
               >
                 Onboarding-Portal öffnen
                 <ExternalLink className="ml-2 h-4 w-4" />
