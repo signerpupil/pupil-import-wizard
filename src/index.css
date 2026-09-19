@@ -312,6 +312,46 @@
     transform: none;
   }
 
+  /* Kontakt-Dialog im 7-Education-Stil */
+  .seven-theme .contact-dialog {
+    border-radius: 0.125rem;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--background));
+    box-shadow: none;
+    gap: 1.75rem;
+    padding: 2rem;
+  }
+
+  .seven-theme .contact-dialog h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .seven-theme .contact-dialog p,
+  .seven-theme .contact-dialog [data-slot='dialog-description'] {
+    font-size: 0.9375rem;
+    line-height: 1.625;
+  }
+
+  .seven-theme .contact-dialog-hint {
+    border: 0;
+    border-left: 2px solid hsl(var(--seven-magenta));
+    border-radius: 0;
+    background: transparent;
+    padding: 0.25rem 0 0.25rem 0.875rem;
+  }
+
+  .seven-theme .contact-dialog button {
+    border-radius: 0.125rem;
+    box-shadow: none;
+  }
+
+  .seven-theme .contact-dialog button:hover {
+    box-shadow: none;
+  }
+
   .seven-theme .site-home-section .rounded-xl {
     border-radius: 0.125rem;
   }
