@@ -189,9 +189,9 @@ export function Step0TypeSelect({
     );
 
   return (
-    <div className="space-y-10">
+    <div className="site-home space-y-10">
       {/* Intro */}
-      <div className="space-y-2">
+      <div className="site-home-intro space-y-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
           PUPIL@AG - Schritt für Schritt
         </h1>
@@ -202,7 +202,7 @@ export function Step0TypeSelect({
       </div>
 
       {/* 1. Import starten */}
-      <section className="space-y-5 p-6 rounded-xl border border-primary/25 bg-primary/[0.03]">
+      <section className="site-home-section site-home-section-primary space-y-5 p-6 rounded-xl border border-primary/25 bg-primary/[0.03]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-primary text-primary-foreground">
             <FileUp className="h-5 w-5" />
@@ -265,7 +265,7 @@ export function Step0TypeSelect({
       </section>
 
       {/* 2. Datenimporte */}
-      <section className="space-y-5 p-6 rounded-xl border border-pupil-amber/25 bg-pupil-amber/[0.03]">
+      <section className="site-home-section site-home-section-orange space-y-5 p-6 rounded-xl border border-pupil-amber/25 bg-pupil-amber/[0.03]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-amber text-pupil-amber-foreground">
             <Database className="h-5 w-5" />
@@ -450,7 +450,7 @@ export function Step0TypeSelect({
       </section>
 
       {/* 3. Pupil Instanz einrichten */}
-      <section className="space-y-5 p-6 rounded-xl border border-pupil-teal/25 bg-pupil-teal/[0.04]">
+      <section className="site-home-section site-home-section-teal space-y-5 p-6 rounded-xl border border-pupil-teal/25 bg-pupil-teal/[0.04]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-teal text-pupil-teal-foreground">
             <Sparkles className="h-5 w-5" />
@@ -497,7 +497,7 @@ export function Step0TypeSelect({
       </section>
 
       {/* 3. Hilfe & Kontakt */}
-      <section className="space-y-5 p-6 rounded-xl border border-border bg-muted/30">
+      <section className="site-home-section site-home-section-neutral space-y-5 p-6 rounded-xl border border-border bg-muted/30">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-foreground/80 text-background">
             <Mail className="h-5 w-5" />
@@ -554,7 +554,7 @@ export function Step0TypeSelect({
       </section>
 
       {/* 4. Schulung & Ressourcen */}
-      <section className="space-y-5 p-6 rounded-xl border border-pupil-resources/25 bg-pupil-resources/[0.05]">
+      <section className="site-home-section site-home-section-blue space-y-5 p-6 rounded-xl border border-pupil-resources/25 bg-pupil-resources/[0.05]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-pupil-resources text-pupil-resources-foreground">
             <BookOpen className="h-5 w-5" />

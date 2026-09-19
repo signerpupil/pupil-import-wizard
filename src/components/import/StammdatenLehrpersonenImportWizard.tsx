@@ -135,7 +135,7 @@ export function StammdatenLehrpersonenImportWizard({ onReset }: Props) {
   }, [currentStep, parseResult]);
 
   return (
-    <div className="space-y-8">
+    <div className="seven-workflow space-y-8">
       <div className="flex items-center gap-5">
         <Button variant="ghost" size="icon" onClick={onReset} className="shrink-0 h-10 w-10 rounded-xl hover:bg-muted">
           <ArrowLeft className="h-5 w-5" />

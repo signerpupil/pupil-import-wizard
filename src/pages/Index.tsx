@@ -342,7 +342,7 @@ export default function Index() {
     <div className="min-h-screen bg-background flex flex-col">
       <WizardHeader title={getStepTitle()} showStep={currentStep >= 1} onHomeClick={handleReset} />
       
-      <main className="container mx-auto px-4 py-6 max-w-5xl flex-1">
+      <main className="wizard-main container mx-auto px-4 py-6 max-w-5xl flex-1">
         {!showSpecialWizard && currentStep >= 1 && (
           <WizardProgress 
             currentStep={currentStep - 1}
