@@ -171,7 +171,12 @@ export function GuidedImportTutorialDialog({
                     }}
                   >
                     {hotspot.label && (
-                      <span className="absolute -top-3 left-1 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground shadow">
+                      <span
+                        className={cn(
+                          'absolute -top-3 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground shadow',
+                          hotspot.left + hotspot.width > 90 ? 'right-1' : 'left-1',
+                        )}
+                      >
                         {hotspot.label}
                       </span>
                     )}
