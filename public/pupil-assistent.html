@@ -686,6 +686,19 @@
   // API HELPERS
   // ─────────────────────────────────────────────
 
+  function getSessionId() {
+    try {
+      var id = localStorage.getItem("edi-session-id");
+      if (!id) {
+        id = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+        localStorage.setItem("edi-session-id", id);
+      }
+      return id;
+    } catch (e) {
+      return "anon";
+    }
+  }
+
   function callClaude(systemPrompt, messages, tools) {
     var body = {
       model: "claude-sonnet-4-6",
