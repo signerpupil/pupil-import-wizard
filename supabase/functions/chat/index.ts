@@ -1,4 +1,10 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders as baseCors } from 'npm:@supabase/supabase-js@2/cors';
+
+const corsHeaders = {
+  ...baseCors,
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-session-id',
+};
 import { buildFaqBlock, loadActiveFaqs } from '../_shared/faqs.ts';
 import { WIZARD_HELP_BLOCK } from '../_shared/wizardHelp.ts';
 import { logChat } from '../_shared/chatLog.ts';
