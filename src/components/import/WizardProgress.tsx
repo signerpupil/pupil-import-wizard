@@ -23,7 +23,7 @@ export function WizardProgress({ currentStep, maxVisitedStep, steps, onStepClick
   };
 
   return (
-    <div className="w-full py-6">
+    <div className="wizard-progress w-full py-6">
       {/* Circles and connectors row - fixed height */}
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
