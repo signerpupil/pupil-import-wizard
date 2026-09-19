@@ -1,6 +1,7 @@
 import { GuidedImportTutorialDialog, type GuidedTutorialStep } from './GuidedImportTutorialDialog';
 
 const imgBase = `${import.meta.env.BASE_URL}tutorials/journal/`;
+const sharedImgBase = `${import.meta.env.BASE_URL}tutorials/foerderplanung/`;
 
 const checklistItems = [
   'Du bist in PUPIL mit der Rolle «N&Z-Administration» angemeldet',
