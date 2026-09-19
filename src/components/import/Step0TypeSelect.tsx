@@ -16,6 +16,7 @@ import { IframeDialog } from './IframeDialog';
 import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
+import { FoerderplanungTutorialDialog } from './FoerderplanungTutorialDialog';
 import { JournalImportGuideDialog } from './JournalImportGuideDialog';
 import { AbsenzenImportGuideDialog } from './AbsenzenImportGuideDialog';
 
@@ -157,6 +158,7 @@ export function Step0TypeSelect({
   const [journalGuideOpen, setJournalGuideOpen] = useState(false);
   const [absenzenGuideOpen, setAbsenzenGuideOpen] = useState(false);
   const [personendossierTutorialOpen, setPersonendossierTutorialOpen] = useState(false);
+  const [foerderplanungTutorialOpen, setFoerderplanungTutorialOpen] = useState(false);
 
   const [openDialog, setOpenDialog] = useState<'tutorial' | 'roles' | 'elearning' | 'schulungsunterlagen' | 'lernumgebung' | 'schulportal' | 'roadmap' | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -308,6 +310,22 @@ export function Step0TypeSelect({
               <CardTitle className="text-base font-semibold leading-snug">Import Personendossier</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Dateien wie Zeugnisse oder Arztbescheinigungen hochladen – Klick-Tutorial in 8 Schritten.
+              </CardDescription>
+
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-pupil-amber/10 hover:border-pupil-amber/30 group h-full bg-card border-border"
+            onClick={() => setFoerderplanungTutorialOpen(true)}
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-amber/10 text-pupil-amber group-hover:bg-pupil-amber/20 transition-colors">
+                <PlayCircle className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base font-semibold leading-snug">Tutorial Import Förderplanung</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Diagnostik, Förderziele und Lernberichte importieren – Klick-Tutorial mit Checkliste und 5 Schritten.
               </CardDescription>
 
             </CardHeader>
@@ -805,6 +823,10 @@ export function Step0TypeSelect({
       <PersonendossierTutorialDialog
         open={personendossierTutorialOpen}
         onOpenChange={setPersonendossierTutorialOpen}
+      />
+      <FoerderplanungTutorialDialog
+        open={foerderplanungTutorialOpen}
+        onOpenChange={setFoerderplanungTutorialOpen}
       />
       <JournalImportGuideDialog
         open={journalGuideOpen}
