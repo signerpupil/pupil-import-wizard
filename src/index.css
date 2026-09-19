@@ -316,6 +316,55 @@
     border-radius: 0.125rem;
   }
 
+  .seven-theme .site-home-section > div.grid > div > div:first-child > div:first-child {
+    position: relative;
+    width: 2.5rem;
+    height: 1.5rem;
+    margin-bottom: 1rem;
+    justify-content: flex-end;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: hsl(var(--foreground));
+  }
+
+  .seven-theme .site-home-section > div.grid > div > div:first-child > div:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: currentColor;
+    transform: translateY(-50%);
+  }
+
+  .seven-theme .site-home-section > div.grid > div > div:first-child > div:first-child svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .seven-theme .site-home-section-primary > div.grid > div > div:first-child > div:first-child {
+    color: hsl(var(--seven-magenta));
+  }
+
+  .seven-theme .site-home-section-orange > div.grid > div > div:first-child > div:first-child {
+    color: hsl(var(--seven-orange));
+  }
+
+  .seven-theme .site-home-section-teal > div.grid > div > div:first-child > div:first-child {
+    color: hsl(var(--seven-teal));
+  }
+
+  .seven-theme .site-home-section-neutral > div.grid > div > div:first-child > div:first-child {
+    color: hsl(var(--foreground));
+  }
+
+  .seven-theme .site-home-section-blue > div.grid > div > div:first-child > div:first-child {
+    color: hsl(var(--seven-blue));
+  }
+
   .seven-theme .site-home-section .shadow-sm,
   .seven-theme .site-home-section .shadow-md,
   .seven-theme .site-home-section .shadow-xl {
@@ -339,6 +388,17 @@
   .seven-theme .seven-workflow > div:first-child {
     padding-bottom: 1.5rem;
     border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .seven-theme .wizard-progress {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .seven-theme .wizard-progress [class*='rounded-full'] {
+    border-radius: 9999px;
+    box-shadow: none;
   }
 
   @media (max-width: 639px) {
