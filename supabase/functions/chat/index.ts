@@ -46,6 +46,46 @@ Deno.serve(async (req) => {
     });
 
     const data = await anthropicRes.text();
+
+    // Anonymes Protokoll: nur die finale Antwort protokollieren
+    try {
+      const systemText = typeof body.system === 'string'
+        ? body.system
+        : Array.isArray(body.system)
+          ? body.system.map((b: { text?: string }) => b?.text ?? '').join('\n')
+          : '';
+      const isHelper = !!body.tools || /needs_live_docs|KEINE_TREFFER/i.test(systemText);
+      if (anthropicRes.ok && !isHelper) {
+        const msgs = Array.isArray(body.messages) ? body.messages : [];
+        const lastUser = [...msgs].reverse().find((m: { role?: string }) => m?.role === 'user');
+        const question = typeof lastUser?.content === 'string'
+          ? lastUser.content
+          : Array.isArray(lastUser?.content)
+            ? lastUser.content.map((c: { text?: string }) => c?.text ?? '').join('\n')
+            : '';
+        let answerText = '';
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed?.content)) {
+            answerText = parsed.content
+              .filter((b: { type?: string }) => b?.type === 'text')
+              .map((b: { text?: string }) => b.text ?? '')
+              .join('\n');
+          }
+        } catch { /* ignore */ }
+        if (question) {
+          await logChat({
+            question,
+            answer: answerText,
+            source: 'widget',
+            session_id: req.headers.get('x-session-id'),
+          });
+        }
+      }
+    } catch (e) {
+      console.error('chat log skipped', e instanceof Error ? e.message : e);
+    }
+
     return new Response(data, {
       status: anthropicRes.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
