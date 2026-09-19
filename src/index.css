@@ -393,6 +393,25 @@
     color: hsl(var(--seven-orange));
   }
 
+  /* Nummerierte Auflistung statt Punkt: Datenaufbereitung & Datenimporte */
+  .seven-theme .site-home-section-primary > div.grid,
+  .seven-theme .site-home-section-orange > div.grid {
+    counter-reset: seven-card;
+  }
+
+  .seven-theme .site-home-section-primary > div.grid > div > div:first-child > div:first-child::before,
+  .seven-theme .site-home-section-orange > div.grid > div > div:first-child > div:first-child::before {
+    content: counter(seven-card) '.';
+    counter-increment: seven-card;
+    width: auto;
+    min-width: 1.25rem;
+    border-radius: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: left;
+  }
+
   .seven-theme .site-home-section-teal > div.grid > div > div:first-child > div:first-child {
     color: hsl(var(--seven-teal));
   }
