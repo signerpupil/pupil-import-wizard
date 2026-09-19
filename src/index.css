@@ -413,11 +413,17 @@
     text-align: left;
   }
 
-  .seven-theme .site-home-section-teal > div.grid > div > div:first-child > div:first-child {
-    color: hsl(var(--seven-teal));
+  /* Ohne Punkt und ohne Nummerierung: restliche Bereiche */
+  .seven-theme .site-home-section-teal > div.grid > div > div:first-child > div:first-child::before,
+  .seven-theme .site-home-section-neutral > div.grid > div > div:first-child > div:first-child::before,
+  .seven-theme .site-home-section-blue > div.grid > div > div:first-child > div:first-child::before {
+    content: none;
   }
 
-  .seven-theme .site-home-section-neutral > div.grid > div > div:first-child > div:first-child {
+  .seven-theme .site-home-section-teal > div.grid > div > div:first-child > div:first-child,
+  .seven-theme .site-home-section-neutral > div.grid > div > div:first-child > div:first-child,
+  .seven-theme .site-home-section-blue > div.grid > div > div:first-child > div:first-child {
+    justify-content: flex-start;
     color: hsl(var(--foreground));
   }
 
