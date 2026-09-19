@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, LogIn, AlertCircle } from 'lucide-react';
 import pupilLogo from '@/assets/pupil-logo.png';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const { isSevenTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -37,7 +39,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={pupilLogo} alt="PUPIL Logo" className="h-12" />
+            <img src={isSevenTheme ? `${import.meta.env.BASE_URL}seven-education-logo.svg` : pupilLogo} alt={isSevenTheme ? 'seven education' : 'PUPIL Logo'} className="h-12 max-w-52" />
           </div>
           <CardTitle className="text-2xl">Admin-Bereich</CardTitle>
           <CardDescription>

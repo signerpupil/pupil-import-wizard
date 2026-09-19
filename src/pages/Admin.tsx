@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert, BarChart3, MessageCircleQuestion, MessageSquare } from 'lucide-react';
+import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert, BarChart3, MessageCircleQuestion, MessageSquare, Palette } from 'lucide-react';
 import pupilLogo from '@/assets/pupil-logo.png';
+import { useTheme } from '@/hooks/useTheme';
 import { AdminColumnDefinitions } from '@/components/admin/AdminColumnDefinitions';
 import { AdminFormatRules } from '@/components/admin/AdminFormatRules';
 import { AdminBusinessRules } from '@/components/admin/AdminBusinessRules';
@@ -16,9 +17,11 @@ import { AdminUserRoles } from '@/components/admin/AdminUserRoles';
 import { AdminMetrics } from '@/components/admin/AdminMetrics';
 import { AdminAssistantFaqs } from '@/components/admin/AdminAssistantFaqs';
 import { AdminAssistantLogs } from '@/components/admin/AdminAssistantLogs';
+import { AdminThemeSettings } from '@/components/admin/AdminThemeSettings';
 
 export default function Admin() {
   const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { isSevenTheme } = useTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('columns');
 
@@ -87,7 +90,7 @@ export default function Admin() {
       <header className="bg-pupil-header text-pupil-header-foreground py-4 px-6 shadow-md">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={pupilLogo} alt="PUPIL Logo" className="h-8" />
+            <img src={isSevenTheme ? `${import.meta.env.BASE_URL}seven-education-logo.svg` : pupilLogo} alt={isSevenTheme ? 'seven education' : 'PUPIL Logo'} className="h-8 max-w-40" />
             <div>
               <h1 className="text-xl font-bold">Admin-Bereich</h1>
               <p className="text-sm opacity-80">{user.email}</p>
@@ -119,7 +122,7 @@ export default function Admin() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8 mb-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 mb-6 h-auto">
             <TabsTrigger value="columns" className="flex items-center gap-2">
               <Columns className="h-4 w-4" />
               <span className="hidden sm:inline">Spalten</span>
@@ -151,6 +154,10 @@ export default function Admin() {
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Edi-Fragen</span>
+            </TabsTrigger>
+            <TabsTrigger value="design" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Design</span>
             </TabsTrigger>
           </TabsList>
 
@@ -184,6 +191,10 @@ export default function Admin() {
 
           <TabsContent value="logs">
             <AdminAssistantLogs />
+          </TabsContent>
+
+          <TabsContent value="design">
+            <AdminThemeSettings />
           </TabsContent>
         </Tabs>
       </main>

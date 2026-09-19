@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { trackEvent } from "@/lib/analytics";
 import { flushManualCorrections, isManualCorrectionsEmpty, hasBufferedManualCorrections } from "@/lib/telemetryCollectors";
 import Index from "./pages/Index";
@@ -43,26 +44,28 @@ const App = () => {
 
   return (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/docs" element={<Documentation />} />
-            <Route path="/assistent" element={<AssistentPage />} />
-            <Route path="/style-vorschau" element={<StylePreviewPage />} />
-            <Route path="/style-vorschau/stammdaten-mitarbeitende" element={<MitarbeitendeStylePreviewPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <FloatingAssistant />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/docs" element={<Documentation />} />
+              <Route path="/assistent" element={<AssistentPage />} />
+              <Route path="/style-vorschau" element={<StylePreviewPage />} />
+              <Route path="/style-vorschau/stammdaten-mitarbeitende" element={<MitarbeitendeStylePreviewPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <FloatingAssistant />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
   );
 };

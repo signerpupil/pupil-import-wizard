@@ -4,8 +4,6 @@ import { Send, Loader2, Bot, AlertCircle, Mail, Phone } from "lucide-react";
 import { getSessionId } from "@/lib/analytics";
 import ediLogo from "@/assets/edi-logo.png.asset.json";
 
-const PRIMARY = "#2b80c0";
-const BG = "#f4f7fb";
 const PRIVACY_KEY = "pupil-assistent-privacy-ok";
 const DISCLAIMER_KEY = "pupil-assistent-disclaimer-ok";
 const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/assistant-claude`;
@@ -92,16 +90,16 @@ export default function AssistentPage() {
   };
 
   return (
-    <div style={{ background: BG }} className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col items-center text-center gap-3">
+        <div className="bg-card rounded-lg border shadow-sm p-5 flex flex-col items-center text-center gap-3">
           <img src={ediLogo.url} alt="Edi" className="h-16 w-auto" />
           <div>
-            <h1 className="text-xl font-semibold" style={{ color: PRIMARY }}>
+            <h1 className="text-xl font-semibold text-primary">
               Edi
             </h1>
-            <p className="text-sm text-slate-500 max-w-xl mx-auto">
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
               Edi beantwortet Fragen zum Onboarding-Prozess und zu PUPIL – mit Live-Zugriff auf die aktuelle PUPIL-Dokumentation. Antworten sind KI-generiert und können Fehler enthalten.
             </p>
           </div>
@@ -110,21 +108,21 @@ export default function AssistentPage() {
 
         {/* Datenschutz & KI-Disclaimer */}
         {!disclaimerOk && (
-          <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-l-4 border-l-primary">
             <div className="flex items-start gap-3">
-              <Bot className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
+              <Bot className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="space-y-2">
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   <strong>Edi:</strong> Die Antworten werden von einer Künstlichen Intelligenz (Claude von Anthropic) generiert. Sie können Fehler enthalten, unvollständig sein oder veraltet sein.
                 </p>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   <strong>Datenschutzhinweis:</strong> Deine Fragen werden zur Verarbeitung an Anthropic übermittelt. Bitte gib <strong>keine personenbezogenen Daten</strong> ein (Namen, AHV, Adressen, E-Mails aus Importdateien). Deine Eingaben werden nicht zur Modellverbesserung verwendet. Fragen und Antworten werden anonym protokolliert (ohne Benutzerkonto oder Namen), damit häufige Themen erkannt und die Hilfe verbessert werden kann.
                 </p>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   Für verbindliche Auskünfte, Termine oder Rechtsfragen wende dich bitte direkt an den Support:{' '}
-                  <a href="mailto:pupil@ag.ch" className="underline" style={{ color: PRIMARY }}>pupil@ag.ch</a> / 062 835 26 03.
+                  <a href="mailto:pupil@ag.ch" className="text-primary underline">pupil@ag.ch</a> / 062 835 26 03.
                 </p>
-                <label className="flex items-start gap-2 text-sm text-slate-700 pt-1">
+                <label className="flex items-start gap-2 text-sm text-foreground pt-1">
                   <input
                     type="checkbox"
                     id="disclaimer-check"
@@ -140,16 +138,15 @@ export default function AssistentPage() {
           </div>
         )}
         {!privacyOk && disclaimerOk && (
-          <div className="bg-white rounded-2xl shadow-sm p-4 border-l-4" style={{ borderColor: PRIMARY }}>
-            <p className="text-sm text-slate-700">
+          <div className="bg-card rounded-lg shadow-sm p-4 border border-l-4 border-l-primary">
+            <p className="text-sm text-foreground">
               <strong>Datenschutzhinweis:</strong> Deine Fragen werden an Anthropic (Claude) gesendet
               und dort verarbeitet. Bitte gib <strong>keine personenbezogenen Daten</strong> ein
               (Namen, AHV, Adressen, E-Mails aus Importdateien).
             </p>
             <button
               onClick={dismissPrivacy}
-              className="mt-3 text-sm px-3 py-1.5 rounded-lg text-white"
-              style={{ background: PRIMARY }}
+              className="mt-3 text-sm px-3 py-1.5 rounded-md bg-primary text-primary-foreground"
             >
               Verstanden
             </button>
@@ -158,14 +155,14 @@ export default function AssistentPage() {
 
         {/* Chips */}
         {messages.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-sm text-slate-500 mb-3">Beispielfragen:</p>
+          <div className="bg-card rounded-lg border shadow-sm p-4">
+            <p className="text-sm text-muted-foreground mb-3">Beispielfragen:</p>
             <div className="flex flex-wrap gap-2">
               {QUICK_CHIPS.map((q) => (
                 <button
                   key={q}
                   onClick={() => send(q)}
-                  className="text-sm px-3 py-1.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition"
+                  className="text-sm px-3 py-1.5 rounded-full border border-border hover:border-primary/40 hover:bg-accent transition"
                 >
                   {q}
                 </button>
@@ -177,10 +174,10 @@ export default function AssistentPage() {
         {/* Chat */}
         <div
           ref={scrollRef}
-          className="bg-white rounded-2xl shadow-sm p-4 flex-1 min-h-[400px] max-h-[60vh] overflow-y-auto flex flex-col gap-3"
+          className="bg-card rounded-lg border shadow-sm p-4 flex-1 min-h-[400px] max-h-[60vh] overflow-y-auto flex flex-col gap-3"
         >
           {messages.length === 0 && (
-            <p className="text-sm text-slate-400 text-center my-auto">
+            <p className="text-sm text-muted-foreground text-center my-auto">
               Stell eine Frage oder wähle oben ein Beispiel.
             </p>
           )}
@@ -188,9 +185,8 @@ export default function AssistentPage() {
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                  m.role === "user" ? "text-white" : "bg-slate-50 text-slate-800"
+                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
                 }`}
-                style={m.role === "user" ? { background: PRIMARY } : undefined}
               >
                 {m.role === "assistant" ? (
                   <div className="prose prose-sm max-w-none prose-a:text-sky-700">
@@ -228,32 +224,31 @@ export default function AssistentPage() {
             </div>
           ))}
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> denkt nach…
             </div>
           )}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg p-3">
+            <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-md p-3">
               {error}
             </div>
           )}
         </div>
 
         {/* Composer */}
-        <div className="bg-white rounded-2xl shadow-sm p-3 flex items-end gap-2">
+        <div className="bg-card rounded-lg border shadow-sm p-3 flex items-end gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Frag Edi… (Enter = senden, Shift+Enter = neue Zeile)"
             rows={2}
-            className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300"
+            className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
           <button
             onClick={() => send(input)}
             disabled={loading || !input.trim()}
-            className="rounded-xl px-4 py-2.5 text-white disabled:opacity-40 flex items-center gap-1.5"
-            style={{ background: PRIMARY }}
+            className="rounded-md px-4 py-2.5 bg-primary text-primary-foreground disabled:opacity-40 flex items-center gap-1.5"
           >
             <Send className="h-4 w-4" /> Senden
           </button>
