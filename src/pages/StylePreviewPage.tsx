@@ -16,7 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-const LOGO_URL = `${import.meta.env.BASE_URL}seven-education-logo.svg`;
+const LOGO_URL = `${import.meta.env.BASE_URL}pupil-logo.png`;
 
 type Tile = {
   title: string;
@@ -98,7 +98,7 @@ export default function StylePreviewPage() {
       {/* Kopfzeile */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <img src={LOGO_URL} alt="seven education" className="h-8 w-auto" />
+          <img src={LOGO_URL} alt="PUPIL" className="h-8 w-auto" />
           <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Zur aktuellen Seite
           </Link>
@@ -197,7 +197,7 @@ export default function StylePreviewPage() {
 
         {/* Fusszeile */}
         <footer className="flex items-center justify-between border-t border-border pt-6 text-xs text-muted-foreground">
-          <img src={LOGO_URL} alt="seven education" className="h-5 w-auto opacity-60" />
+          <img src={LOGO_URL} alt="PUPIL" className="h-5 w-auto opacity-60" />
           <span>Design-Vorschau</span>
         </footer>
       </main>
