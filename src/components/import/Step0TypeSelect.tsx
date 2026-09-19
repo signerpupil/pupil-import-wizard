@@ -520,7 +520,10 @@ export function Step0TypeSelect({
             </CardContent>
           </Card>
 
-          <Card className="h-full flex flex-col border-pupil-contact/40">
+          <Card
+            className="h-full flex flex-col border-pupil-contact/40 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-pupil-contact"
+            onClick={() => setContactDialogOpen(true)}
+          >
             <CardHeader className="pb-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-contact/10 text-pupil-contact">
                 <Calendar className="h-6 w-6" />
