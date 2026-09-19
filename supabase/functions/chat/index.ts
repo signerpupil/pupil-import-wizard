@@ -84,7 +84,12 @@ Deno.serve(async (req) => {
             question,
             answer: answerText,
             source: 'widget',
-            session_id: req.headers.get('x-session-id'),
+            session_id: (() => {
+              const sid = req.headers.get('x-session-id') ?? '';
+              return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sid)
+                ? sid
+                : null;
+            })(),
           });
         }
       }
