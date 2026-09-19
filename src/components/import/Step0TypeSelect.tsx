@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check, FileCheck } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, Search, Target, FileText, ArrowRight, ShieldCheck, FileUp, RefreshCw, Database, FileJson, FolderOpen, ClipboardList, Sparkles, UserCog, PlayCircle, Shield, School, Map, Eye, EyeOff, Rocket, LogIn, Mail, Calendar, ExternalLink, Copy, Check, FileCheck, MonitorPlay } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -771,6 +771,27 @@ export function Step0TypeSelect({
               <CardTitle className="text-base">Dokumentation</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Ausführliche Anleitungen und Hilfeartikel zur Nutzung von PUPIL. Öffnet sich in einem neuen Tab.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-pupil-resources/30 hover:border-pupil-resources h-full"
+            onClick={() =>
+              window.open(
+                'https://www.pupil.ch/webinare-sammlung',
+                '_blank',
+                'noopener,noreferrer',
+              )
+            }
+          >
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-pupil-resources text-pupil-resources-foreground shadow-sm">
+                <MonitorPlay className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-base">Lust auf mehr? Dann schau dir unsere Webinare an.</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Aufgezeichnete Webinare rund um PUPIL. Öffnet sich in einem neuen Tab.
               </CardDescription>
             </CardHeader>
           </Card>
