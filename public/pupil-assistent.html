@@ -686,6 +686,24 @@
   // API HELPERS
   // ─────────────────────────────────────────────
 
+  function getSessionId() {
+    try {
+      var id = localStorage.getItem("edi-session-id");
+      if (!id) {
+        id = (window.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+              var r = Math.random() * 16 | 0;
+              return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        localStorage.setItem("edi-session-id", id);
+      }
+      return id;
+    } catch (e) {
+      return "anon";
+    }
+  }
+
   function callClaude(systemPrompt, messages, tools) {
     var body = {
       model: "claude-sonnet-4-6",
@@ -700,7 +718,8 @@
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1emhvZ3VzcHhsa3d2cHBvaWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTkwNTQsImV4cCI6MjA4NDA3NTA1NH0.L_U-mh3v9FxFcPUN1niKuqqJvcg_aKdOtXhkbAh_wJ4",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1emhvZ3VzcHhsa3d2cHBvaWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTkwNTQsImV4cCI6MjA4NDA3NTA1NH0.L_U-mh3v9FxFcPUN1niKuqqJvcg_aKdOtXhkbAh_wJ4"
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1emhvZ3VzcHhsa3d2cHBvaWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTkwNTQsImV4cCI6MjA4NDA3NTA1NH0.L_U-mh3v9FxFcPUN1niKuqqJvcg_aKdOtXhkbAh_wJ4",
+        "x-session-id": getSessionId()
       },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json(); });
