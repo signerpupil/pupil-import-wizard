@@ -278,6 +278,24 @@ export function GuidedImportTutorialDialog({
               {finalWarning}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {docLink && (
+            <div className="flex gap-3 rounded-md border border-primary/25 bg-primary/[0.04] p-3">
+              <BookOpen className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <div className="space-y-2 text-sm">
+                <p className="font-medium text-foreground">{docLink.title ?? 'Ausführliche Dokumentation'}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {docLink.description ??
+                    'Alle Details zum Import – inklusive Fehlerbehandlung und häufigen Fragen – findest du in der vollständigen Anleitung.'}
+                </p>
+                <Button asChild size="sm" className="w-full sm:w-auto">
+                  <a href={docLink.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Dokumentation öffnen
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
           <AlertDialogAction className="w-full">Verstanden</AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>

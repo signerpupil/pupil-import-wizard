@@ -108,6 +108,13 @@ const steps: GuidedTutorialStep[] = [
   },
 ];
 
+const docLink = {
+  url: 'https://dokumentation.pupil.ch/article/l6eg967z4n-datenimporte-journal-koneksa-ag',
+  title: 'Ausführliche Dokumentation',
+  description:
+    'Alle Details zum Journal-Import – Voraussetzungen, Fehlerbehandlung und häufige Fragen – findest du in der vollständigen Anleitung auf dokumentation.pupil.ch.',
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -122,6 +129,7 @@ export function JournalTutorialDialog({ open, onOpenChange }: Props) {
       steps={steps}
       checklistItems={checklistItems}
       finalWarning={finalWarning}
+      docLink={docLink}
     />
   );
 }
