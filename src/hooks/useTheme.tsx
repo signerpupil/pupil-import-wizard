@@ -50,6 +50,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     window.localStorage.setItem(THEME_CACHE_KEY, theme);
+    document.documentElement.classList.toggle('seven-theme', theme === 'seven-education');
   }, [theme]);
 
   const mutation = useMutation({

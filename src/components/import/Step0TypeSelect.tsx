@@ -850,7 +850,7 @@ export function Step0TypeSelect({
 
       {/* Kontakt-Dialog */}
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="contact-dialog max-w-2xl">
           <DialogHeader>
             <DialogTitle>Kontakt zur Projektleitung Pupil</DialogTitle>
             <DialogDescription>
@@ -863,7 +863,7 @@ export function Step0TypeSelect({
 
 Wenn ja, dann dürfen Sie gerne einen Termin mit der Projektleitung vereinbaren. Wenn nicht, dürfen Sie gerne einen Termin mit unserer Verkaufsabteilung vereinbaren, um ein entsprechendes Angebot zu erhalten. 
             </p>
-            <Alert className="border-pupil-contact/20 bg-pupil-contact/[0.04]">
+            <Alert className="contact-dialog-hint border-pupil-contact/20 bg-pupil-contact/[0.04]">
               <AlertDescription className="text-xs text-muted-foreground">
                 Hinweis: Der jeweilige Link öffnet sich in einem neuen Tab. Wählen Sie unten die passende Option.
               </AlertDescription>
