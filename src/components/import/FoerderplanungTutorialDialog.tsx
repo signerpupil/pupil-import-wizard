@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -149,16 +157,27 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+const IMPORT_ONLY_ONCE_WARNING =
+  'Denk daran: Führe jeden Import nur einmal durch – bei einer Wiederholung werden Daten doppelt erfasst.';
+
 export function FoerderplanungTutorialDialog({ open, onOpenChange }: Props) {
   const [index, setIndex] = useState(0);
   const [checked, setChecked] = useState<boolean[]>(checklistItems.map(() => false));
+  const [warningOpen, setWarningOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setIndex(0);
       setChecked(checklistItems.map(() => false));
+      setWarningOpen(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && index === steps.length - 1) {
+      setWarningOpen(true);
+    }
+  }, [index, open]);
 
   const step = steps[index];
   const isLast = index === steps.length - 1;
@@ -329,6 +348,21 @@ export function FoerderplanungTutorialDialog({ open, onOpenChange }: Props) {
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={warningOpen} onOpenChange={setWarningOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              Wichtig – bitte beachten
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed text-foreground">
+              {IMPORT_ONLY_ONCE_WARNING}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction className="w-full">Verstanden</AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
