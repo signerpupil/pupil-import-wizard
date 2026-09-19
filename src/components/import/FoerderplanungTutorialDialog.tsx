@@ -157,16 +157,27 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+const IMPORT_ONLY_ONCE_WARNING =
+  'Denk daran: Führe jeden Import nur einmal durch – bei einer Wiederholung werden Daten doppelt erfasst.';
+
 export function FoerderplanungTutorialDialog({ open, onOpenChange }: Props) {
   const [index, setIndex] = useState(0);
   const [checked, setChecked] = useState<boolean[]>(checklistItems.map(() => false));
+  const [warningOpen, setWarningOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setIndex(0);
       setChecked(checklistItems.map(() => false));
+      setWarningOpen(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && index === steps.length - 1) {
+      setWarningOpen(true);
+    }
+  }, [index, open]);
 
   const step = steps[index];
   const isLast = index === steps.length - 1;
