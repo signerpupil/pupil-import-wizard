@@ -170,11 +170,17 @@ export function FoerderplanungTutorialDialog({ open, onOpenChange }: Props) {
       setIndex(0);
       setChecked(checklistItems.map(() => false));
       setWarningOpen(false);
+    } else {
+      // Beim Schliessen komplett zurücksetzen, damit beim erneuten Öffnen
+      // der letzte Schritt (und damit die Warnung) nicht mehr «aktiv» ist.
+      setIndex(0);
+      setChecked(checklistItems.map(() => false));
+      setWarningOpen(false);
     }
   }, [open]);
 
   useEffect(() => {
-    if (open && index === steps.length - 1) {
+    if (open && index === steps.length - 1 && index > 0) {
       setWarningOpen(true);
     }
   }, [index, open]);
