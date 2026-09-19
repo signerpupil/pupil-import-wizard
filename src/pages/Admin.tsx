@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, LogOut, Home, Settings, Columns, FileCheck, Cpu, Users, AlertCircle, ShieldAlert, BarChart3, MessageCircleQuestion, MessageSquare, Palette } from 'lucide-react';
 import pupilLogo from '@/assets/pupil-logo.png';
-import { useTheme } from '@/hooks/useTheme';
 import { AdminColumnDefinitions } from '@/components/admin/AdminColumnDefinitions';
 import { AdminFormatRules } from '@/components/admin/AdminFormatRules';
 import { AdminBusinessRules } from '@/components/admin/AdminBusinessRules';
@@ -21,7 +20,6 @@ import { AdminThemeSettings } from '@/components/admin/AdminThemeSettings';
 
 export default function Admin() {
   const { user, isAdmin, isLoading, signOut } = useAuth();
-  const { isSevenTheme } = useTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('columns');
 
@@ -90,7 +88,7 @@ export default function Admin() {
       <header className="bg-pupil-header text-pupil-header-foreground py-4 px-6 shadow-md">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={isSevenTheme ? `${import.meta.env.BASE_URL}seven-education-logo.svg` : pupilLogo} alt={isSevenTheme ? 'seven education' : 'PUPIL Logo'} className="h-8 max-w-40" />
+            <img src={pupilLogo} alt="PUPIL Logo" className="h-8" />
             <div>
               <h1 className="text-xl font-bold">Admin-Bereich</h1>
               <p className="text-sm opacity-80">{user.email}</p>

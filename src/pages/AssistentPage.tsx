@@ -255,13 +255,13 @@ export default function AssistentPage() {
         </div>
 
         {/* Dauerhafter KI-Disclaimer & Support */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 px-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground px-1">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="h-3.5 w-3.5" />
             <span>Antworten sind KI-generiert und können Fehler enthalten. Bitte kritische Angaben verifizieren.</span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <a href="mailto:pupil@ag.ch" className="flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
+            <a href="mailto:pupil@ag.ch" className="flex items-center gap-1 text-primary hover:underline">
               <Mail className="h-3.5 w-3.5" /> Support
             </a>
             <span className="hidden sm:inline">|</span>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 const ASSISTANT_LOGO_URL = `${import.meta.env.BASE_URL}edi-assistent-logo.png`;
 
 const STORAGE_KEY = 'assistant-enabled';
-const ASSISTANT_URL = `${import.meta.env.BASE_URL}pupil-assistent.html`;
 
 export function isAssistantEnabled(): boolean {
   if (typeof window === 'undefined') return true;
@@ -17,6 +17,7 @@ export function setAssistantEnabled(enabled: boolean) {
 }
 
 export function FloatingAssistant() {
+  const { theme } = useTheme();
   const [enabled, setEnabled] = useState(isAssistantEnabled());
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -111,7 +112,7 @@ export function FloatingAssistant() {
             </div>
           </div>
           <iframe
-            src={ASSISTANT_URL}
+            src={`${import.meta.env.BASE_URL}pupil-assistent.html?theme=${theme}`}
             title="Edi"
             className="flex-1 w-full border-0 bg-white"
           />
