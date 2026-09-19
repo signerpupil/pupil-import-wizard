@@ -23,10 +23,11 @@ type Tile = {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   accent: string;
+  href?: string;
 };
 
 const aufbereitung: Tile[] = [
-  { title: 'Stammdaten Mitarbeitende', description: 'Lehrpersonen und Mitarbeitende aus LehrerOffice aufbereiten.', icon: UserCog, accent: 'var(--seven-magenta)' },
+  { title: 'Stammdaten Mitarbeitende', description: 'Lehrpersonen und Mitarbeitende aus LehrerOffice aufbereiten.', icon: UserCog, accent: 'var(--seven-magenta)', href: '/style-vorschau/stammdaten-mitarbeitende' },
   { title: 'Stammdaten SuS & EZB', description: 'Schülerinnen, Schüler und Erziehungsberechtigte prüfen und korrigieren.', icon: Users, accent: 'var(--seven-blue)' },
   { title: 'Gruppen', description: 'Fächer und Gruppen aus LehrerOffice auf PUPIL abbilden.', icon: FolderKanban, accent: 'var(--seven-teal)' },
   { title: 'LP-Zuweisung', description: 'Lehrpersonen den Gruppen zuweisen – aufbauend auf den Stammdaten.', icon: GraduationCap, accent: 'var(--seven-orange)' },
@@ -68,7 +69,7 @@ function SectionHeader({ label, title, description, icon: Icon, accent }: { labe
 
 function TileCard({ tile }: { tile: Tile }) {
   const Icon = tile.icon;
-  return (
+  const card = (
     <div className="group flex h-full cursor-pointer flex-col justify-between rounded-sm border border-border bg-card p-6 transition-colors duration-200 hover:border-foreground">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
@@ -85,6 +86,7 @@ function TileCard({ tile }: { tile: Tile }) {
       </div>
     </div>
   );
+  return tile.href ? <Link to={tile.href}>{card}</Link> : card;
 }
 
 export default function StylePreviewPage() {
