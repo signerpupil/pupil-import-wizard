@@ -1,6 +1,6 @@
 import { GuidedImportTutorialDialog, type GuidedTutorialStep } from './GuidedImportTutorialDialog';
 
-const imgBase = `${import.meta.env.BASE_URL}tutorials/foerderplanung/`;
+const imgBase = `${import.meta.env.BASE_URL}tutorials/journal/`;
 
 const checklistItems = [
   'Du bist in PUPIL mit der Rolle «N&Z-Administration» angemeldet',
@@ -51,11 +51,11 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 1: Importtyp Journal wählen',
     description:
       'Navigiere in PUPIL zu «Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte». Klicke im Bereich «Journal» auf «Starten».',
-    image: `${imgBase}uebersicht.jpg`,
+    image: `${imgBase}datenimporte.jpg`,
     alt: 'Datenimporte-Übersicht mit dem Journal-Import',
     hotspots: [
-      { left: 0.5, top: 69.2, width: 11.3, height: 2.5, label: 'Datenimporte' },
-      { left: 43.5, top: 62.2, width: 5.6, height: 3, label: 'Journal starten' },
+      { left: 0.3, top: 57.5, width: 12.5, height: 2.3, label: 'Master Data → Personen' },
+      { left: 43.4, top: 59.2, width: 8.5, height: 3.9, label: 'Journal starten' },
     ],
     info:
       'Journal und Absenzen verwenden dieselbe Datei. Wähle hier «Journal», damit nur die übrigen Journaleinträge übernommen werden.',
@@ -67,8 +67,8 @@ const steps: GuidedTutorialStep[] = [
     image: `${imgBase}datei-auswaehlen.jpg`,
     alt: 'Import-Datei bereitstellen mit ausgewählter CSV-Datei',
     hotspots: [
-      { left: 41.6, top: 59.5, width: 7, height: 4, label: '1 Auswählen…' },
-      { left: 87.5, top: 68.3, width: 11.1, height: 2.8, label: '2 Weiter zur Datenüberprüfung' },
+      { left: 41.7, top: 57.8, width: 7, height: 3.9, label: '1 Auswählen…' },
+      { left: 87.6, top: 66.6, width: 11.2, height: 3.7, label: '2 Weiter zur Datenüberprüfung' },
     ],
     success: 'Erfolgskontrolle: Die Datei erscheint mit Dateinamen und grünem Häkchen im Upload-Bereich.',
   },
