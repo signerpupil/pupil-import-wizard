@@ -77,7 +77,7 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 3: Validierung – Fehler beheben',
     description:
       'PUPIL prüft die Datei zuerst vollständig. Behebe angezeigte Fehler und lade die korrigierte Datei erneut hoch. Ohne Fehler kannst du den Import starten.',
-    image: `${imgBase}validierung-fehler.jpg`,
+    image: `${sharedImgBase}validierung-fehler.jpg`,
     alt: 'Datenüberprüfung mit Fehlertabelle',
     hotspots: [
       { left: 14.1, top: 27.6, width: 84.5, height: 13.4, label: 'Fehlertabelle prüfen' },
@@ -92,7 +92,7 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 4: Import starten',
     description:
       'Sobald keine Fehler mehr gefunden werden, erscheint die Meldung «Keine Fehler gefunden. Der Import kann gestartet werden.». Klicke auf «Import starten».',
-    image: `${imgBase}validierung-ok.jpg`,
+    image: `${sharedImgBase}validierung-ok.jpg`,
     alt: 'Datenüberprüfung ohne Fehler mit aktivem Button Import starten',
     hotspots: [{ left: 91.5, top: 41.4, width: 6.9, height: 2.8, label: 'Import starten' }],
     info: 'Es kann immer nur ein Import gleichzeitig laufen. Warte, bis der Vorgang vollständig abgeschlossen ist.',
@@ -101,7 +101,7 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 5: Erfolg prüfen',
     description:
       'Nach Abschluss erscheint die Erfolgsmeldung mit einer Zusammenfassung der importierten Datensätze.',
-    image: `${imgBase}erfolg.jpg`,
+    image: `${sharedImgBase}erfolg.jpg`,
     alt: 'Erfolgsmeldung nach abgeschlossenem Import',
     success:
       'Öffne das Journal und prüfe stichprobenhaft Datum, Kategorie, Unterkategorie, Fach und Inhalt. Vergleiche die Anzahl mit LehrerOffice – Absenz-Einträge sind ausgenommen.',
