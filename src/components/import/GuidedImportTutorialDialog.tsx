@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Info } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ExternalLink, Info } from 'lucide-react';
 
 export interface TutorialHotspot {
   left: number;
@@ -35,6 +35,12 @@ export interface GuidedTutorialStep {
   checklist?: boolean;
 }
 
+export interface TutorialDocLink {
+  url: string;
+  title?: string;
+  description?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +48,7 @@ interface Props {
   steps: GuidedTutorialStep[];
   checklistItems: string[];
   finalWarning: string;
+  docLink?: TutorialDocLink;
 }
 
 export function GuidedImportTutorialDialog({
@@ -51,6 +58,7 @@ export function GuidedImportTutorialDialog({
   steps,
   checklistItems,
   finalWarning,
+  docLink,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [checked, setChecked] = useState<boolean[]>(checklistItems.map(() => false));
