@@ -17,8 +17,8 @@ import { MitarbeitendeTutorialDialog } from './MitarbeitendeTutorialDialog';
 import { SusEzbTutorialDialog } from './SusEzbTutorialDialog';
 import { PersonendossierTutorialDialog } from './PersonendossierTutorialDialog';
 import { FoerderplanungTutorialDialog } from './FoerderplanungTutorialDialog';
-import { JournalImportGuideDialog } from './JournalImportGuideDialog';
-import { AbsenzenImportGuideDialog } from './AbsenzenImportGuideDialog';
+import { JournalTutorialDialog } from './JournalTutorialDialog';
+import { AbsenzenTutorialDialog } from './AbsenzenTutorialDialog';
 
 import { StepHelpCard } from './StepHelpCard';
 
@@ -391,7 +391,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Journal</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Journaleinträge aus LehrerOffice importieren – Anleitung in 4 Schritten.
+                Journaleinträge aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 4 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -407,7 +407,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Absenzen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Absenzen aus LehrerOffice importieren – Anleitung in 4 Schritten.
+                Absenzen aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 4 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -828,15 +828,13 @@ export function Step0TypeSelect({
         open={foerderplanungTutorialOpen}
         onOpenChange={setFoerderplanungTutorialOpen}
       />
-      <JournalImportGuideDialog
+      <JournalTutorialDialog
         open={journalGuideOpen}
         onOpenChange={setJournalGuideOpen}
-        onOpenAbsenzenGuide={() => setAbsenzenGuideOpen(true)}
       />
-      <AbsenzenImportGuideDialog
+      <AbsenzenTutorialDialog
         open={absenzenGuideOpen}
         onOpenChange={setAbsenzenGuideOpen}
-        onOpenJournalGuide={() => setJournalGuideOpen(true)}
       />
 
 
