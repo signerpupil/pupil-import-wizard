@@ -132,7 +132,7 @@
 
 @layer base {
   .seven-theme {
-    --background: 0 0% 100%;
+    --background: 30 100% 98%;
     --foreground: 0 0% 5%;
 
     --card: 0 0% 100%;
