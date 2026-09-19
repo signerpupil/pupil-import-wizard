@@ -73,7 +73,7 @@ const steps: GuidedTutorialStep[] = [
     success: 'Erfolgskontrolle: Die Datei erscheint mit Dateinamen und grünem Häkchen im Upload-Bereich.',
   },
   {
-    title: 'Schritt 3: Validierung und Import',
+    title: 'Schritt 3: Validierung – Fehler beheben',
     description:
       'PUPIL prüft die Datei zuerst vollständig. Behebe angezeigte Fehler und lade die korrigierte Datei erneut hoch. Ohne Fehler kannst du den Import starten.',
     image: `${imgBase}validierung-fehler.jpg`,
@@ -85,10 +85,19 @@ const steps: GuidedTutorialStep[] = [
     warning:
       'Typische Fehler sind fehlende SuS oder Ersteller sowie nicht gefundene Kategorien, Unterkategorien und Fächer. Schon abweichende Schreibweisen oder zusätzliche Leerzeichen verhindern den Textabgleich.',
     info:
-      'Die Validierung schreibt noch keine Daten. Wiederhole sie so oft wie nötig. Sobald keine Fehler mehr vorhanden sind, erscheint «Import starten».',
+      'Die Validierung schreibt noch keine Daten. Wiederhole sie so oft wie nötig, bis die Datei fehlerfrei ist.',
   },
   {
-    title: 'Schritt 4: Erfolg prüfen',
+    title: 'Schritt 4: Import starten',
+    description:
+      'Sobald keine Fehler mehr gefunden werden, erscheint die Meldung «Keine Fehler gefunden. Der Import kann gestartet werden.». Klicke auf «Import starten».',
+    image: `${imgBase}validierung-ok.jpg`,
+    alt: 'Datenüberprüfung ohne Fehler mit aktivem Button Import starten',
+    hotspots: [{ left: 91.5, top: 41.4, width: 6.9, height: 2.8, label: 'Import starten' }],
+    info: 'Es kann immer nur ein Import gleichzeitig laufen. Warte, bis der Vorgang vollständig abgeschlossen ist.',
+  },
+  {
+    title: 'Schritt 5: Erfolg prüfen',
     description:
       'Nach Abschluss erscheint die Erfolgsmeldung mit einer Zusammenfassung der importierten Datensätze.',
     image: `${imgBase}erfolg.jpg`,

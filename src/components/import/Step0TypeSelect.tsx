@@ -391,7 +391,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Journal</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Journaleinträge aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 4 Schritten.
+                Journaleinträge aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 5 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -407,7 +407,7 @@ export function Step0TypeSelect({
               </div>
               <CardTitle className="text-base font-semibold leading-snug">Import Absenzen</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
-                Absenzen aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 4 Schritten.
+                Absenzen aus LehrerOffice importieren – Klick-Tutorial mit Checkliste und 5 Schritten.
               </CardDescription>
             </CardHeader>
           </Card>
