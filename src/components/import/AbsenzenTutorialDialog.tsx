@@ -1,8 +1,7 @@
 import { GuidedImportTutorialDialog, type GuidedTutorialStep } from './GuidedImportTutorialDialog';
-import datenimporteAsset from '@/assets/tutorials/absenzen/datenimporte.png.asset.json';
-import dateiAuswaehlenAsset from '@/assets/tutorials/absenzen/datei-auswaehlen.png.asset.json';
 
 const imgBase = `${import.meta.env.BASE_URL}tutorials/foerderplanung/`;
+const absenzImgBase = `${import.meta.env.BASE_URL}tutorials/absenzen/`;
 
 const checklistItems = [
   'Du bist in PUPIL mit der Rolle «N&Z-Administration» angemeldet',
@@ -52,7 +51,7 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 1: Importtyp Absenzen wählen',
     description:
       'Navigiere in PUPIL zu «Master Data → Personen (SuS/GV/LP/SV/MA/SB) → Datenimporte». Klicke im Bereich «Absenzen» auf «Starten».',
-    image: datenimporteAsset.url,
+    image: `${absenzImgBase}datenimporte.png`,
     alt: 'Datenimporte-Übersicht mit dem Absenz-Import',
     hotspots: [
       { left: 0.4, top: 55.4, width: 12.2, height: 3.1, label: 'Master Data → Personen' },
@@ -65,7 +64,7 @@ const steps: GuidedTutorialStep[] = [
     title: 'Schritt 2: Datei auswählen und prüfen',
     description:
       'Klicke auf «Auswählen…», wähle Koneksa_Journal.csv und gehe danach mit «Weiter zur Datenüberprüfung» zur Validierung.',
-    image: dateiAuswaehlenAsset.url,
+    image: `${absenzImgBase}datei-auswaehlen.png`,
     alt: 'Import-Datei bereitstellen mit ausgewählter CSV-Datei',
     hotspots: [
       { left: 41.6, top: 57.8, width: 7, height: 3.9, label: '1 Auswählen…' },
